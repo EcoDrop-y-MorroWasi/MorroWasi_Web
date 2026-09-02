@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="MorroWasi — Mr. Gota">
+  <title>MorroWasi — Mr. Gota</title>
+  <style>
+    :root { --ink: #1c1c11; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #fdfae7; } }
+  </style>
+  <!-- hard shadow -->
+  <path d="M68 26 C96 58 104 70 104 82 A36 36 0 1 1 32 82 C32 70 40 58 68 26 Z" fill="var(--ink)"/>
+  <!-- algarrobo leaf accent -->
+  <path d="M80 14 C92 14 100 24 96 36 C92 46 80 46 74 38 C68 30 70 18 80 14 Z" fill="#FFB793" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M76 36 L94 18" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- gota / Mr. Gota body -->
+  <path d="M64 22 C92 54 100 66 100 78 A36 36 0 1 1 28 78 C28 66 36 54 64 22 Z" fill="#99B4D8" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+  <!-- face -->
+  <circle cx="52" cy="76" r="5" fill="var(--ink)"/>
+  <circle cx="76" cy="76" r="5" fill="var(--ink)"/>
+  <path d="M50 90 Q64 102 78 90" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+</svg>

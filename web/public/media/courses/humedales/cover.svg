@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#E26D5C" />
+  <rect x="6" y="6" width="628" height="348" fill="none" stroke="#1c1c11" stroke-width="4" />
+  <!-- Bandas de agua onduladas -->
+  <path d="M20 260 Q 100 240 180 260 T 340 260 T 500 260 T 620 260 V 340 H 20 Z" fill="#99B4D8" stroke="#1c1c11" stroke-width="4" />
+  <path d="M20 290 Q 100 275 180 290 T 340 290 T 500 290 T 620 290" fill="none" stroke="#fdfae7" stroke-width="3" opacity="0.8" />
+  <!-- Totoras / plantas de humedal -->
+  <g stroke="#1c1c11" stroke-width="4" stroke-linecap="round">
+    <line x1="120" y1="260" x2="110" y2="120" />
+    <line x1="180" y1="260" x2="190" y2="100" />
+    <line x1="460" y1="260" x2="450" y2="130" />
+    <line x1="520" y1="260" x2="530" y2="110" />
+  </g>
+  <ellipse cx="110" cy="105" rx="10" ry="26" fill="#8a5a2e" stroke="#1c1c11" stroke-width="3" />
+  <ellipse cx="190" cy="85" rx="10" ry="26" fill="#8a5a2e" stroke="#1c1c11" stroke-width="3" />
+  <ellipse cx="450" cy="115" rx="10" ry="26" fill="#8a5a2e" stroke="#1c1c11" stroke-width="3" />
+  <ellipse cx="530" cy="95" rx="10" ry="26" fill="#8a5a2e" stroke="#1c1c11" stroke-width="3" />
+  <!-- Burbujas de depuración -->
+  <circle cx="280" cy="300" r="8" fill="#fdfae7" stroke="#1c1c11" stroke-width="2" />
+  <circle cx="330" cy="315" r="6" fill="#fdfae7" stroke="#1c1c11" stroke-width="2" />
+  <circle cx="380" cy="295" r="5" fill="#fdfae7" stroke="#1c1c11" stroke-width="2" />
+  <text x="320" y="55" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="26" font-weight="800" fill="#fdfae7" text-anchor="middle">Humedales: tratamiento biológico</text>
+</svg>

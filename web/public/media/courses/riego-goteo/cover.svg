@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#99B4D8" />
+  <rect x="6" y="6" width="628" height="348" fill="none" stroke="#1c1c11" stroke-width="4" />
+  <!-- Botella invertida -->
+  <g>
+    <rect x="280" y="40" width="50" height="34" fill="#fdfae7" stroke="#1c1c11" stroke-width="4" />
+    <path d="M280 74 L 330 74 L 320 150 L 290 150 Z" fill="#fdfae7" stroke="#1c1c11" stroke-width="4" />
+    <rect x="292" y="90" width="26" height="45" fill="#FFB793" opacity="0.8" />
+  </g>
+  <!-- Goteo -->
+  <g stroke="#1c1c11" stroke-width="3" stroke-dasharray="4 6">
+    <line x1="305" y1="150" x2="305" y2="270" />
+  </g>
+  <circle cx="305" cy="200" r="6" fill="#fdfae7" stroke="#1c1c11" stroke-width="2" />
+  <circle cx="305" cy="235" r="6" fill="#fdfae7" stroke="#1c1c11" stroke-width="2" />
+  <!-- Tierra y planta -->
+  <rect x="230" y="280" width="150" height="40" fill="#8a5a2e" stroke="#1c1c11" stroke-width="4" />
+  <path d="M305 280 Q 295 250 275 245 Q 300 240 305 280 Q 310 245 335 250 Q 315 255 305 280 Z" fill="#FFB793" stroke="#1c1c11" stroke-width="3" />
+  <text x="320" y="345" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="24" font-weight="800" fill="#1c1c11" text-anchor="middle">Riego por goteo con botellas recicladas</text>
+</svg>
