@@ -1,0 +1,6 @@
+# Falsos positivos confirmados — variables cuyo nombre contiene "secret"/"key"
+# pero no son credenciales: un booleano de logro oculto y nombres de clave de
+# localStorage. Un fingerprint por línea, formato exacto que reporta `gitleaks detect`.
+bbbb2bb8f0e02b11bd2e8301ce024274e318e096:src/pages/Avatares.tsx:generic-api-key:81
+a2765b10b2ac620052940a0da4c82df944bc2bc3:web/src/utils/expStore.ts:generic-api-key:7
+a2765b10b2ac620052940a0da4c82df944bc2bc3:web/src/pages/Perfil.tsx:generic-api-key:8
