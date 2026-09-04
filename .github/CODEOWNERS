@@ -1,0 +1,6 @@
+# Cambios a las reglas de la base de datos (RLS, funciones SECURITY DEFINER) y a
+# los pipelines de CI son el blast-radius más grande del repo — requieren tu
+# revisión aunque el resto del PR ya esté aprobado por alguien más.
+/supabase/          @Claudio-SC247
+/.github/           @Claudio-SC247
+/vercel.json        @Claudio-SC247

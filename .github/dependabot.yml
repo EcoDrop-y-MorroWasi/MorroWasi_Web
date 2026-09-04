@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "npm" # entiende pnpm-lock.yaml igual
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Junta actualizaciones menores/patch en un solo PR en vez de uno por paquete —
+      # si no, cualquier semana con varias libs desactualizadas inunda de PRs sueltos.
+      minor-y-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

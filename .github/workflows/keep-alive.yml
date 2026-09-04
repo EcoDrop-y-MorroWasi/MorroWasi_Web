@@ -1,0 +1,18 @@
+name: Supabase keep-alive
+
+# Los proyectos free de Supabase se pausan solos tras 7 días seguidos sin
+# ninguna petición a la API. Este job pega al endpoint público de salud
+# (sin claves, sin datos) cada 3 días para que nunca llegue a esos 7 días,
+# aunque no haya usuarios reales usando el chat en ese momento.
+
+on:
+  schedule:
+    - cron: "0 12 */3 * *" # cada 3 días, 12:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Auth health endpoint
+        run: curl -sf --retry 3 https://osuunexuupokrgeocsin.supabase.co/auth/v1/health

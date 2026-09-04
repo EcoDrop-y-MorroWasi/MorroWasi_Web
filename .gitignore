@@ -1,18 +1,22 @@
 # Documentación local — no subir a GitHub (pedido usuario)
 documentacion/
 
-# Node / pnpm
+# Notas internas de coordinación con agentes IA durante el desarrollo — no subir (mismo criterio que documentacion/)
+.opencode/
+
+# Node / pnpm — solo pnpm-lock.yaml es la fuente de verdad, sin package-lock.json (npm) duplicado
 node_modules/
-web/node_modules/
+package-lock.json
 pnpm-debug.log*
 npm-debug.log*
 yarn-debug.log*
+lerna-debug.log*
+logs
 *.log
 
 # Build Vite
-web/dist/
-web/dist-ssr/
 dist/
+dist-ssr/
 *.local
 .env
 .env.local
@@ -26,6 +30,10 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 *.sw?
 
 # Vite / TS cache
@@ -34,5 +42,8 @@ vite.config.js
 vite.config.d.ts
 
 # Dev logs
-web/dev.log
 dev.log
+
+# Supabase CLI (caché local de link/deploy, específico de esta máquina)
+supabase/.temp/
+supabase/.branches/
