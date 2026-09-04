@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Inicio from './pages/Inicio'
@@ -40,11 +41,14 @@ export default function App() {
   }, [])
 
   return (
-    <Routes>
-      <Route path="/inicio-publico" element={<InicioPublico />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<ProtectedRoutes />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/inicio-publico" element={<InicioPublico />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<ProtectedRoutes />} />
+      </Routes>
+      <SpeedInsights />
+    </>
   )
 }
 
