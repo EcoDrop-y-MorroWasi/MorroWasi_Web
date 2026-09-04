@@ -70,6 +70,3 @@ mockups/        prototipos HTML sueltos, no forman parte del build
 
 Los `utils/*Store.ts` siguen un patrón común: funciones module-level para leer/escribir estado (localStorage o, en el caso de `authStore`, la sesión de Supabase) más un hook `useX()` que se mantiene sincronizado entre pantallas y pestañas.
 
-## Notas
-
-- `documentacion/` no se sube al repo (ver `.gitignore`) — es material de trabajo interno del proyecto completo (app Android + IoT Eco-Drop + esta web), no específico de este código.
