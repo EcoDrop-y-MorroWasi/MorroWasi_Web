@@ -22,10 +22,10 @@ jobs:
       - name: Configurar pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Configurar Node.js 20
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Instalar dependencias
@@ -99,10 +99,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      # El binario de Gitleaks (OSS) es gratis siempre. La Action wrapper
+      # gitleaks/gitleaks-action@v2 exige licencia paga para cuentas de
+      # organización (no para cuentas personales) desde su cambio de licencia —
+      # instalamos el CLI directo para no depender de esa licencia.
+      - name: Instalar Gitleaks (CLI OSS, sin licencia)
+        run: go install github.com/gitleaks/gitleaks/v8@latest
+
       - name: Escanear secretos en todo el historial de git
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gitleaks detect --source . --verbose --redact
 
   quality-gate:
     name: Type-check, tests y lint
@@ -114,10 +124,10 @@ jobs:
       - name: Configurar pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Configurar Node.js 20
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Instalar dependencias
