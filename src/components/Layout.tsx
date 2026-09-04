@@ -49,10 +49,32 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center justify-between gap-2">
             <LiveClock />
           </div>
-          <div className="flex h-14 w-full items-center justify-between">
-            <Link to="/" className="flex items-center gap-2" aria-label="MorroWasi inicio">
+          <div className="flex h-14 w-full items-center justify-between gap-4">
+            <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="MorroWasi inicio">
               <Logo className="h-12 w-auto sm:h-14" />
             </Link>
+
+            {/* Tabs: solo desktop/tablet — en mobile siguen en la barra fija de abajo
+                (patrón estándar para pantallas chicas, el pulgar llega fácil). */}
+            <nav aria-label="Navegación principal" className="hidden min-w-0 flex-1 items-center justify-center gap-1 sm:flex">
+              {TABS.map((tab) => (
+                <NavLink
+                  key={tab.to}
+                  to={tab.to}
+                  end={tab.to === '/'}
+                  className={({ isActive }) =>
+                    `flex min-h-12 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-ink px-3 text-sm font-semibold shadow-[2px_2px_0_#1c1c11] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                      isActive ? (tab.to === '/' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
+                    }`
+                  }
+                >
+                  <span aria-hidden="true" className="text-lg leading-none">
+                    {tab.icon}
+                  </span>
+                  {tab.label}
+                </NavLink>
+              ))}
+            </nav>
 
             {/* Mobile: solo el ícono (sin nombre ni botón "Salir", que se cortaban en pantallas
                 angostas) — lleva a Perfil, donde ahora vive Salir. */}
@@ -65,7 +87,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </Link>
 
             {/* Desktop/tablet: layout original completo. */}
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="hidden shrink-0 items-center gap-2 sm:flex">
               <span className="text-right text-sm font-bold" title={profile.name}>
                 {profile.name}
               </span>
@@ -86,19 +108,16 @@ export default function Layout({ children }: { children: ReactNode }) {
           edge-to-edge en pantallas grandes; en mobile max-w-6xl no aplica (siempre más angosto).
           pb con env(safe-area-inset-bottom): en celulares con barra/gesto inferior (notch), el
           nav real ocupa más que su alto nominal — sin esto el contenido queda tapado. */}
-      <main
-        className="mx-auto w-full max-w-6xl px-4 pt-4"
-        style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
-      >
+      {/* pb grande + safe-area solo hasta sm: es lo que el bottom nav mobile necesita para no tapar
+          contenido; en sm+ no hay bottom nav (los tabs viven en el header), así que pb vuelve a lo normal. */}
+      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-4">
         {children}
       </main>
 
-      {/* Bottom nav mobile-first: en desktop se centra como dock flotante en vez de estirarse a 1920px.
-          gap+px en vez de márgenes por tab: el presupuesto de ancho es explícito y predecible en
-          pantallas angostas (evita que "Noticias"/"Misiones" empujen la última pestaña fuera del viewport). */}
+      {/* Bottom nav: solo mobile — en desktop/tablet los tabs ya están en el header de arriba. */}
       <nav
         aria-label="Navegación principal"
-        className="keyline-border fixed inset-x-0 bottom-0 z-10 border-x-0 border-b-0 bg-bg-light"
+        className="keyline-border fixed inset-x-0 bottom-0 z-10 border-x-0 border-b-0 bg-bg-light sm:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="mx-auto flex h-20 w-full max-w-xl gap-1 px-1.5 sm:gap-1.5 sm:px-2">
