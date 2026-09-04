@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Inicio from './pages/Inicio'
@@ -18,7 +18,7 @@ import { Config } from './pages/Config'
 import { mockFamily, calcPew, calcWasiStage } from './data/mock'
 import InicioPublico from './pages/InicioPublico'
 import Login from './pages/Login'
-import { useAuthSession } from './utils/authStore'
+import { signOut, useAuthSession } from './utils/authStore'
 import { useHydroPoints } from './utils/hydroStore'
 import { useExp } from './utils/expStore'
 
@@ -27,6 +27,7 @@ import { useExp } from './utils/expStore'
 const Avatares = lazy(() => import('./pages/Avatares'))
 
 const THEME_STORAGE_KEY = 'morrowasi_theme_v1'
+const LIMITE_INACTIVIDAD_MS = 5 * 60 * 1000
 
 export default function App() {
   // Aplica el tema guardado en Perfil (localStorage) al arrancar la app, no solo al visitar /perfil.
@@ -39,12 +40,59 @@ export default function App() {
     }
   }, [])
 
+  const { session } = useAuthSession()
+  const [sesionExpirada, setSesionExpirada] = useState(false)
+  const navigate = useNavigate()
+
+  // Cierra la sesión sola tras 5 min sin actividad (mouse/teclado/touch/scroll)
+  // y avisa con un modal — vive acá arriba (no dentro de ProtectedRoutes) para
+  // que el modal sobreviva al redirect automático que dispara el signOut.
+  useEffect(() => {
+    if (!session) return
+    let ultimaActividad = Date.now()
+    const marcarActividad = () => { ultimaActividad = Date.now() }
+    const eventos = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'] as const
+    eventos.forEach((e) => window.addEventListener(e, marcarActividad, { passive: true }))
+    const intervalo = window.setInterval(() => {
+      if (Date.now() - ultimaActividad >= LIMITE_INACTIVIDAD_MS) {
+        signOut()
+        setSesionExpirada(true)
+      }
+    }, 10_000)
+    return () => {
+      eventos.forEach((e) => window.removeEventListener(e, marcarActividad))
+      window.clearInterval(intervalo)
+    }
+  }, [session])
+
   return (
-    <Routes>
-      <Route path="/inicio-publico" element={<InicioPublico />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<ProtectedRoutes />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/inicio-publico" element={<InicioPublico />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<ProtectedRoutes />} />
+      </Routes>
+
+      {sesionExpirada && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1c11]/80 p-4">
+          <div className="w-full max-w-sm rounded-2xl border-2 border-ink bg-surface p-6 text-center shadow-[4px_4px_0_#1c1c11]">
+            <p className="text-4xl" aria-hidden>⏱️</p>
+            <h2 className="mt-2 font-display text-lg font-bold text-ink">Sesión cerrada por inactividad</h2>
+            <p className="mt-2 text-sm text-ink/70">Por tu seguridad, cerramos tu sesión tras 5 minutos sin actividad.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setSesionExpirada(false)
+                navigate('/login', { replace: true })
+              }}
+              className="mt-4 min-h-12 w-full rounded-xl border-2 border-ink bg-accent px-5 font-display font-bold text-white shadow-[2px_2px_0_var(--color-ink)]"
+            >
+              Volver a iniciar sesión
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

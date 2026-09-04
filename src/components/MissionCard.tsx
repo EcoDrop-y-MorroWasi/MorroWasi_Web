@@ -30,9 +30,14 @@ export default function MissionCard({ text, liters, xp, completed, emoji = "💧
       <button
         type="button"
         onClick={onToggle}
+        disabled={completed}
         aria-pressed={completed}
-        aria-label={completed ? `Desmarcar ${text}` : `Completar ${text}`}
-        className={`shrink-0 min-h-12 min-w-[96px] rounded-lg border-2 border-ink px-4 py-2 text-sm font-extrabold shadow-[2px_2px_0_#1c1c11] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${completed ? "bg-[#28a745] text-white" : "bg-[#99B4D8] text-ink hover:bg-[#a9c4e8]"}`}
+        aria-label={completed ? `${text} completada por hoy` : `Completar ${text}`}
+        className={`shrink-0 min-h-12 min-w-[96px] rounded-lg border-2 border-ink px-4 py-2 text-sm font-extrabold shadow-[2px_2px_0_#1c1c11] transition-all ${
+          completed
+            ? "cursor-default bg-[#28a745] text-white"
+            : "bg-[#99B4D8] text-ink hover:bg-[#a9c4e8] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        }`}
       >
         {completed ? "✓ Listo" : "Completar"}
       </button>

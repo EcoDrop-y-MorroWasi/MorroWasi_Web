@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import MissionCard from "../components/MissionCard";
-import { addClamped, calcCustomXp, getConsejoDiario, getConsejoSemanal, getMisionesDiariasDeHoy, getMisionesSemanalesDeEstaSemana } from "../utils/gamification";
+import { calcCustomXp, getConsejoDiario, getConsejoSemanal, getMisionesDiariasDeHoy, getMisionesSemanalesDeEstaSemana } from "../utils/gamification";
 import type { Task } from "../utils/gamification";
 import { useExp } from "../utils/expStore";
 import { addLiters } from "../utils/litersStore";
@@ -55,22 +55,18 @@ export default function Misiones() {
     }
   }, [tasks, customTasks]);
 
+  // Completar una misión es definitivo por hoy — no se puede desmarcar (queda
+  // "✓ Listo" hasta que rote a otra misión al día siguiente, ver
+  // getMisionesDiariasDeHoy/getMisionesSemanalesDeEstaSemana).
   const toggle = (id: string, isCustom: boolean) => {
     const list = isCustom ? customTasks : tasks;
     const target = list.find((t) => t.id === id);
-    if (!target) return;
-    const willComplete = !target.completed;
-    if (willComplete) {
-      addExp(target.xp);
-      addLiters(target.litersSaved);
-      setLitrosHoy((l) => l + target.litersSaved);
-    } else {
-      addExp(-target.xp);
-      addLiters(-target.litersSaved);
-      setLitrosHoy((l) => addClamped(l, -target.litersSaved));
-    }
-    if (isCustom) setCustomTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: willComplete } : t)));
-    else setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: willComplete } : t)));
+    if (!target || target.completed) return;
+    addExp(target.xp);
+    addLiters(target.litersSaved);
+    setLitrosHoy((l) => l + target.litersSaved);
+    if (isCustom) setCustomTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
+    else setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
   };
 
   const addCustom = () => {

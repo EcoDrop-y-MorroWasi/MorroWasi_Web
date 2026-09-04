@@ -59,7 +59,10 @@ function parseRssItems(xml: string): NoticiaAgua[] {
     const link = decodeEntities(stripCdata(extractTag(bloque, "link"))).trim();
     const pubDate = extractTag(bloque, "pubDate");
     const fuenteCruda = decodeEntities(stripCdata(extractTag(bloque, "source")));
-    const descripcionCruda = decodeEntities(stripHtml(stripCdata(extractTag(bloque, "description"))));
+    // Google devuelve description con las etiquetas HTML como entidades
+    // (&lt;a href=...&gt;), no como CDATA — hay que decodificar ANTES de
+    // stripHtml, si no stripHtml no encuentra ningún "<" real que limpiar.
+    const descripcionCruda = stripHtml(decodeEntities(stripCdata(extractTag(bloque, "description"))));
 
     if (!tituloCrudo || !link) continue;
 
