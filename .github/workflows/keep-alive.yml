@@ -2,8 +2,11 @@ name: Supabase keep-alive
 
 # Los proyectos free de Supabase se pausan solos tras 7 días seguidos sin
 # ninguna petición a la API. Este job pega al endpoint público de salud
-# (sin claves, sin datos) cada 3 días para que nunca llegue a esos 7 días,
-# aunque no haya usuarios reales usando el chat en ese momento.
+# cada 3 días para que nunca llegue a esos 7 días, aunque no haya usuarios
+# reales usando el chat en ese momento. Supabase exige el header `apikey`
+# hasta en este endpoint (no es secreto, es el mismo publishable key que ya
+# está en el bundle del frontend, pero se guarda como secret igual para no
+# pegarlo a mano en el workflow).
 
 on:
   schedule:
@@ -15,4 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase Auth health endpoint
-        run: curl -sf --retry 3 https://osuunexuupokrgeocsin.supabase.co/auth/v1/health
+        run: |
+          curl -sf --retry 3 \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            https://osuunexuupokrgeocsin.supabase.co/auth/v1/health
