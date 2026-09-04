@@ -15,6 +15,7 @@ jobs:
   dependency-audit:
     name: Auditoría de dependencias (pnpm audit)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Descargar el código
         uses: actions/checkout@v5
@@ -32,6 +33,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Auditar dependencias (pnpm audit)
+        # No bloquea el pipeline: el endpoint de advisories de npm viene
+        # colgándose (visto en dos entornos distintos), y Dependabot ya cubre
+        # esto mismo de forma más confiable (abre PR cuando hay una CVE nueva).
+        # Con timeout propio para no depender del timeout general del job.
+        timeout-minutes: 3
+        continue-on-error: true
         run: |
           set +e
           pnpm audit --json > audit.json
