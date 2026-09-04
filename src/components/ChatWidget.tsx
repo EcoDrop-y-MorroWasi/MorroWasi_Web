@@ -54,6 +54,10 @@ export default function ChatWidget() {
   const listRef = useRef<HTMLDivElement>(null);
   const primerRenderRef = useRef(true);
   const canalRef = useRef<RealtimeChannel | null>(null);
+  // Distingue "todavía nadie se unió" (normal, false al crear la sala) de
+  // "se unió y se fue" (ahí sí hay que avisar) — sin esto, el efecto de abajo
+  // disparaba el aviso de desconexión apenas se creaba la sala.
+  const huboSegundaFamiliaRef = useRef(false);
 
   useEffect(() => {
     if (primerRenderRef.current) {
@@ -115,10 +119,22 @@ export default function ChatWidget() {
     };
   }, [sala, session]);
 
-  // Si la otra familia se desconecta (canal cae), avisamos y volvemos al inicio —
-  // no se borra la sala del lado servidor, solo se sale de la vista local.
+  // Marca que la sala ya tuvo a las dos familias — solo a partir de ahí un
+  // otroConectado=false más adelante significa "se desconectó", no "recién
+  // creada, esperando".
   useEffect(() => {
-    if (otroConectado || !sala) return;
+    if (otroConectado) huboSegundaFamiliaRef.current = true;
+  }, [otroConectado]);
+
+  useEffect(() => {
+    huboSegundaFamiliaRef.current = false;
+  }, [sala?.id]);
+
+  // Si la otra familia se desconecta (canal cae) DESPUÉS de haber estado ambas
+  // presentes, avisamos y volvemos al inicio — no se borra la sala del lado
+  // servidor, solo se sale de la vista local.
+  useEffect(() => {
+    if (!huboSegundaFamiliaRef.current || otroConectado || !sala) return;
     setAvisoCierre("La otra familia se desconectó.");
     const id = window.setTimeout(() => {
       setSala(null);
