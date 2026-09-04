@@ -109,7 +109,10 @@ jobs:
       # organización (no para cuentas personales) desde su cambio de licencia —
       # instalamos el CLI directo para no depender de esa licencia.
       - name: Instalar Gitleaks (CLI OSS, sin licencia)
-        run: go install github.com/gitleaks/gitleaks/v8@latest
+        # El binario vive en github.com/gitleaks/gitleaks, pero el módulo Go
+        # interno todavía declara el path del repo original (pre-migración) —
+        # go install necesita ese path exacto, no el de la URL del repo.
+        run: go install github.com/zricethezav/gitleaks/v8@latest
 
       - name: Escanear secretos en todo el historial de git
         run: gitleaks detect --source . --verbose --redact
