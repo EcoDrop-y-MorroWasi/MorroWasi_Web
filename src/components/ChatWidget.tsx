@@ -50,6 +50,7 @@ export default function ChatWidget() {
   const [avisoCierre, setAvisoCierre] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [advertencias, setAdvertencias] = useState(0);
   const [, forceTick] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const primerRenderRef = useRef(true);
@@ -159,6 +160,7 @@ export default function ChatWidget() {
       setSala({ id: data.id, codigo: data.code, expiraEn: new Date(data.expires_at).getTime() });
       setMensajes([]);
       setOtroConectado(false);
+      setAdvertencias(0);
       setEstado("codigo-generado");
     } catch {
       setError("No se pudo crear el chat. Intenta de nuevo.");
@@ -178,6 +180,7 @@ export default function ChatWidget() {
       if (!chat) throw new Error("Sala no encontrada");
       setSala({ id: chat.id, codigo: chat.code, expiraEn: new Date(chat.expires_at).getTime() });
       setOtroConectado(true);
+      setAdvertencias(0);
       setEstado("abierto");
     } catch {
       setError("Código inválido, vencido o la sala ya está llena.");
@@ -186,14 +189,37 @@ export default function ChatWidget() {
     }
   };
 
+  // El trigger moderar_mensaje() en Postgres censura groserías y cuenta
+  // advertencias por (sala, usuario) — este texto ya lo hace real la base,
+  // acá solo detectamos si vino censurado (texto guardado != lo que mandé)
+  // para avisarle a quien escribió. Al 3er strike el trigger cancela el
+  // insert y borra la sala entera (data queda null/vacío).
   const enviarMensaje = async () => {
     const txt = texto.trim();
     if (!txt || !sala || !session) return;
     setTexto("");
-    const { error: insertError } = await supabase
+    const { data, error: insertError } = await supabase
       .from("messages")
-      .insert({ chat_id: sala.id, sender_id: session.user.id, text: txt });
-    if (insertError) setError("No se pudo enviar el mensaje.");
+      .insert({ chat_id: sala.id, sender_id: session.user.id, text: txt })
+      .select("text")
+      .single();
+
+    if (insertError) {
+      if (insertError.code === "PGRST116") {
+        setSala(null);
+        setMensajes([]);
+        setAdvertencias(0);
+        setEstado("cerrado");
+        setError("El chat se cerró: demasiados mensajes con lenguaje inapropiado.");
+        return;
+      }
+      setError("No se pudo enviar el mensaje.");
+      return;
+    }
+
+    if (data && data.text !== txt) {
+      setAdvertencias((n) => n + 1);
+    }
   };
 
   const volverAlInicio = () => {
@@ -201,11 +227,15 @@ export default function ChatWidget() {
     setMensajes([]);
     setCodigoInput("");
     setError(null);
+    setAdvertencias(0);
     setEstado("unirse");
   };
 
-  const eliminarChatManualmente = () => {
-    if (!window.confirm("¿Salir de este chat? No se puede deshacer.")) return;
+  // Borra la sala de verdad (cascada se lleva mensajes y participantes) —
+  // afecta a las dos familias, no solo cierra la vista local de quien sale.
+  const salirDelChat = async () => {
+    if (!window.confirm("¿Salir de este chat? Se borra para las dos familias. No se puede deshacer.")) return;
+    if (sala) await supabase.rpc("leave_chat", { p_chat_id: sala.id });
     volverAlInicio();
   };
 
@@ -360,6 +390,11 @@ export default function ChatWidget() {
           })}
         </div>
 
+        {advertencias > 0 && (
+          <p className="border-t-2 border-ink bg-[#E26D5C]/20 px-3 py-1.5 text-center text-[11px] font-bold text-accent">
+            ⚠️ Advertencia {advertencias}/3 por lenguaje inapropiado — al llegar a 3, el chat se cierra para las dos familias.
+          </p>
+        )}
         <div className="flex items-center gap-2 border-t-2 border-ink p-2">
           <input
             value={texto}
@@ -389,7 +424,7 @@ export default function ChatWidget() {
         </button>
         <button
           type="button"
-          onClick={eliminarChatManualmente}
+          onClick={salirDelChat}
           className="flex-1 min-h-10 rounded-lg border-2 border-ink bg-[#E26D5C] text-xs font-bold text-white"
         >
           🗑️ Salir del chat
