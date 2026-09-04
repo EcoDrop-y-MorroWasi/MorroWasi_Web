@@ -23,6 +23,17 @@ function formatearHora(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Flag de solo lectura para el logro "Voz de la Familia" del Álbum — se marca
+// la primera vez que la familia crea o se une a un chat real.
+const CHAT_USADO_KEY = "morrowasi_chat_usado_v1";
+function marcarChatUsado() {
+  try {
+    window.localStorage.setItem(CHAT_USADO_KEY, "true");
+  } catch {
+    /* localStorage no disponible */
+  }
+}
+
 function formatearTiempoRestante(expiraEn: number): string {
   const ms = expiraEn - Date.now();
   if (ms <= 0) return "Expirado";
@@ -120,6 +131,29 @@ export default function ChatWidget() {
     };
   }, [sala, session]);
 
+  // Chequea cada 15s si la sala sigue existiendo del lado servidor — cubre
+  // "la otra familia salió" (leave_chat) y "la otra familia fue baneada por
+  // lenguaje inapropiado" (moderar_mensaje borra la sala al 3er strike) con
+  // el mismo código, para las dos familias, no solo para quien lo causó.
+  // No usamos postgres_changes DELETE acá a propósito: chat_participants se
+  // borra en cascada en la misma transacción, así que para cuando Realtime
+  // evalúa el permiso de RLS para avisar, la tabla que usa para chequear "sos
+  // participante" ya está vacía — el aviso no llegaría de forma confiable.
+  useEffect(() => {
+    if (!sala || !session) return;
+    const id = window.setInterval(async () => {
+      const { data } = await supabase.from("chats").select("id").eq("id", sala.id).maybeSingle();
+      if (!data) {
+        setSala(null);
+        setMensajes([]);
+        setAdvertencias(0);
+        setEstado("cerrado");
+        setError("El chat se cerró (la otra familia salió o se superó el límite de lenguaje inapropiado).");
+      }
+    }, 15_000);
+    return () => window.clearInterval(id);
+  }, [sala, session]);
+
   // Marca que la sala ya tuvo a las dos familias — solo a partir de ahí un
   // otroConectado=false más adelante significa "se desconectó", no "recién
   // creada, esperando".
@@ -162,6 +196,7 @@ export default function ChatWidget() {
       setOtroConectado(false);
       setAdvertencias(0);
       setEstado("codigo-generado");
+      marcarChatUsado();
     } catch {
       setError("No se pudo crear el chat. Intenta de nuevo.");
     } finally {
@@ -182,6 +217,7 @@ export default function ChatWidget() {
       setOtroConectado(true);
       setAdvertencias(0);
       setEstado("abierto");
+      marcarChatUsado();
     } catch {
       setError("Código inválido, vencido o la sala ya está llena.");
     } finally {

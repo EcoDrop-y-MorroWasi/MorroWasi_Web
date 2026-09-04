@@ -120,6 +120,34 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
             ))}
           </ol>
         </section>
+
+        {/* Progreso real por lección — no solo el contador agregado de la tarjeta:
+            acá se ve exactamente qué lección ya se hizo y cuál falta. */}
+        <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`} aria-label="Progreso por lección">
+          <h2 className="font-display text-lg font-bold">✅ Tu progreso</h2>
+          <ol className="mt-3 space-y-2">
+            {selected.lessons.map((l, i) => {
+              const hecha = (progress[selected.id] ?? []).includes(l.id);
+              return (
+                <li
+                  key={l.id}
+                  className={`flex items-center gap-3 rounded-xl border-2 border-ink p-3 ${hecha ? "bg-[#28a745]/20" : "bg-bg-light"}`}
+                >
+                  <span
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink text-sm font-black ${
+                      hecha ? "bg-[#28a745] text-white" : "bg-surface"
+                    }`}
+                    aria-hidden
+                  >
+                    {hecha ? "✓" : i + 1}
+                  </span>
+                  <span className="text-sm font-semibold leading-snug">{l.title}</span>
+                  {hecha && <span className="ml-auto shrink-0 text-xs font-bold text-[#28a745]">Hecha</span>}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
         <button
           type="button"
           onClick={startCourse}

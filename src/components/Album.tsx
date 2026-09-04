@@ -4,8 +4,34 @@ import { calcPew, calcWasiStage, mockFamily, mockReservoir } from "../data/mock"
 import { getStats } from "../utils/stats";
 import { useExp } from "../utils/expStore";
 import { getReservoir } from "../utils/litersStore";
+import { useHydroPoints } from "../utils/hydroStore";
 
 const ACADEMIA_PROGRESS_KEY = "morrowasi_academia_progress_v1";
+const CHAT_USADO_KEY = "morrowasi_chat_usado_v1";
+const AVATARES_STORAGE_KEY = "morrowasi_avatares_v1";
+
+function chatUsado(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(CHAT_USADO_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+// Lee el progreso real de la Tienda de Avatares (misma clave que
+// utils/avatarShopStore.ts) — solo lectura, para el logro "Coleccionista".
+function accesoriosComprados(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(AVATARES_STORAGE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { ownedAccessoryIds?: string[] };
+    return parsed.ownedAccessoryIds?.length ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
 // Lee el progreso real de Academia (misma clave que Academia.tsx/Misiones.tsx) — solo lectura.
 function readAcademiaProgress(): Record<string, string[]> {
@@ -36,11 +62,14 @@ export default function Album() {
   const coursesCompleted = coursesMock.filter((c) => (progress[c.id]?.length ?? 0) === c.lessons.length).length;
 
   const [exp] = useExp();
+  const [hydroPoints] = useHydroPoints();
   const pew = calcPew(exp, mockFamily.streakDays);
   const { stage } = calcWasiStage(pew);
   const reservoir = getReservoir();
   const reservoirPct = reservoir.capacityLiters > 0 ? reservoir.currentLiters / reservoir.capacityLiters : 0;
   const reservoirGuardian = mockReservoir.daysOfWaterCut > 0 && reservoirPct >= 0.5;
+  const totalLitros = reservoir.totalLitersSaved;
+  const accesorios = accesoriosComprados();
 
   const badges: Badge[] = [
     {
@@ -91,6 +120,62 @@ export default function Album() {
       unlocked: stage >= 10,
       progressLabel: `Etapa ${stage}/10`,
     },
+    {
+      id: "primeras-gotas",
+      emoji: "💧",
+      title: "Primeras Gotas",
+      description: "Ahorra tus primeros 100 litros en total.",
+      unlocked: totalLitros >= 100,
+      progressLabel: `${Math.min(totalLitros, 100)}/100 L`,
+    },
+    {
+      id: "rio-constancia",
+      emoji: "🌊",
+      title: "Río de Constancia",
+      description: "Ahorra 2000 litros en total entre misiones y ahorro.",
+      unlocked: totalLitros >= 2000,
+      progressLabel: `${Math.min(totalLitros, 2000)}/2000 L`,
+    },
+    {
+      id: "meta-cumplida",
+      emoji: "🎯",
+      title: "Meta Cumplida",
+      description: "Llega a la meta de 5000 litros ahorrados de Noticias.",
+      unlocked: totalLitros >= 5000,
+      progressLabel: `${Math.min(totalLitros, 5000)}/5000 L`,
+    },
+    {
+      id: "explorador-agua",
+      emoji: "🗺️",
+      title: "Explorador del Agua",
+      description: "Completa al menos 3 cursos de la Academia.",
+      unlocked: coursesCompleted >= 3,
+      progressLabel: `${Math.min(coursesCompleted, 3)}/3 cursos`,
+    },
+    {
+      id: "ahorrador-inteligente",
+      emoji: "🧠",
+      title: "Ahorrador Inteligente",
+      description: "Junta 1000 HydroPuntos.",
+      unlocked: hydroPoints >= 1000,
+      progressLabel: `${Math.min(hydroPoints, 1000)}/1000 HP`,
+    },
+    {
+      id: "coleccionista",
+      emoji: "🎽",
+      title: "Coleccionista",
+      description: "Compra 3 accesorios en la Tienda de Avatares.",
+      unlocked: accesorios >= 3,
+      progressLabel: `${Math.min(accesorios, 3)}/3 accesorios`,
+    },
+    {
+      id: "voz-familia",
+      emoji: "💬",
+      title: "Voz de la Familia",
+      description: "Usa el chat temporal para hablar con otra familia.",
+      unlocked: chatUsado(),
+      progressLabel: chatUsado() ? "Chat usado" : "Aún no usaste el chat",
+    },
   ];
 
   const unlockedCount = badges.filter((b) => b.unlocked).length;
@@ -106,7 +191,7 @@ export default function Album() {
       <header className="mb-4 rounded-2xl border-2 border-ink bg-[#FFB793] p-5 shadow-[4px_4px_0_#1c1c11]">
         <p className="text-sm font-bold text-ink/70">Álbum de insignias</p>
         <h1 className="font-display text-2xl font-extrabold text-ink">🏅 Colección MorroWasi</h1>
-        <p className="mt-1 text-sm font-bold text-ink">{unlockedCount}/6 insignias desbloqueadas</p>
+        <p className="mt-1 text-sm font-bold text-ink">{unlockedCount}/{badges.length} insignias desbloqueadas</p>
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3" role="list" aria-label="Insignias coleccionables">
