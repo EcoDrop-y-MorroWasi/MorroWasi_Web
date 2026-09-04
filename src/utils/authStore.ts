@@ -26,20 +26,15 @@ export function useAuthSession(): { session: Session | null; loading: boolean } 
   return { session, loading };
 }
 
-export async function signInWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: window.location.origin },
-  });
-  if (error) throw error;
-}
-
-/** Magic link: no hay contraseña, Supabase manda un correo con el enlace de acceso. */
-export async function signInWithEmail(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  });
+/**
+ * Sesión anónima de Supabase: sin correo, sin Google, sin contraseña — solo un
+ * auth.uid() real para que sigan funcionando las RLS existentes (chats, etc).
+ * El progreso en sí no depende de esto (vive en localStorage / código corto,
+ * ver progressSync.ts); esta sesión es lo mínimo que pide Supabase Auth para
+ * dejar pasar al resto de la app.
+ */
+export async function signInAnonymously() {
+  const { error } = await supabase.auth.signInAnonymously();
   if (error) throw error;
 }
 

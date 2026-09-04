@@ -170,6 +170,22 @@ export function getMisionesSemanalesDeEstaSemana(date: Date = new Date()): Omit<
   return MISIONES_SEMANALES_POOL.slice(bloque * 4, bloque * 4 + 4)
 }
 
+/**
+ * Identificador único de "hoy"/"esta semana" — el pool de misiones solo tiene
+ * 7/4 bloques, así que un mismo bloque (y por lo tanto los mismos ids) vuelve
+ * a aparecer semanas después. Sin esto, marcar una misión como completada por
+ * id la deja tildada para siempre la próxima vez que rote ese bloque. Estas
+ * claves cambian cada día/semana real, para resetear "completado" junto con
+ * el bloque mostrado.
+ */
+export function getDayPeriodKey(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
+export function getWeekPeriodKey(date: Date = new Date()): string {
+  return String(getWeekIndex(date))
+}
+
 // Consejos recordatorio (no otorgan XP/litros) — contexto Morropón/Piura.
 const CONSEJOS_DIARIOS = [
   "El agua que usas para lavar arroz o menestras sirve para regar las plantas del patio.",

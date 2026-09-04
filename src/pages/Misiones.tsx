@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import MissionCard from "../components/MissionCard";
-import { calcCustomXp, getConsejoDiario, getConsejoSemanal, getMisionesDiariasDeHoy, getMisionesSemanalesDeEstaSemana } from "../utils/gamification";
+import {
+  calcCustomXp,
+  getConsejoDiario,
+  getConsejoSemanal,
+  getDayPeriodKey,
+  getMisionesDiariasDeHoy,
+  getMisionesSemanalesDeEstaSemana,
+  getWeekPeriodKey,
+} from "../utils/gamification";
 import type { Task } from "../utils/gamification";
 import { useExp } from "../utils/expStore";
 import { addLiters } from "../utils/litersStore";
@@ -9,39 +17,65 @@ type Tab = "diarias" | "semanales" | "personalizadas";
 
 const STORAGE_KEY = "morrowasi_misiones_v1";
 
-function readStored() {
-  if (typeof window === "undefined") return { tasks: [] as Task[], customTasks: [] as Task[] };
+interface StoredState {
+  periodoDiario: string;
+  diariasCompletadas: string[];
+  litrosHoy: number;
+  periodoSemanal: string;
+  semanalesCompletadas: string[];
+  customTasks: Task[];
+}
+
+function readStored(): StoredState {
+  const vacio: StoredState = { periodoDiario: "", diariasCompletadas: [], litrosHoy: 0, periodoSemanal: "", semanalesCompletadas: [], customTasks: [] };
+  if (typeof window === "undefined") return vacio;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { tasks: [] as Task[], customTasks: [] as Task[] };
-    const parsed = JSON.parse(raw) as { tasks?: Task[]; customTasks?: Task[] };
-    return { tasks: parsed.tasks ?? [], customTasks: parsed.customTasks ?? [] };
+    if (!raw) return vacio;
+    const parsed = JSON.parse(raw) as Partial<StoredState>;
+    return {
+      periodoDiario: parsed.periodoDiario ?? "",
+      diariasCompletadas: parsed.diariasCompletadas ?? [],
+      litrosHoy: Number.isFinite(parsed.litrosHoy) ? (parsed.litrosHoy as number) : 0,
+      periodoSemanal: parsed.periodoSemanal ?? "",
+      semanalesCompletadas: parsed.semanalesCompletadas ?? [],
+      customTasks: parsed.customTasks ?? [],
+    };
   } catch {
-    return { tasks: [] as Task[], customTasks: [] as Task[] };
+    return vacio;
   }
 }
 
-function mergeStored(defaults: Task[], saved: Task[]) {
-  const map = new Map(saved.map((t) => [t.id, t]));
-  return defaults.map((t) => ({ ...t, completed: map.get(t.id)?.completed ?? false }));
+/**
+ * Marca completadas solo las que corresponden al período guardado — si ya
+ * pasó el día (diarias) o la semana (semanales), el bloque rotó a otro pool y
+ * se muestra sin marcar aunque el id ya se haya completado en un período
+ * anterior (ver getDayPeriodKey/getWeekPeriodKey en gamification.ts).
+ */
+function mergeStored(defaults: Task[], completadasIds: string[], periodoGuardado: string, periodoActual: string) {
+  const completadas = periodoGuardado === periodoActual ? new Set(completadasIds) : new Set<string>();
+  return defaults.map((t) => ({ ...t, completed: completadas.has(t.id) }));
 }
 
 export default function Misiones() {
   const [tab, setTab] = useState<Tab>("diarias");
   const [exp, addExp] = useExp();
-  const [litrosHoy, setLitrosHoy] = useState(68);
 
-  const defaults = useMemo<Task[]>(
-    () => [
-      ...getMisionesDiariasDeHoy().map((m) => ({ ...m, completed: false } as Task)),
-      ...getMisionesSemanalesDeEstaSemana().map((m) => ({ ...m, completed: false } as Task)),
-    ],
-    []
-  );
+  const periodoDiario = useMemo(() => getDayPeriodKey(), []);
+  const periodoSemanal = useMemo(() => getWeekPeriodKey(), []);
+
+  const defaultsDiarias = useMemo<Task[]>(() => getMisionesDiariasDeHoy().map((m) => ({ ...m, completed: false } as Task)), []);
+  const defaultsSemanales = useMemo<Task[]>(() => getMisionesSemanalesDeEstaSemana().map((m) => ({ ...m, completed: false } as Task)), []);
 
   const stored = useMemo(readStored, []);
-  const [tasks, setTasks] = useState<Task[]>(() => mergeStored(defaults, stored.tasks));
+  const [tasks, setTasks] = useState<Task[]>(() => [
+    ...mergeStored(defaultsDiarias, stored.diariasCompletadas, stored.periodoDiario, periodoDiario),
+    ...mergeStored(defaultsSemanales, stored.semanalesCompletadas, stored.periodoSemanal, periodoSemanal),
+  ]);
   const [customTasks, setCustomTasks] = useState<Task[]>(stored.customTasks);
+  // Litros ahorrados hoy vía misiones — se resetea solo cuando cambia periodoDiario
+  // (antes era un useState(68) fijo, mock que ni se guardaba ni reflejaba nada real).
+  const [litrosHoy, setLitrosHoy] = useState(() => (stored.periodoDiario === periodoDiario ? stored.litrosHoy : 0));
 
   const [customText, setCustomText] = useState("");
   const [customLitros, setCustomLitros] = useState(30);
@@ -49,11 +83,14 @@ export default function Misiones() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks, customTasks }));
+      const diariasCompletadas = tasks.filter((t) => t.tab === "diaria" && t.completed).map((t) => t.id);
+      const semanalesCompletadas = tasks.filter((t) => t.tab === "semanal" && t.completed).map((t) => t.id);
+      const state: StoredState = { periodoDiario, diariasCompletadas, litrosHoy, periodoSemanal, semanalesCompletadas, customTasks };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* mock local, sin BLE */
     }
-  }, [tasks, customTasks]);
+  }, [tasks, customTasks, litrosHoy, periodoDiario, periodoSemanal]);
 
   // Completar una misión es definitivo por hoy — no se puede desmarcar (queda
   // "✓ Listo" hasta que rote a otra misión al día siguiente, ver

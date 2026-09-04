@@ -18,12 +18,22 @@ function defaultState(): ReservoirState {
   return { capacityLiters: 0, currentLiters: 0, totalLitersSaved: 0 };
 }
 
+/** Si un campo no llegó como número finito (payload corrupto, edición manual), usa el default en vez de envenenar los cálculos con NaN. */
+function sanitize(state: Partial<ReservoirState>): ReservoirState {
+  const base = defaultState();
+  return {
+    capacityLiters: Number.isFinite(state.capacityLiters) ? (state.capacityLiters as number) : base.capacityLiters,
+    currentLiters: Number.isFinite(state.currentLiters) ? (state.currentLiters as number) : base.currentLiters,
+    totalLitersSaved: Number.isFinite(state.totalLitersSaved) ? (state.totalLitersSaved as number) : base.totalLitersSaved,
+  };
+}
+
 function readState(): ReservoirState {
   if (typeof window === "undefined") return defaultState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    return { ...defaultState(), ...(JSON.parse(raw) as Partial<ReservoirState>) };
+    return sanitize(JSON.parse(raw) as Partial<ReservoirState>);
   } catch {
     return defaultState();
   }

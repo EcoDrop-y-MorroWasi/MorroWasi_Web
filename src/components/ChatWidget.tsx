@@ -89,22 +89,26 @@ export default function ChatWidget() {
   }, [mensajes, estado]);
 
   // Suscripción realtime a la sala: nuevos mensajes + presencia de la otra familia.
+  //
+  // Orden importa: nos suscribimos ANTES de pedir el snapshot inicial. Si lo
+  // hiciéramos al revés (o en paralelo), un mensaje insertado justo en el hueco
+  // entre "se ejecutó la query del snapshot" y "el canal terminó su handshake"
+  // no aparecería ni en el snapshot ni por realtime — quedaba invisible en la
+  // UI (aunque sí en la base) hasta que algo más forzara un refetch. Con la
+  // suscripción ya activa antes de pedir el snapshot, cualquier INSERT que
+  // pase durante ese pedido llega por realtime igual; merge por id (en vez de
+  // reemplazar con el snapshot) evita que se dupliquen o se pisen entre sí.
   useEffect(() => {
     if (!sala || !session) return;
 
     let cancelado = false;
 
-    supabase
-      .from("messages")
-      .select("id, sender_id, text, created_at")
-      .eq("chat_id", sala.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (cancelado || !data) return;
-        setMensajes(
-          data.map((m) => ({ id: m.id, senderId: m.sender_id, texto: m.text, hora: formatearHora(m.created_at) })),
-        );
-      });
+    const mezclarPorId = (prev: typeof mensajes, nuevos: typeof mensajes) => {
+      const vistos = new Set(prev.map((m) => m.id));
+      const agregados = nuevos.filter((m) => !vistos.has(m.id));
+      if (agregados.length === 0) return prev;
+      return [...prev, ...agregados].sort((a, b) => a.id - b.id);
+    };
 
     const canal = supabase
       .channel(`chat:${sala.id}`)
@@ -113,7 +117,7 @@ export default function ChatWidget() {
         { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${sala.id}` },
         (payload) => {
           const m = payload.new as { id: number; sender_id: string; text: string; created_at: string };
-          setMensajes((prev) => [...prev, { id: m.id, senderId: m.sender_id, texto: m.text, hora: formatearHora(m.created_at) }]);
+          setMensajes((prev) => mezclarPorId(prev, [{ id: m.id, senderId: m.sender_id, texto: m.text, hora: formatearHora(m.created_at) }]));
         },
       )
       .on(
@@ -121,7 +125,20 @@ export default function ChatWidget() {
         { event: "INSERT", schema: "public", table: "chat_participants", filter: `chat_id=eq.${sala.id}` },
         () => setOtroConectado(true),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED" || cancelado) return;
+        supabase
+          .from("messages")
+          .select("id, sender_id, text, created_at")
+          .eq("chat_id", sala.id)
+          .order("created_at", { ascending: true })
+          .then(({ data }) => {
+            if (cancelado || !data) return;
+            setMensajes((prev) =>
+              mezclarPorId(prev, data.map((m) => ({ id: m.id, senderId: m.sender_id, texto: m.text, hora: formatearHora(m.created_at) }))),
+            );
+          });
+      });
 
     canalRef.current = canal;
     return () => {

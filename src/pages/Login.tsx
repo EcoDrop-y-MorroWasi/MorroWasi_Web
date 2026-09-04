@@ -1,37 +1,24 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import Logo from '../components/Logo'
-import { signInWithEmail, signInWithGoogle, useAuthSession } from '../utils/authStore'
+import { signInAnonymously, useAuthSession } from '../utils/authStore'
 
 export default function Login() {
   const { session, loading } = useAuthSession()
-  const [email, setEmail] = useState('')
-  const [enviado, setEnviado] = useState(false)
+  const [entrando, setEntrando] = useState(false)
   const [error, setError] = useState('')
-  const [cargandoGoogle, setCargandoGoogle] = useState(false)
 
   if (loading) return null
   if (session) return <Navigate to="/" replace />
 
-  const entrarConGoogle = async () => {
+  const entrar = async () => {
     setError('')
-    setCargandoGoogle(true)
+    setEntrando(true)
     try {
-      await signInWithGoogle()
+      await signInAnonymously()
     } catch {
-      setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
-      setCargandoGoogle(false)
-    }
-  }
-
-  const enviarEnlace = async (event: FormEvent) => {
-    event.preventDefault()
-    setError('')
-    try {
-      await signInWithEmail(email.trim())
-      setEnviado(true)
-    } catch {
-      setError('No se pudo enviar el enlace de acceso. Verifica el correo.')
+      setError('No se pudo entrar. Intenta de nuevo.')
+      setEntrando(false)
     }
   }
 
@@ -43,51 +30,28 @@ export default function Login() {
         </div>
 
         <h1 className="mt-6 text-center font-display text-3xl font-extrabold text-accent">Acceder a MorroWasi</h1>
-        <p className="mt-2 text-center font-semibold text-ink/80">Ingresa para ver el progreso de tu familia.</p>
+        <p className="mt-2 text-center font-semibold text-ink/80">
+          Sin correo, sin cuenta: tu progreso queda en este dispositivo.
+        </p>
 
         <button
           type="button"
-          onClick={entrarConGoogle}
-          disabled={cargandoGoogle}
-          className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-ink bg-bg-light px-5 font-display font-bold text-ink shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60"
+          onClick={entrar}
+          disabled={entrando}
+          className="mt-6 min-h-12 w-full rounded-xl border-2 border-ink bg-accent px-5 font-display font-bold text-white shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60"
         >
-          <span aria-hidden>🔐</span> Continuar con Google
+          {entrando ? 'Entrando…' : 'Entrar'}
         </button>
 
-        <div className="my-5 flex items-center gap-2 text-xs font-bold text-ink/50">
-          <span className="h-px flex-1 bg-ink/20" /> o <span className="h-px flex-1 bg-ink/20" />
-        </div>
-
-        {enviado ? (
-          <p className="rounded-xl border-2 border-ink bg-bg-light px-4 py-3 text-center font-semibold text-ink/80">
-            Revisa tu correo: te mandamos un enlace para entrar sin contraseña.
+        {error && (
+          <p role="alert" className="mt-3 text-center font-bold text-accent">
+            {error}
           </p>
-        ) : (
-          <form onSubmit={enviarEnlace}>
-            <label className="block font-bold">
-              Correo
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value)
-                  setError('')
-                }}
-                className="mt-1 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3"
-                required
-              />
-            </label>
-            {error && (
-              <p role="alert" className="mt-3 font-bold text-accent">
-                {error}
-              </p>
-            )}
-            <button className="mt-4 min-h-12 w-full rounded-xl border-2 border-ink bg-accent px-5 font-display font-bold text-white shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-              Enviar enlace de acceso
-            </button>
-          </form>
         )}
+
+        <p className="mt-3 text-center text-xs font-semibold text-ink/60">
+          Podés guardar o mover tu progreso más tarde desde Configuración (exportar/importar o código de acceso).
+        </p>
 
         <Link to="/inicio-publico" className="mt-3 flex min-h-12 items-center justify-center rounded-xl border-2 border-ink bg-bg-light px-4 text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
           ← Volver al inicio público

@@ -13,7 +13,10 @@ export function getHydroPoints(): number {
   if (typeof window === "undefined") return 0;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw !== null ? Number(raw) : 0;
+    const n = raw !== null ? Number(raw) : 0;
+    // Un valor no-numérico guardado (edición manual, payload corrupto de sync)
+    // no debe envenenar los reads/writes siguientes con NaN para siempre.
+    return Number.isFinite(n) ? n : 0;
   } catch {
     return 0;
   }
