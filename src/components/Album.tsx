@@ -5,10 +5,42 @@ import { getStats } from "../utils/stats";
 import { useExp } from "../utils/expStore";
 import { getReservoir } from "../utils/litersStore";
 import { useHydroPoints } from "../utils/hydroStore";
+import { allGamesCompleted } from "../utils/completionStore";
+import { hizoBackupAlgunaVez } from "../utils/progressBackup";
+import { getLinkedCode } from "../utils/progressSync";
+import { useStreakDays } from "../utils/streakStore";
 
 const ACADEMIA_PROGRESS_KEY = "morrowasi_academia_progress_v1";
 const CHAT_USADO_KEY = "morrowasi_chat_usado_v1";
 const AVATARES_STORAGE_KEY = "morrowasi_avatares_v1";
+const MISIONES_KEY = "morrowasi_misiones_v1";
+const PERFIL_KEY = "morrowasi_perfil_v1";
+
+// Cuántas misiones personalizadas creó la familia — misma clave que Misiones.tsx.
+function misionesPersonalizadasCreadas(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(MISIONES_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { customTasks?: unknown[] };
+    return parsed.customTasks?.length ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+// true si cambió el nombre o el avatar de perfil respecto del default — misma clave que Layout.tsx/Perfil.tsx.
+function perfilPersonalizado(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(PERFIL_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as Partial<{ name: string; avatar: string }>;
+    return (parsed.name && parsed.name !== mockFamily.name) || (parsed.avatar && parsed.avatar !== mockFamily.avatar) || false;
+  } catch {
+    return false;
+  }
+}
 
 function chatUsado(): boolean {
   if (typeof window === "undefined") return false;
@@ -63,7 +95,8 @@ export default function Album() {
 
   const [exp] = useExp();
   const [hydroPoints] = useHydroPoints();
-  const pew = calcPew(exp, mockFamily.streakDays);
+  const streakDays = useStreakDays();
+  const pew = calcPew(exp, streakDays);
   const { stage } = calcWasiStage(pew);
   const reservoir = getReservoir();
   const reservoirPct = reservoir.capacityLiters > 0 ? reservoir.currentLiters / reservoir.capacityLiters : 0;
@@ -175,6 +208,54 @@ export default function Album() {
       description: "Usa el chat temporal para hablar con otra familia.",
       unlocked: chatUsado(),
       progressLabel: chatUsado() ? "Chat usado" : "Aún no usaste el chat",
+    },
+    {
+      id: "maestro-minijuegos",
+      emoji: "🕹️",
+      title: "Maestro de los Minijuegos",
+      description: "Consigue puntaje en los 12 minijuegos.",
+      unlocked: allGamesCompleted(),
+      progressLabel: allGamesCompleted() ? "12/12 juegos" : "Faltan juegos por jugar",
+    },
+    {
+      id: "inventor-habitos",
+      emoji: "✏️",
+      title: "Inventor de Hábitos",
+      description: "Crea 3 misiones personalizadas propias.",
+      unlocked: misionesPersonalizadasCreadas() >= 3,
+      progressLabel: `${Math.min(misionesPersonalizadasCreadas(), 3)}/3 misiones`,
+    },
+    {
+      id: "ingeniero-hidrico",
+      emoji: "🚰",
+      title: "Ingeniero Hídrico",
+      description: "Configura la capacidad de tu reservorio familiar.",
+      unlocked: reservoir.capacityLiters > 0,
+      progressLabel: reservoir.capacityLiters > 0 ? "Reservorio configurado" : "Sin configurar",
+    },
+    {
+      id: "respaldo-seguro",
+      emoji: "💾",
+      title: "Respaldo Seguro",
+      description: "Exporta un backup de tu progreso desde tu Perfil.",
+      unlocked: hizoBackupAlgunaVez(),
+      progressLabel: hizoBackupAlgunaVez() ? "Backup hecho" : "Aún no exportaste",
+    },
+    {
+      id: "conectado",
+      emoji: "🔗",
+      title: "Conectado",
+      description: "Sincroniza tu progreso con un código de acceso.",
+      unlocked: Boolean(getLinkedCode()),
+      progressLabel: getLinkedCode() ? "Código vinculado" : "Sin vincular",
+    },
+    {
+      id: "estilo-propio",
+      emoji: "🎨",
+      title: "Estilo Propio",
+      description: "Cambia tu nombre o avatar en Perfil.",
+      unlocked: perfilPersonalizado(),
+      progressLabel: perfilPersonalizado() ? "Perfil personalizado" : "Perfil por defecto",
     },
   ];
 

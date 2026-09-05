@@ -1,4 +1,5 @@
 import { useState, Suspense, lazy } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import WasiModal from '../components/WasiModal'
 import { calcPew, calcWasiStage, mockFamily, mockReservoir, WASI_STAGES } from '../data/mock'
@@ -6,6 +7,7 @@ import { wasiVisualFor, wasiMood } from '../data/wasiVisuals'
 import { useHydroPoints } from '../utils/hydroStore'
 import { useExp } from '../utils/expStore'
 import { useReservoir } from '../utils/litersStore'
+import { useStreakDays } from '../utils/streakStore'
 
 // Three.js (~1MB) se descarga aparte del bundle principal — el Dashboard sigue pintando rápido.
 const WasiViewer3D = lazy(() => import('../components/WasiViewer3D'))
@@ -15,13 +17,14 @@ export default function Dashboard() {
   const [isWasiModalOpen, setWasiModalOpen] = useState(false)
   const [hydroPoints] = useHydroPoints()
   const [exp] = useExp()
-  const pew = calcPew(exp, mockFamily.streakDays)
+  const streakDays = useStreakDays()
+  const pew = calcPew(exp, streakDays)
   const { stage, progressInStage, xpParaSiguiente } = calcWasiStage(pew)
   const wasiStage = WASI_STAGES.find((w) => w.number === stage) ?? WASI_STAGES[0]
   const nextStage = WASI_STAGES.find((w) => w.number === stage + 1)
   const progressPct = Math.round((progressInStage / xpParaSiguiente) * 100)
   const wasiVisual = wasiVisualFor(stage)
-  const mood = wasiMood(mockFamily.streakDays)
+  const mood = wasiMood(streakDays)
 
   const reservoir = useReservoir()
   const hasCapacity = reservoir.capacityLiters > 0
@@ -33,11 +36,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-3">
         <MetricCard label="Litros hoy" value={`${mockFamily.litersToday} L`} />
         <MetricCard label="HydroPuntos" value={String(hydroPoints)} highlight />
-        <MetricCard
-          label="Racha"
-          value={`${mockFamily.streakDays} días`}
-          sub="🔥 visible · días consecutivos"
-        />
+        <MetricCard label="Racha" value={`${streakDays} días`} sub="🔥 días consecutivos" />
       </div>
 
       {/* Modelo 3D del Wasi en la etapa actual — visible siempre en Inicio, debajo de HydroPuntos */}
@@ -113,7 +112,7 @@ export default function Dashboard() {
         pew={pew}
         progressInStage={progressInStage}
         xpParaSiguiente={xpParaSiguiente}
-        streakDays={mockFamily.streakDays}
+        streakDays={streakDays}
       />
 
       {/* Monitor reservorio — ola SVG animada por % */}
@@ -162,9 +161,37 @@ export default function Dashboard() {
           </div>
         </dl>
       </section>
+
+      {/* Accesos rápidos a las secciones principales — mismos destinos que los tabs del
+          header/bottom nav (Layout.tsx TABS). Viven acá porque el tab "Inicio" apunta a "/"
+          (este Dashboard), no a Inicio.tsx — esa página no está linkeada desde ningún lado. */}
+      <section aria-labelledby="accesos-title">
+        <h2 id="accesos-title" className="font-display text-lg font-bold">Explora MorroWasi</h2>
+        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {ACCESOS_RAPIDOS.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`keyline-border flex min-h-24 flex-col justify-center gap-1 rounded-2xl p-4 shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${item.tone}`}
+            >
+              <span aria-hidden="true" className="text-3xl leading-none">{item.icon}</span>
+              <span className="font-display text-base font-extrabold text-ink">{item.label}</span>
+              <span className="font-body text-xs font-semibold text-ink/70">{item.desc}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
+
+const ACCESOS_RAPIDOS = [
+  { to: '/cursos', label: 'Cursos', icon: '📚', desc: 'Video-lecciones sobre agua', tone: 'bg-primary/30' },
+  { to: '/juegos', label: 'Juegos', icon: '🎮', desc: 'Desafíos educativos', tone: 'bg-secondary/40' },
+  { to: '/misiones', label: 'Misiones', icon: '✅', desc: 'Hábitos diarios y semanales', tone: 'bg-accent/20' },
+  { to: '/noticias', label: 'Noticias', icon: '📰', desc: 'Novedades de la comunidad', tone: 'bg-primary/20' },
+  { to: '/avatares', label: 'Avatares', icon: '🧑', desc: 'Personaliza tu Wasi', tone: 'bg-secondary/25' },
+] as const
 
 function MetricCard({
   label,

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { QUICK_SAVE, TARIFA_SOLES_POR_LITRO, calcCostoSoles } from "../utils/gamification";
 import { fetchNoticiasAgua, type NoticiaAgua } from "../utils/noticiasFeed";
 import { useReservoir } from "../utils/litersStore";
+import { markActivityToday } from "../utils/streakStore";
 
 // Noticias — fusiona Ahorro (hero + registro rápido + calculadora) con el boletín de agua
 // Piura/Morropón (4 noticias reales verificadas: Correo, Infobae, La República, El Peruano).
@@ -71,6 +72,7 @@ export default function Noticias() {
   const total = reservoir.totalLitersSaved;
   const [wasteLiters, setWasteLiters] = useState(100);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const nextToastId = useRef(0);
 
   const [feedStatus, setFeedStatus] = useState<FeedStatus>("cargando");
   const [noticiasFeed, setNoticiasFeed] = useState<NoticiaAgua[]>([]);
@@ -101,7 +103,7 @@ export default function Noticias() {
   };
 
   const showToast = (text: string) => {
-    const id = Date.now();
+    const id = ++nextToastId.current;
     setToast({ id, text });
     setTimeout(() => setToast((t) => (t && t.id === id ? null : t)), 1700);
   };
@@ -111,9 +113,14 @@ export default function Noticias() {
     // confeti al alcanzar meta 5000L por primera vez en esta sesión
     if (total < META && next >= META) fireConfetti();
     reservoir.addLiters(l);
+    markActivityToday();
     showToast(`+${l} L ahorrados 💧`);
   };
   const reset = () => {
+    // No es demo: resetReservoir() borra litros/total reales, compartidos con
+    // Dashboard/Perfil/Album (logros por totalLitersSaved) y Misiones. Confirmar
+    // antes de un click accidental que no tiene deshacer.
+    if (!window.confirm("Esto borra tu ahorro total acumulado (litros y logros relacionados). ¿Reiniciar igual?")) return;
     reservoir.resetReservoir();
     showToast("Total reiniciado");
   };
@@ -179,7 +186,7 @@ export default function Noticias() {
           onClick={reset}
           className="mt-3 min-h-[48px] rounded-lg bg-surface border-2 border-ink px-4 font-bold text-xs shadow-[2px_2px_0_#1c1c11] active:shadow-none"
         >
-          Reiniciar (demo)
+          Reiniciar ahorro total
         </motion.button>
       </section>
 

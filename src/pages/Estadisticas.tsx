@@ -49,7 +49,7 @@ export default function Estadisticas() {
             <div className="keyline-border rounded-b-2xl bg-accent/10">
               <div
                 className="h-2 rounded-full bg-primary"
-                style={{ width: `${item.completed / item.total * 100}%` }}
+                style={{ width: `${item.total > 0 ? (item.completed / item.total) * 100 : 0}%` }}
               />
             </div>
             <p className="font-body text-xs text-ink/60">{item.course}</p>

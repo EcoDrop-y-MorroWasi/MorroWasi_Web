@@ -10,6 +10,7 @@ export const PROGRESS_STORAGE_KEYS = [
   "morrowasi_games_v1",
   "morrowasi_academia_progress_v1",
   "morrowasi_stats_v1",
+  "morrowasi_streak_v1",
 ] as const;
 
 export const PROGRESS_SCHEMA_VERSION = 1;

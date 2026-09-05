@@ -50,7 +50,7 @@ export default function Login() {
         )}
 
         <p className="mt-3 text-center text-xs font-semibold text-ink/60">
-          Podés guardar o mover tu progreso más tarde desde Configuración (exportar/importar o código de acceso).
+          Podés guardar o mover tu progreso más tarde desde tu Perfil (exportar/importar o código de acceso).
         </p>
 
         <Link to="/inicio-publico" className="mt-3 flex min-h-12 items-center justify-center rounded-xl border-2 border-ink bg-bg-light px-4 text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">

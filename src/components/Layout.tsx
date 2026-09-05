@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { mockFamily } from '../data/mock'
 import Logo from './Logo'
+import ProfileAvatarGlyph from './ProfileAvatarGlyph'
 import LiveClock from './LiveClock'
 import ChatWidget from './ChatWidget'
 import { signOut as signOutSupabase } from '../utils/authStore'
@@ -81,9 +82,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Link
               to="/perfil"
               aria-label={`Perfil de ${profile.name}`}
-              className="keyline-border flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-2xl sm:hidden"
+              className="keyline-border flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl sm:hidden"
             >
-              <span aria-hidden="true">{profile.avatar}</span>
+              <ProfileAvatarGlyph value={profile.avatar} />
             </Link>
 
             {/* Desktop/tablet: layout original completo. */}
@@ -95,9 +96,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Link
                 to="/perfil"
                 aria-label={`Perfil de ${profile.name}`}
-                className="keyline-border flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-2xl"
+                className="keyline-border flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl"
               >
-                <span aria-hidden="true">{profile.avatar}</span>
+                <ProfileAvatarGlyph value={profile.avatar} />
               </Link>
             </div>
           </div>

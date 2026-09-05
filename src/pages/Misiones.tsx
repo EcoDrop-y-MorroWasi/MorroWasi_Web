@@ -12,6 +12,7 @@ import {
 import type { Task } from "../utils/gamification";
 import { useExp } from "../utils/expStore";
 import { addLiters } from "../utils/litersStore";
+import { markActivityToday } from "../utils/streakStore";
 
 type Tab = "diarias" | "semanales" | "personalizadas";
 
@@ -67,7 +68,7 @@ export default function Misiones() {
   const defaultsDiarias = useMemo<Task[]>(() => getMisionesDiariasDeHoy().map((m) => ({ ...m, completed: false } as Task)), []);
   const defaultsSemanales = useMemo<Task[]>(() => getMisionesSemanalesDeEstaSemana().map((m) => ({ ...m, completed: false } as Task)), []);
 
-  const stored = useMemo(readStored, []);
+  const stored = useMemo(() => readStored(), []);
   const [tasks, setTasks] = useState<Task[]>(() => [
     ...mergeStored(defaultsDiarias, stored.diariasCompletadas, stored.periodoDiario, periodoDiario),
     ...mergeStored(defaultsSemanales, stored.semanalesCompletadas, stored.periodoSemanal, periodoSemanal),
@@ -101,6 +102,7 @@ export default function Misiones() {
     if (!target || target.completed) return;
     addExp(target.xp);
     addLiters(target.litersSaved);
+    markActivityToday();
     setLitrosHoy((l) => l + target.litersSaved);
     if (isCustom) setCustomTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
     else setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
@@ -133,8 +135,8 @@ export default function Misiones() {
   const emojiDiarias = (cat: string) => emojiPorCategoria(cat);
   const emojiSemanal = (cat: string) => emojiPorCategoria(cat);
 
-  const consejoDiario = useMemo(getConsejoDiario, []);
-  const consejoSemanal = useMemo(getConsejoSemanal, []);
+  const consejoDiario = useMemo(() => getConsejoDiario(), []);
+  const consejoSemanal = useMemo(() => getConsejoSemanal(), []);
 
   return (
     <div className="mx-auto max-w-[800px] bg-bg-light p-4 pb-24">

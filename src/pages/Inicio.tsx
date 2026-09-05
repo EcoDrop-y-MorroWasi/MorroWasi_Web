@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import WasiModal from '../components/WasiModal'
-import { calcPew, calcWasiStage, mockFamily, WASI_STAGES } from '../data/mock'
+import { calcPew, calcWasiStage, WASI_STAGES } from '../data/mock'
 import { wasiVisualFor, wasiMood } from '../data/wasiVisuals'
 import { useExp } from '../utils/expStore'
+import { useStreakDays } from '../utils/streakStore'
 
 const GALLERY_ITEMS = [
   { title: 'Morropón nos inspira', alt: 'Paisaje rural de Morropón, Piura', src: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=960&q=80' },
@@ -24,13 +25,14 @@ function useLocalCoverFallback(event: React.SyntheticEvent<HTMLImageElement>) {
 export default function Inicio() {
   const [isWasiModalOpen, setWasiModalOpen] = useState(false)
   const [exp] = useExp()
-  const pew = calcPew(exp, mockFamily.streakDays)
+  const streakDays = useStreakDays()
+  const pew = calcPew(exp, streakDays)
   const { stage, progressInStage, xpParaSiguiente } = calcWasiStage(pew)
   const wasiStage = WASI_STAGES.find((w) => w.number === stage) ?? WASI_STAGES[0]
   const nextStage = WASI_STAGES.find((w) => w.number === stage + 1)
   const progressPct = Math.round((progressInStage / xpParaSiguiente) * 100)
   const wasiVisual = wasiVisualFor(stage)
-  const mood = wasiMood(mockFamily.streakDays)
+  const mood = wasiMood(streakDays)
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -139,7 +141,7 @@ export default function Inicio() {
         pew={pew}
         progressInStage={progressInStage}
         xpParaSiguiente={xpParaSiguiente}
-        streakDays={mockFamily.streakDays}
+        streakDays={streakDays}
       />
 
       {/* Stats generales — grid responsive 2→4, 48dp, contraste */}

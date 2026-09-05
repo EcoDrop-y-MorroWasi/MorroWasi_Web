@@ -5,6 +5,16 @@ import { PROGRESS_SCHEMA_VERSION, PROGRESS_STORAGE_KEYS } from "./progressKeys";
 import { getLastModified } from "./progressMeta";
 
 const PROFILE_ID_KEY = "morrowasi_profile_id_v1";
+const BACKUP_HECHO_KEY = "morrowasi_backup_exportado_v1";
+
+/** true si el usuario alguna vez descargó un backup — usado por el logro "Respaldo Seguro" (Album.tsx). */
+export function hizoBackupAlgunaVez(): boolean {
+  try {
+    return window.localStorage.getItem(BACKUP_HECHO_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 interface ProgressBackup {
   schemaVersion: number;
@@ -57,6 +67,11 @@ export function exportProgress(): void {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  try {
+    window.localStorage.setItem(BACKUP_HECHO_KEY, "true");
+  } catch {
+    /* localStorage no disponible */
+  }
 }
 
 export interface ImportPreview {

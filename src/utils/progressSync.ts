@@ -7,8 +7,10 @@ import { getLastModified } from "./progressMeta";
 import { readAllProgress } from "./progressBackup";
 
 const LINKED_CODE_KEY = "morrowasi_sync_code_v1";
-// Sin 0/O/1/I: evita confusiones al copiar el código a mano.
-const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const CODE_LENGTH = 10;
+// Mayúsculas + minúsculas + dígitos para más variedad, sin los que se confunden
+// a simple vista al copiar a mano: 0/O, 1/I/l. Es sensible a mayúsculas/minúsculas.
+const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz";
 
 interface RemoteProgressData {
   lastModified: number;
@@ -22,7 +24,7 @@ export type SyncResult =
   | { status: "conflicto"; local: RemoteProgressData; remote: RemoteProgressData };
 
 export function generateSyncCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
   return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
 
@@ -107,7 +109,10 @@ export async function syncProgress(code: string): Promise<SyncResult> {
 /** El usuario ya eligió qué lado conservar tras un "conflicto" — aplica esa decisión. */
 export async function resolveConflict(code: string, keep: "local" | "remote", result: Extract<SyncResult, { status: "conflicto" }>): Promise<void> {
   if (keep === "local") {
-    await pushRemote(code, result.local);
+    // Lee el progreso de nuevo en vez de usar result.local: si el usuario tocó
+    // algo mientras el modal de conflicto estaba abierto, esa snapshot vieja
+    // lo dejaría fuera del push.
+    await pushRemote(code, readLocal());
   } else {
     applyRemote(result.remote);
     window.location.reload();

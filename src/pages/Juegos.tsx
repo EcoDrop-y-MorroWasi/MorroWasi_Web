@@ -6,15 +6,24 @@ import MinigameCard from "../components/MinigameCard";
 import MinigamePlay, { type MinigameResult } from "./MinigamePlay";
 import { MINIGAMES, calcMinigameScore } from "../utils/gamification";
 import { useHydroPoints } from "../utils/hydroStore";
+import { markActivityToday } from "../utils/streakStore";
 
 const GAMES_STORAGE_KEY = "morrowasi_games_v1";
-const GAMES_ACTIVITY_KEY = "morrowasi_games_activity_v1";
 
 function loadBestScores(): Record<string, number> {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(GAMES_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const clean: Record<string, number> = {};
+    // Un valor no-numérico corrupto (edición manual, payload viejo) dejaría
+    // ese juego sin poder superar nunca su "récord" — se descarta en vez de
+    // arrastrarlo.
+    for (const [id, value] of Object.entries(parsed)) {
+      if (typeof value === "number" && Number.isFinite(value)) clean[id] = value;
+    }
+    return clean;
   } catch {
     return {};
   }
@@ -25,14 +34,6 @@ function saveBestScores(scores: Record<string, number>) {
     window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(scores));
   } catch {
     /* localStorage no disponible */
-  }
-}
-
-function markGameActivity() {
-  try {
-    window.localStorage.setItem(GAMES_ACTIVITY_KEY, new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }));
-  } catch {
-    /* La partida permanece jugable aunque no haya almacenamiento local. */
   }
 }
 
@@ -75,7 +76,7 @@ export default function Juegos() {
 
   // Se llama al terminar una partida real (accuracy 0-1). Solo otorga XP si supera el récord guardado.
   const handleFinish = (gameId: string, accuracy: number): MinigameResult => {
-    markGameActivity();
+    markActivityToday();
     const earned = calcMinigameScore(accuracy);
     const prevBest = bestScores[gameId] ?? 0;
     const isNewBest = earned > prevBest;

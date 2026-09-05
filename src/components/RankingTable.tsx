@@ -33,9 +33,12 @@ export const RankingTable = ({ entries }: { entries: RankingEntry[] }) => {
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry) => (
+            {entries.map((entry, i) => (
               <tr key={entry.family.name} className="border-b-2 border-ink">
-                <td className="p-4 font-semibold">{entry.rank}.</td>
+                {/* Posición real según el orden ya aplicado por el caller (Ranking.tsx ordena
+                    por hydroPoints) — no entry.rank, un campo fijo del mock que se desincroniza
+                    si el array se reordena o edita sin tocarlo a mano. */}
+                <td className="p-4 font-semibold">{i + 1}.</td>
                 <td className="p-4">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl" aria-hidden="true">{entry.family.avatar}</span>

@@ -15,12 +15,13 @@ import { Colegios } from './pages/Colegios'
 import { Ranking } from './pages/Ranking'
 import Estadisticas from './pages/Estadisticas'
 import { Config } from './pages/Config'
-import { mockFamily, calcPew, calcWasiStage } from './data/mock'
+import { calcPew, calcWasiStage } from './data/mock'
 import InicioPublico from './pages/InicioPublico'
 import Login from './pages/Login'
 import { useAuthSession } from './utils/authStore'
 import { useHydroPoints } from './utils/hydroStore'
 import { useExp } from './utils/expStore'
+import { useStreakDays } from './utils/streakStore'
 import { initProgressTracking } from './utils/progressMeta'
 
 initProgressTracking()
@@ -56,11 +57,12 @@ function ProtectedRoutes() {
   const { session, loading } = useAuthSession()
   const [hydroPoints] = useHydroPoints()
   const [exp] = useExp()
+  const streakDays = useStreakDays()
   // Mientras la sesión de Supabase carga, no se decide ruta: evita un flash a
   // /inicio-publico que se corrige un instante después una vez resuelta la sesión.
   if (loading) return null
   if (!session) return <Navigate to="/inicio-publico" replace state={{ from: location }} />
-  const wasiStage = calcWasiStage(calcPew(exp, mockFamily.streakDays)).stage
+  const wasiStage = calcWasiStage(calcPew(exp, streakDays)).stage
   return <Layout><Routes>
     <Route path="/" element={<Dashboard />} />
     <Route path="/inicio" element={<Inicio />} />

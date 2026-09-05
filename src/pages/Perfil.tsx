@@ -1,9 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { calcPew, calcWasiStage, mockFamily, WASI_STAGES } from "../data/mock";
 import { useHydroPoints } from "../utils/hydroStore";
 import { useExp } from "../utils/expStore";
 import { useReservoir } from "../utils/litersStore";
+import { useStreakDays } from "../utils/streakStore";
+import { signOut as signOutSupabase } from "../utils/authStore";
+import { AVATARS as SHOP_AVATARS } from "../data/avatarShop";
+import { getAvatarThumbnail } from "../utils/avatarSkinPainter";
+import { useAvatarShop } from "../utils/avatarShopStore";
+import { allCoursesCompleted, allGamesCompleted } from "../utils/completionStore";
+import ProfileAvatarGlyph from "../components/ProfileAvatarGlyph";
+import { shopAvatarValue } from "../utils/profileAvatar";
+import { applyImportedProgress, exportProgress, readProgressFile, type ImportPreview } from "../utils/progressBackup";
+import {
+  generateSyncCode,
+  getLinkedCode,
+  resolveConflict,
+  setLinkedCode,
+  syncProgress,
+  type SyncResult,
+} from "../utils/progressSync";
 
 const THEME_STORAGE_KEY = "morrowasi_theme_v1";
 const PROFILE_STORAGE_KEY = "morrowasi_perfil_v1";
@@ -63,12 +80,76 @@ export default function Perfil() {
   // Mismo cierre de sesión que el header de escritorio (Layout.tsx) — en mobile el
   // header ya no muestra ícono ni botón "Salir" por falta de espacio, así que vive acá.
   const signOut = () => {
+    signOutSupabase().finally(() => navigate("/inicio-publico", { replace: true }));
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const [code, setCode] = useState(() => getLinkedCode() ?? "");
+  const [codeInput, setCodeInput] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<Extract<SyncResult, { status: "conflicto" }> | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportError(null);
     try {
-      window.localStorage.removeItem("morrowasi_auth_v1");
-    } catch {
-      /* La navegación también protege las rutas si no se puede usar localStorage. */
+      setPreview(await readProgressFile(file));
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "No se pudo leer el archivo.");
     }
-    navigate("/inicio-publico", { replace: true });
+  };
+
+  const runSync = async (targetCode: string) => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const result = await syncProgress(targetCode);
+      setLinkedCode(targetCode);
+      setCode(targetCode);
+      if (result.status === "conflicto") {
+        setConflict(result);
+      } else {
+        const mensajes: Record<Exclude<SyncResult["status"], "conflicto">, string | null> = {
+          "sin-cambios": "Ya estaba todo sincronizado.",
+          subido: null,
+          descargado: "Se aplicó el progreso del servidor (recargando)…",
+        };
+        setSyncMessage(mensajes[result.status]);
+      }
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? `Error: ${err.message}` : "No se pudo sincronizar.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleGenerateCode = () => {
+    const nuevo = generateSyncCode();
+    void runSync(nuevo);
+  };
+
+  const handleLinkCode = () => {
+    // El código es sensible a mayúsculas/minúsculas (incluye ambas para más
+    // variedad) — no se normaliza, solo se recorta espacios accidentales.
+    const normalizado = codeInput.trim();
+    if (normalizado.length !== 10) {
+      setSyncMessage("El código tiene 10 caracteres.");
+      return;
+    }
+    void runSync(normalizado);
+  };
+
+  const handleResolveConflict = async (keep: "local" | "remote") => {
+    if (!conflict || !code) return;
+    await resolveConflict(code, keep, conflict);
+    setConflict(null);
+    if (keep === "local") setSyncMessage("Guardaste tu progreso local en el servidor, pisando el del código.");
   };
 
   useEffect(() => {
@@ -85,10 +166,22 @@ export default function Perfil() {
   const [hydroPoints] = useHydroPoints();
   const [exp] = useExp();
   const reservoir = useReservoir();
-  const pew = calcPew(exp, mockFamily.streakDays);
+  const streakDays = useStreakDays();
+  const pew = calcPew(exp, streakDays);
   const { stage, progressInStage, xpParaSiguiente } = calcWasiStage(pew);
   const wasiStage = WASI_STAGES.find((w) => w.number === stage) ?? WASI_STAGES[0];
   const progressPct = Math.round((progressInStage / xpParaSiguiente) * 100);
+
+  // Mismo criterio de desbloqueo que Avatares.tsx: cada avatar de la tienda
+  // aparece acá como opción de foto de perfil recién al llegar a su etapa del
+  // Wasi (el secreto, al cumplir las 4 condiciones) — nunca se muestra bloqueado.
+  const avatarShop = useAvatarShop();
+  const secretAvatarUnlocked =
+    stage >= 10 &&
+    allGamesCompleted() &&
+    allCoursesCompleted() &&
+    SHOP_AVATARS.filter((a) => !a.special).every((a) => avatarShop.allOwned(a));
+  const unlockedShopAvatars = SHOP_AVATARS.filter((a) => (a.special ? secretAvatarUnlocked : (a.stage ?? Infinity) <= stage));
 
   const achievements: Achievement[] = [
     {
@@ -96,7 +189,7 @@ export default function Perfil() {
       title: "Racha de 7 días",
       description: "Actividad diaria sostenida una semana completa.",
       emoji: "🔥",
-      unlocked: mockFamily.streakDays >= 7,
+      unlocked: streakDays >= 7,
     },
     {
       id: "hp-1000",
@@ -136,9 +229,9 @@ export default function Perfil() {
           <div className="flex min-w-0 items-center gap-4">
             <span
               aria-hidden="true"
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-bg-light text-4xl shadow-[2px_2px_0_0_#1c1c11]"
+              className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-ink bg-bg-light text-4xl shadow-[2px_2px_0_0_#1c1c11]"
             >
-              {profile.avatar}
+              <ProfileAvatarGlyph value={profile.avatar} imgClassName="h-14 w-14 object-contain" />
             </span>
             <div className="min-w-0">
               <p className="font-body text-sm font-semibold text-ink/70">Perfil familiar</p>
@@ -170,6 +263,36 @@ export default function Perfil() {
           {AVATARS.map((avatar) => <button key={avatar} type="button" aria-label={`Usar avatar ${avatar}`} aria-pressed={profile.avatar === avatar} onClick={() => setProfile((p) => ({ ...p, avatar }))} className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-ink text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${profile.avatar === avatar ? "bg-[#FFB793]" : "bg-bg-light"}`}>{avatar}</button>)}
           <label className="flex min-h-12 items-center gap-2 rounded-xl border-2 border-ink bg-bg-light px-2 font-bold">Inicial<input value={initial} maxLength={1} aria-label="Inicial para avatar" onChange={(event) => setInitial(event.target.value.toLocaleUpperCase("es-PE"))} className="h-9 w-9 rounded-lg border-2 border-ink bg-surface text-center" /><button type="button" onClick={() => initial && setProfile((p) => ({ ...p, avatar: initial }))} className="min-h-12 rounded-lg bg-primary px-3">Usar</button></label>
         </div></fieldset>
+        {unlockedShopAvatars.length > 0 && (
+          <fieldset className="mt-4">
+            <legend className="text-sm font-bold">Avatares de tu Wasi (se van desbloqueando por etapa)</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {unlockedShopAvatars.map((avatar) => {
+                const value = shopAvatarValue(avatar.id);
+                const selected = profile.avatar === value;
+                return (
+                  <button
+                    key={avatar.id}
+                    type="button"
+                    aria-label={`Usar avatar ${avatar.name}`}
+                    aria-pressed={selected}
+                    onClick={() => setProfile((p) => ({ ...p, avatar: value }))}
+                    className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-ink shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                      selected ? "bg-[#FFB793]" : "bg-bg-light"
+                    }`}
+                  >
+                    <img
+                      src={getAvatarThumbnail(avatar)}
+                      alt=""
+                      className="h-9 w-9 object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
         {/* Este emoji es la foto de perfil de la familia (header/ranking). El avatar 3D del
             Wasi —el que el niño viste con accesorios y su Skin Especial— es otra cosa y vive
             en su propia pestaña; este link solo evita que parezcan el mismo sistema. */}
@@ -188,7 +311,7 @@ export default function Perfil() {
       {/* Métricas */}
       <section className="grid grid-cols-3 gap-3">
         <StatCard label="HydroPuntos" value={String(hydroPoints)} highlight />
-        <StatCard label="Racha" value={`${mockFamily.streakDays} días`} sub="🔥 actividad" />
+        <StatCard label="Racha" value={`${streakDays} días`} sub="🔥 actividad" />
         <StatCard label="Litros ahorrados" value={`${reservoir.totalLitersSaved} L`} />
       </section>
 
@@ -244,6 +367,150 @@ export default function Perfil() {
           ))}
         </div>
       </section>
+
+      {/* Respaldo/sync de progreso — sin cuenta, sin email (ver progressBackup.ts/progressSync.ts). */}
+      <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
+        <h2 className="font-display text-lg font-bold">Respaldo de progreso</h2>
+        <p className="mt-1 text-xs text-ink/70">
+          Todo tu progreso vive en este navegador. Descargá un backup o restaurá uno para no perderlo.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={exportProgress}
+            className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-primary px-4 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            Exportar
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light px-4 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            Importar
+          </button>
+          <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
+        </div>
+        {importError && <p className="mt-2 text-xs font-bold text-[#E26D5C]">{importError}</p>}
+      </section>
+
+      <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
+        <h2 className="font-display text-lg font-bold">Código de acceso</h2>
+        <p className="mt-1 text-xs text-ink/70">
+          Sin email ni Google: un código de 10 caracteres para tener tu progreso en más de un dispositivo.
+        </p>
+        {code ? (
+          <div className="mt-3">
+            <p className="text-xs text-ink/60">Tu código:</p>
+            <p className="font-display text-lg font-bold tracking-widest">{code}</p>
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={() => runSync(code)}
+              className="mt-2 min-h-12 w-full rounded-xl border-2 border-ink bg-primary px-4 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
+            >
+              {syncing ? "Sincronizando…" : "Sincronizar ahora"}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={handleGenerateCode}
+              className="min-h-12 w-full rounded-xl border-2 border-ink bg-primary px-4 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
+            >
+              Guardar progreso
+            </button>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                maxLength={10}
+                placeholder="Código de otro dispositivo"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light px-2 font-bold tracking-widest"
+              />
+              <button
+                type="button"
+                disabled={syncing}
+                onClick={handleLinkCode}
+                className="min-h-12 rounded-xl border-2 border-ink bg-bg-light px-3 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
+              >
+                Vincular
+              </button>
+            </div>
+          </div>
+        )}
+        {syncMessage && <p className="mt-2 text-xs text-ink/70">{syncMessage}</p>}
+      </section>
+
+      {preview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1c11]/80 p-4">
+          <div className={`w-full max-w-sm rounded-2xl border-2 border-ink bg-surface p-6 ${HARD_SHADOW}`}>
+            <h3 className="font-display text-base font-bold">Restaurar progreso</h3>
+            <p className="mt-2 text-xs text-ink/70">
+              Backup del perfil <span className="font-bold">{preview.profileId}</span>, exportado el{" "}
+              {new Date(preview.exportedAt).toLocaleString()}.
+            </p>
+            <p className="mt-2 text-xs text-ink/70">
+              Esto reemplaza tu progreso actual en este navegador ({preview.entries.length} valores). No se puede deshacer.
+            </p>
+            {preview.localIsNewer && (
+              <p className="mt-2 rounded-lg bg-red-100 p-2 text-xs text-red-700">
+                ⚠️ Tu progreso actual en este navegador es más reciente que este backup. Restaurarlo puede hacerte perder avances.
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => applyImportedProgress(preview)}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-primary font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Restaurar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {conflict && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1c11]/80 p-4">
+          <div className={`w-full max-w-sm rounded-2xl border-2 border-ink bg-surface p-6 ${HARD_SHADOW}`}>
+            <h3 className="font-display text-base font-bold">Progreso distinto en cada lado</h3>
+            <p className="mt-2 text-xs text-ink/70">
+              Este navegador y el código <span className="font-bold">{code}</span> tienen cambios que no coinciden. Elegí cuál conservar — el otro se pierde.
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-ink/60">
+              <p>Este navegador: {new Date(conflict.local.lastModified).toLocaleString()}</p>
+              <p>Código: {new Date(conflict.remote.lastModified).toLocaleString()}</p>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleResolveConflict("remote")}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Usar el del código
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResolveConflict("local")}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-primary font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Usar este navegador
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ajustes: tema */}
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>

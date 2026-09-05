@@ -3,6 +3,7 @@ import CourseCard from "../components/CourseCard";
 import VideoPlayerView from "../components/VideoPlayerView";
 import { coursesMock, isCourseUnlocked, type WaterCourse } from "../data/courses.mock";
 import { addHydroPoints } from "../utils/hydroStore";
+import { markActivityToday } from "../utils/streakStore";
 
 interface AcademiaProps {
   hydroPoints?: number;
@@ -53,6 +54,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
     const next = { ...progress, [course.id]: [...done, lessonId] };
     setProgress(next);
     saveProgress(next);
+    markActivityToday();
     if (next[course.id].length === course.lessons.length) {
       addHydroPoints(course.xpReward);
     }

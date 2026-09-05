@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense, lazy } from 'react'
+import { useCallback, useEffect, useRef, useState, Suspense, lazy } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WASI_STAGES, WASI_STAGE_THRESHOLDS } from '../data/mock'
 import { wasiVisualFor, wasiMood } from '../data/wasiVisuals'
@@ -44,17 +44,24 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
     }
   }
 
-  // foco y ESC + bloqueo scroll
+  // Único punto de cierre: resetea el estado del acordeón (para que la próxima
+  // apertura no arrastre una fila expandida vieja) y recién ahí avisa al padre.
+  // Antes esto vivía en un efecto disparado por `isOpen`, pero `isOpen` solo
+  // cambia a false como consecuencia de este mismo cierre — no hace falta un
+  // efecto reactivo para algo que ya disparamos nosotros mismos.
+  const handleClose = useCallback(() => {
+    setMountedStage(null)
+    setClosing(false)
+    setPendingStage(null)
+    onClose()
+  }, [onClose])
+
+  // foco + bloqueo de scroll mientras está abierto
   useEffect(() => {
-    if (!isOpen) {
-      setMountedStage(null)
-      setClosing(false)
-      setPendingStage(null)
-      return
-    }
+    if (!isOpen) return
     closeBtnRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') handleClose()
     }
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
@@ -63,14 +70,14 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [isOpen, onClose])
+  }, [isOpen, handleClose])
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           role="presentation"
-          onClick={onClose}
+          onClick={handleClose}
           className="fixed inset-0 z-20 flex items-end justify-center bg-ink/55 backdrop-blur-[1px] sm:items-center sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -95,7 +102,7 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
               <button
                 ref={closeBtnRef}
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 aria-label="Cerrar modal de etapas"
                 className="keyline-border flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-bg-light text-xl font-bold shadow-[2px_2px_0_var(--color-ink)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
@@ -224,7 +231,7 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-accent px-6 font-display text-sm font-bold text-white shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               Cerrar

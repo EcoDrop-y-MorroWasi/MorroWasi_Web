@@ -43,9 +43,9 @@ export const Config = () => {
       if (result.status === 'conflicto') {
         setConflict(result)
       } else {
-        const mensajes: Record<Exclude<SyncResult['status'], 'conflicto'>, string> = {
+        const mensajes: Record<Exclude<SyncResult['status'], 'conflicto'>, string | null> = {
           'sin-cambios': 'Ya estaba todo sincronizado.',
-          subido: 'Tu progreso local se guardó en el servidor.',
+          subido: null,
           descargado: 'Se aplicó el progreso del servidor (recargando)…',
         }
         setSyncMessage(mensajes[result.status])
@@ -63,9 +63,9 @@ export const Config = () => {
   }
 
   const handleLinkCode = () => {
-    const normalizado = codeInput.trim().toUpperCase()
-    if (normalizado.length !== 8) {
-      setSyncMessage('El código tiene 8 caracteres.')
+    const normalizado = codeInput.trim()
+    if (normalizado.length !== 10) {
+      setSyncMessage('El código tiene 10 caracteres.')
       return
     }
     void runSync(normalizado)
@@ -135,7 +135,7 @@ export const Config = () => {
         <div className="keyline-border rounded-2xl bg-surface p-4">
           <p className="font-display text-sm font-bold text-secondary">Código de acceso</p>
           <p className="mt-1 font-body text-xs text-ink/60">
-            Sin email ni Google: un código de 8 caracteres para tener tu progreso en más de un dispositivo.
+            Sin email ni Google: un código de 10 caracteres para tener tu progreso en más de un dispositivo.
           </p>
 
           {code ? (
@@ -159,16 +159,16 @@ export const Config = () => {
                 onClick={handleGenerateCode}
                 className="w-full rounded-xl bg-primary text-white py-2 text-sm font-body disabled:opacity-50"
               >
-                Generar código nuevo
+                Guardar progreso
               </button>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  maxLength={8}
+                  maxLength={10}
                   placeholder="Código de otro dispositivo"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value)}
-                  className="flex-1 rounded-xl border-2 border-ink bg-bg-light px-2 py-2 text-sm font-body uppercase tracking-widest"
+                  className="flex-1 rounded-xl border-2 border-ink bg-bg-light px-2 py-2 text-sm font-body tracking-widest"
                 />
                 <button
                   type="button"
