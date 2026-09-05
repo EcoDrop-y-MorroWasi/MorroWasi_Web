@@ -1,0 +1,10 @@
+[extend]
+# Hereda las reglas por defecto de gitleaks (generic-api-key, etc.) y solo
+# agrega excepciones — no reemplaza el set de reglas.
+useDefault = true
+
+[allowlist]
+description = "Nombres de keys de localStorage del proyecto (morrowasi_*_v1), no son secretos"
+regexes = [
+  '''morrowasi_[a-z0-9_]+_v\d+''',
+]
