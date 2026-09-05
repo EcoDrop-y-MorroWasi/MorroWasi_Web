@@ -21,7 +21,7 @@ interface ShopState {
 }
 
 function defaultState(): ShopState {
-  return { ownedAccessoryIds: [], equipped: {}, specialSkin: {}, selectedAvatarId: "yamile" };
+  return { ownedAccessoryIds: [], equipped: {}, specialSkin: {}, selectedAvatarId: "angie" };
 }
 
 function readState(): ShopState {

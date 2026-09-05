@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ACCESSORY_ICONS,
   AVATARS,
   SPECIAL_CAPE_TYPES,
   SPECIAL_LOOKS,
@@ -30,21 +31,10 @@ import AvatarSkinViewer from "../components/AvatarSkinViewer";
 // completar el set. Gasta y persiste sobre los mismos HydroPuntos del resto
 // de la app (utils/hydroStore.ts) — no crea una moneda paralela.
 
-const SLOT_ICON: Record<AccessorySlot, string[]> = {
-  cabeza: ["🧢", "🎀", "👑"],
-  cara: ["🕶️", "🎭"],
-  pecho: ["🦺", "🏅"],
-  espalda: ["🧣", "🎒"],
-  piernas: ["👢", "🩹"],
-  manos: [],
-};
-const HAND_ICON: Record<string, string> = { regadera: "🚿", balde: "🪣", libro: "📖", vara: "🪄" };
-const SLOT_LABEL: Record<AccessorySlot, string> = { cabeza: "Cabeza", cara: "Cara", pecho: "Pecho", espalda: "Espalda", piernas: "Piernas", manos: "Manos" };
-
 function accessoryIcon(acc: Accessory): string {
-  if (acc.slot === "manos") return HAND_ICON[acc.handShape || "regadera"];
-  return SLOT_ICON[acc.slot][acc.poolIndex] || "❔";
+  return ACCESSORY_ICONS[acc.avatarId]?.[acc.index] ?? "❔";
 }
+const SLOT_LABEL: Record<AccessorySlot, string> = { cabeza: "Cabeza", cara: "Cara", pecho: "Pecho", espalda: "Espalda", piernas: "Piernas", manos: "Manos" };
 
 function fmt(n: number): string {
   return n.toLocaleString("es-PE");
@@ -92,7 +82,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const ownedCount = accessories.filter((a) => shop.isOwned(a.id)).length;
   const complete = shop.allOwned(av);
   const special = shop.specialSkinFor(av);
-  const specialLook = SPECIAL_LOOKS[av.id] || SPECIAL_LOOKS.yamile;
+  const specialLook = SPECIAL_LOOKS[av.id] || SPECIAL_LOOKS.angie;
 
   const previewKey = (slot: AccessorySlot) => `${av.id}:${slot}`;
 
@@ -176,7 +166,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
         </div>
       </div>
       <p className="text-sm text-ink/70">
-        Vestí a tu avatar del Wasi: 9 chicas y 2 chicos, uno por etapa. Completá los 11 accesorios de cada uno para desbloquear su Skin Especial.
+        Vestí a tu avatar del Wasi: 8 chicas y 2 chicos, uno por etapa. Completá los 11 accesorios de cada uno para desbloquear su Skin Especial.
       </p>
 
       {/* Fila de avatares — miniatura 2D liviana (no un visor 3D por avatar) */}
