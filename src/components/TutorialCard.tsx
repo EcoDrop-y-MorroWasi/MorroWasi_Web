@@ -7,8 +7,8 @@ interface TutorialCardProps {
   onStart: () => void;
 }
 
-// Minitutorial sin timer entre el video intro y la partida real — explica la mecánica
-// con un ejemplo sencillo antes de arrancar el reloj. Reutilizable por los 12 mini-juegos.
+// Minitutorial sin timer entre las viñetas de intro y la partida real — explica la
+// mecánica con un ejemplo sencillo antes de arrancar el reloj. Lo usan los 13 mini-juegos.
 export default function TutorialCard({ title, instructions, exampleFrom, exampleTo, exampleLabel, onStart }: TutorialCardProps) {
   return (
     <div className="flex flex-col gap-3">

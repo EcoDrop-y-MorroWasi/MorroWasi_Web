@@ -3,6 +3,9 @@ import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { Minigame, MinigameType } from "../utils/gamification";
 import { bumpStat } from "../utils/stats";
 import TutorialCard from "../components/TutorialCard";
+import GameIntroVinetas from "../components/GameIntroVinetas";
+import ConstruyeWasiGame from "../components/ConstruyeWasiGame";
+import { sortearPreguntas, barajar, TEMAS_QUIZ, type PreguntaQuiz } from "../data/quiz";
 
 export interface MinigameResult {
   earned: number;
@@ -19,7 +22,6 @@ interface MinigamePlayProps {
 type Phase = "intro" | "tutorial" | "playing" | "result";
 
 const HARD_SHADOW = "shadow-[4px_4px_0_#1c1c11]";
-const INTRO_SECONDS = 10;
 
 // Minitutorial por tipo de juego — sin timer, ejemplo simple antes de arrancar el cronómetro real.
 const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: string; label: string }> = {
@@ -95,6 +97,18 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
     to: "🏺",
     label: "Ej.: 2 gotas exactas para la jarra de 1 L",
   },
+  QUIZ_AGUA: {
+    instructions: "Toca la respuesta correcta antes de que se acabe el tiempo. Mientras más rápido, más puntos.",
+    from: "❓",
+    to: "✅",
+    label: "Ej.: ¿cuántas horas de sol necesita SODIS? → 6 horas",
+  },
+  CONSTRUYE_WASI: {
+    instructions: "Toca las celdas para colocar canaletas y armar el camino del agua desde el techo hasta su destino.",
+    from: "🏠",
+    to: "🌱",
+    label: "Ej.: techo → canaleta → canaleta → biohuerto",
+  },
 };
 
 // Overlay de partida jugable — UI_UX_Guide.md:4.1: intro video mock skippable 10s,
@@ -162,7 +176,7 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
         <AnimatePresence mode="wait">
           {phase === "intro" && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <IntroVideo game={game} onDone={() => setPhase("tutorial")} />
+              <GameIntroVinetas game={game} onStart={() => setPhase("tutorial")} />
             </motion.div>
           )}
 
@@ -226,49 +240,6 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
   );
 }
 
-// ---------- Intro (video mock skippable 10s) ----------
-
-function IntroVideo({ game, onDone }: { game: Minigame; onDone: () => void }) {
-  const [secondsLeft, setSecondsLeft] = useState(INTRO_SECONDS);
-
-  useEffect(() => {
-    if (secondsLeft <= 0) {
-      onDone();
-      return;
-    }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [secondsLeft, onDone]);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="relative flex h-48 items-center justify-center rounded-2xl border-2 border-ink bg-[#99B4D8]">
-        <span className="text-6xl" aria-hidden="true">
-          ▶
-        </span>
-        <span className="absolute bottom-2 left-2 rounded-md border-2 border-ink bg-surface/90 px-2 py-1 text-[11px] font-extrabold">
-          Video intro mock — {game.videoIntroUri ?? "sin video"}
-        </span>
-        <span
-          className="absolute top-2 right-2 grid h-10 w-10 place-items-center rounded-full border-2 border-ink bg-bg-light text-xs font-black"
-          aria-live="polite"
-        >
-          {secondsLeft}s
-        </span>
-      </div>
-      <p className="text-sm text-ink/70">{game.description}</p>
-      <p className="text-xs font-bold text-ink/60">Duración: {game.durationSeconds}s</p>
-      <button
-        type="button"
-        onClick={onDone}
-        className={`min-h-12 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white ${HARD_SHADOW} active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
-      >
-        Saltar ▶ y comenzar
-      </button>
-    </div>
-  );
-}
-
 // ---------- HUD compartido ----------
 
 function GameHUD({ timeLabel, scoreLabel }: { timeLabel: string; scoreLabel: string }) {
@@ -302,7 +273,182 @@ function GameEngine({
   if (type === "DUCHA_MUSICAL") return <DuchaMusicalGame duration={duration} onComplete={onComplete} />;
   if (type === "CORTE_AGUA") return <CorteAguaGame duration={duration} onComplete={onComplete} />;
   if (type === "ACUIFERO_ALGARROBO") return <AcuiferoAlgarroboGame duration={duration} onComplete={onComplete} />;
+  if (type === "QUIZ_AGUA") return <SabiosDelAguaGame duration={duration} onComplete={onComplete} />;
+  if (type === "CONSTRUYE_WASI") return <ConstruyeWasiGame duration={duration} onComplete={onComplete} />;
   return <CloracionSeguraGame duration={duration} onComplete={onComplete} />;
+}
+
+// ======================================================================
+// 13. SABIOS DEL AGUA (QUIZ_AGUA, 90s) — 10 preguntas al azar del banco
+// (src/data/quiz.ts), una por tema para que no salga la partida entera de
+// un solo tema. La explicación tras cada respuesta es el punto del juego:
+// se muestra igual cuando aciertas, porque adivinar no es aprender.
+// ======================================================================
+
+const QUIZ_PREGUNTAS = 10;
+/** Segundos por pregunta a partir de los cuales ya no hay bonus de rapidez. */
+const QUIZ_BONUS_SEGUNDOS = 8;
+
+interface PreguntaBarajada {
+  fuente: PreguntaQuiz;
+  opciones: string[];
+  correcta: number;
+}
+
+function barajarOpciones(p: PreguntaQuiz): PreguntaBarajada {
+  const conIndice = p.opciones.map((texto, i) => ({ texto, original: i }));
+  barajar(conIndice);
+  return {
+    fuente: p,
+    opciones: conIndice.map((o) => o.texto),
+    correcta: conIndice.findIndex((o) => o.original === p.correcta),
+  };
+}
+
+function SabiosDelAguaGame({
+  duration,
+  onComplete,
+}: {
+  duration: number;
+  onComplete: (accuracy: number) => void;
+}) {
+  const preguntas = useMemo(
+    () => sortearPreguntas(QUIZ_PREGUNTAS).map(barajarOpciones),
+    [],
+  );
+
+  const [indice, setIndice] = useState(0);
+  const [elegida, setElegida] = useState<number | null>(null);
+  const [aciertos, setAciertos] = useState(0);
+  const [bonus, setBonus] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(duration);
+  const inicioPregunta = useRef(Date.now());
+
+  const actual = preguntas[indice];
+  const terminado = indice >= preguntas.length;
+
+  // El puntaje mezcla aciertos con rapidez: responder bien y rápido llega a 1,
+  // responder bien pero lento se queda cerca de 0.8 de accuracy.
+  const finalizar = (aciertosFinal: number, bonusFinal: number) => {
+    const base = aciertosFinal / preguntas.length;
+    const rapidez = bonusFinal / preguntas.length;
+    onComplete(Math.max(0, Math.min(1, base * 0.8 + rapidez * 0.2)));
+  };
+
+  useEffect(() => {
+    if (terminado) return;
+    if (timeLeft <= 0) {
+      finalizar(aciertos, bonus);
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, terminado]);
+
+  const responder = (i: number) => {
+    if (elegida !== null || !actual) return;
+    setElegida(i);
+    const acerto = i === actual.correcta;
+    const segundos = (Date.now() - inicioPregunta.current) / 1000;
+    if (acerto) {
+      setAciertos((a) => a + 1);
+      if (segundos <= QUIZ_BONUS_SEGUNDOS) setBonus((b) => b + 1);
+    }
+  };
+
+  const siguiente = () => {
+    const esUltima = indice + 1 >= preguntas.length;
+    if (esUltima) {
+      finalizar(aciertos, bonus);
+      setIndice(preguntas.length);
+      return;
+    }
+    setIndice((i) => i + 1);
+    setElegida(null);
+    inicioPregunta.current = Date.now();
+  };
+
+  if (!actual || terminado) {
+    return (
+      <div className="py-8 text-center font-body text-sm font-bold text-ink/70">Calculando puntaje…</div>
+    );
+  }
+
+  const tema = TEMAS_QUIZ[actual.fuente.tema];
+
+  return (
+    <div>
+      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`✅ ${aciertos}/${preguntas.length}`} />
+
+      <div className="mb-3 flex items-center gap-2">
+        <span className="rounded-full border-2 border-ink bg-[#99B4D8] px-3 py-1 text-[11px] font-black">
+          {tema.emoji} {tema.label}
+        </span>
+        <span className="rounded-full border-2 border-ink bg-surface px-3 py-1 text-[11px] font-black">
+          {indice + 1} de {preguntas.length}
+        </span>
+      </div>
+
+      <p className="rounded-2xl border-[3px] border-ink bg-[#FFB793] p-4 font-display text-base font-extrabold leading-snug shadow-[4px_4px_0_#1c1c11]">
+        {actual.fuente.pregunta}
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2">
+        {actual.opciones.map((opcion, i) => {
+          const esCorrecta = i === actual.correcta;
+          const revelado = elegida !== null;
+          const tono = !revelado
+            ? "bg-bg-light"
+            : esCorrecta
+              ? "bg-[#8fcf9f]"
+              : i === elegida
+                ? "bg-[#E26D5C] text-white"
+                : "bg-bg-light opacity-60";
+
+          return (
+            <button
+              key={opcion}
+              type="button"
+              onClick={() => responder(i)}
+              disabled={revelado}
+              className={`flex min-h-12 items-center gap-3 rounded-xl border-2 border-ink p-3 text-left font-body text-sm font-semibold shadow-[2px_2px_0_#1c1c11] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${tono}`}
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-ink bg-surface font-display text-xs font-black text-ink">
+                {revelado ? (esCorrecta ? "✓" : i === elegida ? "✕" : "·") : String.fromCharCode(65 + i)}
+              </span>
+              <span className="min-w-0">{opcion}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <AnimatePresence>
+        {elegida !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-3"
+          >
+            <div className="rounded-2xl border-[3px] border-ink bg-[#99B4D8]/35 p-3">
+              <p className="font-display text-sm font-extrabold">
+                {elegida === actual.correcta ? "✅ ¡Correcto!" : "💡 La respuesta era otra"}
+              </p>
+              <p className="mt-1 font-body text-[13px] leading-snug">{actual.fuente.explicacion}</p>
+            </div>
+            <button
+              type="button"
+              onClick={siguiente}
+              className={`mt-2 min-h-12 w-full rounded-xl border-2 border-ink bg-[#E26D5C] font-display font-bold text-white ${HARD_SHADOW} active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
+            >
+              {indice + 1 >= preguntas.length ? "Ver mi puntaje →" : "Siguiente pregunta →"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 // ======================================================================

@@ -1,5 +1,5 @@
-import { useState, Suspense, lazy } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, Suspense, lazy } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import WasiModal from '../components/WasiModal'
 import { calcPew, calcWasiStage, mockFamily, mockReservoir, WASI_STAGES } from '../data/mock'
@@ -8,12 +8,15 @@ import { useHydroPoints } from '../utils/hydroStore'
 import { useExp } from '../utils/expStore'
 import { useReservoir } from '../utils/litersStore'
 import { useStreakDays } from '../utils/streakStore'
+import { startTutorial, tutorialVisto } from '../utils/tutorial'
 
 // Three.js (~1MB) se descarga aparte del bundle principal — el Dashboard sigue pintando rápido.
 const WasiViewer3D = lazy(() => import('../components/WasiViewer3D'))
 
 // Dashboard central (AGENTS.md §6, RF-010/011/012) — pulido wasi + ola SVG + racha visible + mood/visuales
 export default function Dashboard() {
+  const navigate = useNavigate()
+
   const [isWasiModalOpen, setWasiModalOpen] = useState(false)
   const [hydroPoints] = useHydroPoints()
   const [exp] = useExp()
@@ -26,14 +29,37 @@ export default function Dashboard() {
   const wasiVisual = wasiVisualFor(stage)
   const mood = wasiMood(streakDays)
 
+  // Primera visita: arranca el recorrido guiado. El retraso deja que el Wasi 3D
+  // y los tabs terminen de montar — driver.js mide posiciones al abrir cada paso
+  // y sin esto el primer recuadro sale corrido.
+  useEffect(() => {
+    if (tutorialVisto()) return
+    const t = setTimeout(() => {
+      if (document.querySelector('[data-tour="metricas"]')) startTutorial(navigate)
+    }, 900)
+    return () => clearTimeout(t)
+  }, [navigate])
+
   const reservoir = useReservoir()
   const hasCapacity = reservoir.capacityLiters > 0
   const reservoirPct = hasCapacity ? Math.round((reservoir.currentLiters / reservoir.capacityLiters) * 100) : 0
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
+      {/* Acceso permanente al recorrido guiado. Antes solo arrancaba solo la
+          primera vez y repetirlo exigía entrar a Configuración, donde nadie lo
+          encontraba. */}
+      <button
+        type="button"
+        onClick={() => startTutorial(navigate)}
+        className="keyline-border flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-secondary/40 px-4 font-display text-sm font-bold shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+      >
+        <span>🧭 ¿Cómo funciona MorroWasi?</span>
+        <span className="font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
+      </button>
+
       {/* Métricas 48dp, contraste, accesible */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3" data-tour="metricas">
         <MetricCard label="Litros hoy" value={`${mockFamily.litersToday} L`} />
         <MetricCard label="HydroPuntos" value={String(hydroPoints)} highlight />
         <MetricCard label="Racha" value={`${streakDays} días`} sub="🔥 días consecutivos" />
@@ -51,7 +77,7 @@ export default function Dashboard() {
       </Suspense>
 
       {/* Tarjeta viva Wasi — clickable abre modal 10 etapas */}
-      <section aria-label="Tarjeta viva del Wasi">
+      <section aria-label="Tarjeta viva del Wasi" data-tour="wasi">
         <button
           type="button"
           onClick={() => setWasiModalOpen(true)}
@@ -119,6 +145,7 @@ export default function Dashboard() {
       <section
         className="keyline-border rounded-2xl bg-primary/20 p-5 shadow-[4px_4px_0_var(--color-ink)]"
         aria-label="Monitor de reservorio familiar"
+        data-tour="reservorio"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold">Reservorio familiar</h2>
@@ -162,36 +189,9 @@ export default function Dashboard() {
         </dl>
       </section>
 
-      {/* Accesos rápidos a las secciones principales — mismos destinos que los tabs del
-          header/bottom nav (Layout.tsx TABS). Viven acá porque el tab "Inicio" apunta a "/"
-          (este Dashboard), no a Inicio.tsx — esa página no está linkeada desde ningún lado. */}
-      <section aria-labelledby="accesos-title">
-        <h2 id="accesos-title" className="font-display text-lg font-bold">Explora MorroWasi</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {ACCESOS_RAPIDOS.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`keyline-border flex min-h-24 flex-col justify-center gap-1 rounded-2xl p-4 shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${item.tone}`}
-            >
-              <span aria-hidden="true" className="text-3xl leading-none">{item.icon}</span>
-              <span className="font-display text-base font-extrabold text-ink">{item.label}</span>
-              <span className="font-body text-xs font-semibold text-ink/70">{item.desc}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }
-
-const ACCESOS_RAPIDOS = [
-  { to: '/cursos', label: 'Cursos', icon: '📚', desc: 'Video-lecciones sobre agua', tone: 'bg-primary/30' },
-  { to: '/juegos', label: 'Juegos', icon: '🎮', desc: 'Desafíos educativos', tone: 'bg-secondary/40' },
-  { to: '/misiones', label: 'Misiones', icon: '✅', desc: 'Hábitos diarios y semanales', tone: 'bg-accent/20' },
-  { to: '/noticias', label: 'Noticias', icon: '📰', desc: 'Novedades de la comunidad', tone: 'bg-primary/20' },
-  { to: '/avatares', label: 'Avatares', icon: '🧑', desc: 'Personaliza tu Wasi', tone: 'bg-secondary/25' },
-] as const
 
 function MetricCard({
   label,

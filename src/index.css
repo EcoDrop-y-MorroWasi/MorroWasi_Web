@@ -109,6 +109,81 @@ a {
   letter-spacing: -0.01em;
 }
 
+/* Minitutorial (driver.js) — su hoja de estilos trae un popover gris con sombra
+   difusa, ajeno al resto de la app. Acá se reviste con el mismo neobrutalismo
+   cálido: borde 2px, sombra dura y la paleta de la plataforma. Los tokens siguen
+   a data-theme, así que el recorrido también funciona en modo oscuro. */
+.driver-popover.morrowasi-tour {
+  background-color: var(--color-bg-light);
+  color: var(--color-ink);
+  border: 2px solid var(--color-ink);
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--color-ink);
+  max-width: min(23rem, calc(100vw - 2.5rem));
+  padding: 1.15rem 1.15rem 0.9rem;
+}
+
+.driver-popover.morrowasi-tour .driver-popover-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.driver-popover.morrowasi-tour .driver-popover-description {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-top: 0.5rem;
+  color: color-mix(in srgb, var(--color-ink) 88%, var(--color-bg-light));
+}
+
+.driver-popover.morrowasi-tour .driver-popover-progress-text {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--color-ink) 70%, var(--color-bg-light));
+}
+
+/* 48dp táctil: los botones nativos de driver.js son de ~28px, difíciles de
+   acertar con el pulgar bajo sol intenso. */
+.driver-popover.morrowasi-tour .driver-popover-navigation-btns button {
+  min-height: 44px;
+  padding-inline: 0.9rem;
+  border: 2px solid var(--color-ink);
+  border-radius: 11px;
+  background-color: var(--color-bg-light);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-shadow: none;
+  box-shadow: 2px 2px 0 var(--color-ink);
+}
+
+.driver-popover.morrowasi-tour .driver-popover-navigation-btns button:last-child {
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+.driver-popover.morrowasi-tour .driver-popover-navigation-btns button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.driver-popover.morrowasi-tour .driver-popover-close-btn {
+  color: var(--color-ink);
+  font-size: 1.5rem;
+  width: 44px;
+  height: 44px;
+}
+
+.driver-popover.morrowasi-tour .driver-popover-arrow-side-left { border-left-color: var(--color-ink); }
+.driver-popover.morrowasi-tour .driver-popover-arrow-side-right { border-right-color: var(--color-ink); }
+.driver-popover.morrowasi-tour .driver-popover-arrow-side-top { border-top-color: var(--color-ink); }
+.driver-popover.morrowasi-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--color-ink); }
+
 @media (prefers-reduced-motion: reduce) {
   .reservoir-wave::after {
     animation: none;

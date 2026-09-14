@@ -14,6 +14,7 @@ import ProfileAvatarGlyph from "../components/ProfileAvatarGlyph";
 import { shopAvatarValue } from "../utils/profileAvatar";
 import { applyImportedProgress, exportProgress, readProgressFile, type ImportPreview } from "../utils/progressBackup";
 import {
+  deleteProgressSync,
   generateSyncCode,
   getLinkedCode,
   resolveConflict,
@@ -21,6 +22,9 @@ import {
   syncProgress,
   type SyncResult,
 } from "../utils/progressSync";
+import { startTutorial } from "../utils/tutorial";
+import LedgerViewer from "../components/LedgerViewer";
+import { useBadges } from "../utils/badges";
 
 const THEME_STORAGE_KEY = "morrowasi_theme_v1";
 const PROFILE_STORAGE_KEY = "morrowasi_perfil_v1";
@@ -48,13 +52,6 @@ function applyTheme(theme: Theme) {
   }
 }
 
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  emoji: string;
-  unlocked: boolean;
-}
 
 type EditableProfile = { name: string; avatar: string; members: number };
 
@@ -92,6 +89,9 @@ export default function Perfil() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [conflict, setConflict] = useState<Extract<SyncResult, { status: "conflicto" }> | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,6 +152,27 @@ export default function Perfil() {
     if (keep === "local") setSyncMessage("Guardaste tu progreso local en el servidor, pisando el del código.");
   };
 
+  // No hay email ni contraseña: "la cuenta" es todo lo que vive en este
+  // navegador (progreso, perfil, código de sync) más, si hay uno vinculado, el
+  // respaldo del servidor. Por eso borra ambos lados y no deja nada a medias.
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      if (code) {
+        try {
+          await deleteProgressSync(code);
+        } catch {
+          /* si falla el borrado remoto, igual se borra lo local: no bloquear por eso */
+        }
+      }
+      window.localStorage.clear();
+      await signOutSupabase().catch(() => {});
+      window.location.href = "/inicio-publico";
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
@@ -166,6 +187,8 @@ export default function Perfil() {
   const [hydroPoints] = useHydroPoints();
   const [exp] = useExp();
   const reservoir = useReservoir();
+  const badges = useBadges();
+  const unlockedBadges = badges.filter((b) => b.unlocked).length;
   const streakDays = useStreakDays();
   const pew = calcPew(exp, streakDays);
   const { stage, progressInStage, xpParaSiguiente } = calcWasiStage(pew);
@@ -182,44 +205,6 @@ export default function Perfil() {
     allCoursesCompleted() &&
     SHOP_AVATARS.filter((a) => !a.special).every((a) => avatarShop.allOwned(a));
   const unlockedShopAvatars = SHOP_AVATARS.filter((a) => (a.special ? secretAvatarUnlocked : (a.stage ?? Infinity) <= stage));
-
-  const achievements: Achievement[] = [
-    {
-      id: "racha-7",
-      title: "Racha de 7 días",
-      description: "Actividad diaria sostenida una semana completa.",
-      emoji: "🔥",
-      unlocked: streakDays >= 7,
-    },
-    {
-      id: "hp-1000",
-      title: "1000+ HydroPuntos",
-      description: "Superaste los mil puntos acumulados.",
-      emoji: "⚡",
-      unlocked: hydroPoints >= 1000,
-    },
-    {
-      id: "litros-2000",
-      title: "2000+ litros ahorrados",
-      description: "Ahorro histórico familiar superior a 2000 L.",
-      emoji: "💧",
-      unlocked: reservoir.totalLitersSaved >= 2000,
-    },
-    {
-      id: "wasi-3",
-      title: `Etapa Wasi 3 — ${WASI_STAGES[2].name}`,
-      description: "Tu Wasi alcanzó su tercera etapa de crecimiento.",
-      emoji: "🌿",
-      unlocked: stage >= 3,
-    },
-    {
-      id: "wasi-5",
-      title: `Etapa Wasi 5 — ${WASI_STAGES[4].name}`,
-      description: "Meta siguiente: sigue sumando HydroPuntos y racha.",
-      emoji: "🏆",
-      unlocked: stage >= 5,
-    },
-  ];
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 pb-24">
@@ -241,16 +226,22 @@ export default function Perfil() {
               </span>
             </div>
           </div>
-          {/* Solo mobile: el header (Layout.tsx) ya no muestra ícono/botón de salir ahí por
-              falta de espacio (se cortaba en pantallas angostas) — acá siempre hay lugar. */}
+          {/* Único punto de salida de la app: el header ya no lo muestra en ningún
+              tamaño — en mobile no entraba y en desktop su ancho era lo que faltaba
+              para que los 7 tabs cupieran con etiqueta. */}
           <button
             type="button"
             onClick={signOut}
-            className="min-h-12 shrink-0 rounded-xl border-2 border-ink bg-bg-light px-3 text-sm font-bold text-ink shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:hidden"
+            data-tour="salir"
+            className="min-h-12 shrink-0 rounded-xl border-2 border-ink bg-secondary px-4 text-sm font-bold text-ink shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             Salir
           </button>
         </div>
+        <p className="mt-3 text-xs font-semibold text-ink/70">
+          Entraste sin correo ni contraseña: tu progreso local no se borra al salir, pero si tenías un
+          chat abierto vas a perder tu lugar ahí (se crea una identidad nueva al volver a entrar).
+        </p>
       </section>
 
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
@@ -345,31 +336,57 @@ export default function Perfil() {
         </p>
       </section>
 
-      {/* Logros */}
+      {/* Logros: mismos datos que el Álbum (utils/badges.ts es la única fuente de
+          umbrales, evita desincronía) — acá solo se listan, tocar uno lleva al Álbum. */}
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
-        <h2 className="font-display text-lg font-bold">Logros</h2>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {achievements.map((a) => (
-            <div
-              key={a.id}
-              className={`flex items-start gap-2 rounded-xl border-2 border-ink p-3 ${
-                a.unlocked ? "bg-[#4f9d69]/25" : "bg-bg-light opacity-60"
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold">🏅 Logros</h2>
+          <span className="text-xs font-bold text-ink/70">{unlockedBadges}/{badges.length}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4" role="list" aria-label="Insignias">
+          {badges.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              role="listitem"
+              onClick={() => navigate("/album")}
+              aria-label={`${b.title}: ${b.unlocked ? "desbloqueada" : "bloqueada"} — ver en el Álbum`}
+              className={`flex flex-col items-center gap-1 rounded-xl border-2 border-ink p-2 text-center active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                b.unlocked ? "bg-[#4f9d69]/25 shadow-[2px_2px_0_#1c1c11]" : "bg-bg-light opacity-60 shadow-[2px_2px_0_#1c1c11]"
               }`}
             >
-              <span aria-hidden="true" className="text-xl">
-                {a.unlocked ? a.emoji : "🔒"}
+              <span aria-hidden="true" className="text-2xl">
+                {b.unlocked ? b.emoji : "🔒"}
               </span>
-              <div className="min-w-0">
-                <p className="text-sm font-bold leading-tight">{a.title}</p>
-                <p className="text-xs leading-snug text-ink/70">{a.description}</p>
-              </div>
-            </div>
+              <p className="text-[10px] font-bold leading-tight text-ink">{b.title}</p>
+            </button>
           ))}
         </div>
+        <p className="mt-3 text-center text-xs font-semibold text-ink/60">Toca una insignia para ver el detalle en el Álbum</p>
       </section>
 
-      {/* Respaldo/sync de progreso — sin cuenta, sin email (ver progressBackup.ts/progressSync.ts). */}
+      {/* Recorrido guiado — Config.tsx (página huérfana, sin enlace desde ningún
+          lado) se eliminó y todo su contenido único se integró acá. */}
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
+        <h2 className="font-display text-lg font-bold">Recorrido guiado</h2>
+        <p className="mt-1 text-xs text-ink/70">
+          Te explica para qué sirve cada sección, cómo ganar EXP e HydroPuntos, cómo guardar tu
+          progreso y cómo entrar a la tabla de clasificación.
+        </p>
+        <button
+          type="button"
+          onClick={() => startTutorial(navigate)}
+          className="mt-3 min-h-12 w-full rounded-xl border-2 border-ink bg-primary px-4 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        >
+          🧭 Ver el minitutorial
+        </button>
+      </section>
+
+      {/* Libro de eventos — ver leaderboardLedger.ts. */}
+      <LedgerViewer />
+
+      {/* Respaldo/sync de progreso — sin cuenta, sin email (ver progressBackup.ts/progressSync.ts). */}
+      <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`} data-tour="respaldo">
         <h2 className="font-display text-lg font-bold">Respaldo de progreso</h2>
         <p className="mt-1 text-xs text-ink/70">
           Todo tu progreso vive en este navegador. Descargá un backup o restaurá uno para no perderlo.
@@ -443,7 +460,63 @@ export default function Perfil() {
           </div>
         )}
         {syncMessage && <p className="mt-2 text-xs text-ink/70">{syncMessage}</p>}
+
+        <hr className="my-4 border-t-2 border-ink/20" />
+
+        <h2 className="font-display text-lg font-bold text-[#E26D5C]">Eliminar cuenta</h2>
+        <p className="mt-1 text-xs text-ink/70">
+          Borra todo tu progreso de este dispositivo{code ? " y el respaldo del servidor de tu código" : ""}. No se puede deshacer.
+        </p>
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="mt-3 min-h-12 w-full rounded-xl border-2 border-ink bg-[#E26D5C] px-4 font-bold text-white shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        >
+          Eliminar cuenta
+        </button>
       </section>
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1c11]/80 p-4">
+          <div className={`w-full max-w-sm rounded-2xl border-2 border-ink bg-surface p-6 ${HARD_SHADOW}`}>
+            <h3 className="font-display text-base font-bold text-[#E26D5C]">¿Eliminar tu cuenta?</h3>
+            <p className="mt-2 text-xs text-ink/70">
+              Se borra todo tu progreso de este dispositivo (HydroPuntos, EXP, litros, logros, avatares)
+              {code ? " y el respaldo guardado en el servidor con tu código" : ""}. No hay forma de recuperarlo después.
+            </p>
+            <p className="mt-3 text-xs font-bold text-ink">
+              Escribe <span className="text-[#E26D5C]">ELIMINAR</span> para confirmar:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="mt-2 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3 font-bold"
+              autoFocus
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteConfirmText("");
+                }}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmText !== "ELIMINAR" || deleting}
+                onClick={handleDeleteAccount}
+                className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50"
+              >
+                {deleting ? "Eliminando…" : "Eliminar todo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {preview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1c11]/80 p-4">
@@ -542,6 +615,9 @@ export default function Perfil() {
         </div>
       </section>
 
+      <p className="text-center font-body text-xs text-ink/50">
+        Versión 2.0.0 · MorroWasi · Datos locales sin conexión
+      </p>
     </div>
   );
 }

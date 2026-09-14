@@ -7,7 +7,6 @@ type Props = {
   type: MinigameType;
   xpMaxReward: number; // 30-100
   durationSeconds: number; // 60 o 90
-  videoIntroUri: string | null;
   bestScore?: number;
   played?: boolean;
   onPlay: () => void;
@@ -26,11 +25,13 @@ const typeMeta: Record<MinigameType, { emoji: string; label: string; color: stri
   CORTE_AGUA: { emoji: "🛢️", label: "Corte de agua", color: "bg-[#FFB793]" },
   ACUIFERO_ALGARROBO: { emoji: "🌳", label: "Acuífero del algarrobo", color: "bg-[#99B4D8]" },
   CLORACION_SEGURA: { emoji: "🧪", label: "Cloración segura", color: "bg-[#FFB793]" },
+  QUIZ_AGUA: { emoji: "❓", label: "Sabios del agua", color: "bg-[#99B4D8]" },
+  CONSTRUYE_WASI: { emoji: "🏗️", label: "Construye tu Wasi", color: "bg-[#FFB793]" },
 };
 
 // MinigameCard — variante Arcade juvenil (ui-warm-neobrutalism): borde 3px, sombra 6px, hover arcade
-// 48dp, video intro mock local, sin BLE, español, duración real 60-90s por juego oficial Piura
-export default function MinigameCard({ title, description, type, xpMaxReward, durationSeconds, videoIntroUri, bestScore, played, onPlay }: Props) {
+// 48dp, sin BLE, español, duración real 60-90s por juego oficial Piura
+export default function MinigameCard({ title, description, type, xpMaxReward, durationSeconds, bestScore, played, onPlay }: Props) {
   const meta = typeMeta[type];
   return (
     <motion.article
@@ -41,21 +42,18 @@ export default function MinigameCard({ title, description, type, xpMaxReward, du
       className="flex flex-col overflow-hidden rounded-xl bg-surface border-[3px] border-ink shadow-[6px_6px_0_#1c1c11] hover:shadow-[6px_6px_0_#1c1c11]"
       aria-label={`${title} ${xpMaxReward} XP, ${durationSeconds} segundos`}
     >
-      {/* Video intro mock — placeholder local, no remoto, sin BLE */}
+      {/* Portada del juego. Antes decía "▶ Video intro mock" con la ruta del .mp4
+          a la vista; esos videos nunca existieron y la intro ahora son viñetas
+          ilustradas (GameIntroVinetas.tsx), así que el placeholder sobraba. */}
       <div className={`relative h-40 flex items-center justify-center border-b-[3px] border-ink ${meta.color}`}>
-        {videoIntroUri ? (
-          <div className="flex flex-col items-center gap-1 p-3 text-center">
-            <span className="text-5xl" aria-hidden>
-              {meta.emoji}
-            </span>
-            <span className="rounded-md bg-surface/90 border-2 border-ink px-2 py-1 text-[11px] font-extrabold">▶ Video intro mock</span>
-            <span className="text-[11px] font-semibold text-[#1c1c11]/70 truncate max-w-[90%]">{videoIntroUri}</span>
-          </div>
-        ) : (
-          <span className="text-5xl" aria-hidden>
-            {meta.emoji}
-          </span>
-        )}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{ backgroundImage: "repeating-linear-gradient(-15deg, transparent 0 12px, #1c1c11 12px 13px)" }}
+        />
+        <span className="relative text-6xl drop-shadow-[3px_3px_0_rgba(28,28,17,0.25)]" aria-hidden>
+          {meta.emoji}
+        </span>
         <span className="absolute top-2 left-2 rounded-full bg-surface border-2 border-ink px-2 py-1 text-[11px] font-extrabold">
           {meta.label}
         </span>

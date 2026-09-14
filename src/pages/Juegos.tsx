@@ -7,6 +7,7 @@ import MinigamePlay, { type MinigameResult } from "./MinigamePlay";
 import { MINIGAMES, calcMinigameScore } from "../utils/gamification";
 import { useHydroPoints } from "../utils/hydroStore";
 import { markActivityToday } from "../utils/streakStore";
+import { recordLedgerEvent } from "../utils/leaderboardLedger";
 
 const GAMES_STORAGE_KEY = "morrowasi_games_v1";
 
@@ -38,7 +39,7 @@ function saveBestScores(scores: Record<string, number>) {
 }
 
 // Juegos 30-100XP — 4 mini-juegos realmente jugables (MinigamePlay), bestScore persistido en
-// localStorage morrowasi_games_v1, XP solo si supera récord (anti-farmeo), video intro mock skippable.
+// localStorage morrowasi_games_v1, XP solo si supera récord (anti-farmeo), intro con viñetas ilustradas.
 // Paleta AGENTS.md:145, español, sin BLE. Pulido: toast +XP flotante + confeti canvas-confetti.
 export default function Juegos() {
   const [hydro, addHydro] = useHydroPoints();
@@ -87,6 +88,7 @@ export default function Juegos() {
       setBestScores(next);
       saveBestScores(next);
       addHydro(earned);
+      recordLedgerEvent("juego", gameId, { hydro: earned });
       pushToast(`+${earned} XP`, `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!`);
       fireConfetti();
     } else {
@@ -97,7 +99,7 @@ export default function Juegos() {
   };
 
   return (
-    <div className="relative mx-auto max-w-[1000px] p-4 pb-24">
+    <div className="relative mx-auto max-w-[1000px] p-4 pb-24" data-tour="pagina-juegos">
       {/* Toast flotante */}
       <div className="pointer-events-none fixed top-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
         <AnimatePresence>
@@ -149,7 +151,6 @@ export default function Juegos() {
             type={g.type}
             xpMaxReward={g.xpMaxReward}
             durationSeconds={g.durationSeconds}
-            videoIntroUri={g.videoIntroUri}
             bestScore={bestScores[g.id]}
             played={bestScores[g.id] !== undefined}
             onPlay={() => setActiveGameId(g.id)}
@@ -196,7 +197,13 @@ export default function Juegos() {
           <li>
             <b>Cloración Segura</b>: mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro. 60 s.
           </li>
-          <li>Todos otorgan 30–100 XP y muestran video intro mock (saltable a los 10 s). Solo el nuevo récord suma HydroPuntos (anti-farmeo) y cuenta como actividad para tu racha diaria.</li>
+          <li>
+            <b>Sabios del Agua</b>: 10 preguntas al azar sobre agua, Piura y los temas de la Academia. Responde rápido para sumar más. 90 s.
+          </li>
+          <li>
+            <b>Construye tu Wasi</b>: arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 3 rondas, 240 s.
+          </li>
+          <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Solo el nuevo récord suma puntos (anti-farmeo) y cuenta como actividad para tu racha diaria.</li>
         </ul>
       </div>
 

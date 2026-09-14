@@ -3,6 +3,7 @@ import CourseCard from "../components/CourseCard";
 import VideoPlayerView from "../components/VideoPlayerView";
 import { coursesMock, isCourseUnlocked, type WaterCourse } from "../data/courses.mock";
 import { addHydroPoints } from "../utils/hydroStore";
+import { recordLedgerEvent } from "../utils/leaderboardLedger";
 import { markActivityToday } from "../utils/streakStore";
 
 interface AcademiaProps {
@@ -57,6 +58,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
     markActivityToday();
     if (next[course.id].length === course.lessons.length) {
       addHydroPoints(course.xpReward);
+      recordLedgerEvent("curso", course.id, { hydro: course.xpReward });
     }
   };
 
@@ -263,7 +265,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
     );
 
   return (
-    <main className="mx-auto max-w-6xl bg-bg-light px-4 py-6 text-ink">
+    <main className="mx-auto max-w-6xl bg-bg-light px-4 py-6 text-ink" data-tour="pagina-cursos">
       <header className={`mb-6 rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 ${HARD_SHADOW}`}>
         <p className="font-bold text-[#E26D5C]">ACADEMIA DEL AGUA</p>
         <h1 className="font-display text-3xl font-bold">Aprende, cuida y suma HydroPuntos</h1>

@@ -13,6 +13,7 @@ import type { Task } from "../utils/gamification";
 import { useExp } from "../utils/expStore";
 import { addLiters } from "../utils/litersStore";
 import { markActivityToday } from "../utils/streakStore";
+import { recordLedgerEvent } from "../utils/leaderboardLedger";
 
 type Tab = "diarias" | "semanales" | "personalizadas";
 
@@ -101,6 +102,10 @@ export default function Misiones() {
     const target = list.find((t) => t.id === id);
     if (!target || target.completed) return;
     addExp(target.xp);
+    // Las personalizadas las escribe el usuario, así que no tienen un id fijo en
+    // el catálogo: van bajo "personalizada", cuyo rango de EXP el servidor acota
+    // igual que calcCustomXp() (5 a 40).
+    recordLedgerEvent("mision", isCustom ? "personalizada" : target.id, { exp: target.xp });
     addLiters(target.litersSaved);
     markActivityToday();
     setLitrosHoy((l) => l + target.litersSaved);
@@ -139,7 +144,7 @@ export default function Misiones() {
   const consejoSemanal = useMemo(() => getConsejoSemanal(), []);
 
   return (
-    <div className="mx-auto max-w-[800px] bg-bg-light p-4 pb-24">
+    <div className="mx-auto max-w-[800px] bg-bg-light p-4 pb-24" data-tour="pagina-misiones">
       {/* Header */}
       <h1 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold leading-none text-ink">
         <span aria-hidden>🎯</span> Centro de Misiones

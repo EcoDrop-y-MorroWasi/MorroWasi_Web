@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
-import Inicio from './pages/Inicio'
 import Academia from './pages/Academia'
 import Misiones from './pages/Misiones'
 import Juegos from './pages/Juegos'
@@ -10,11 +9,7 @@ import Ahorro from './pages/Ahorro'
 import Noticias from './pages/Noticias'
 import Perfil from './pages/Perfil'
 import Album from './components/Album'
-import Familias from './pages/Familias'
-import { Colegios } from './pages/Colegios'
 import { Ranking } from './pages/Ranking'
-import Estadisticas from './pages/Estadisticas'
-import { Config } from './pages/Config'
 import { calcPew, calcWasiStage } from './data/mock'
 import InicioPublico from './pages/InicioPublico'
 import Login from './pages/Login'
@@ -65,7 +60,6 @@ function ProtectedRoutes() {
   const wasiStage = calcWasiStage(calcPew(exp, streakDays)).stage
   return <Layout><Routes>
     <Route path="/" element={<Dashboard />} />
-    <Route path="/inicio" element={<Inicio />} />
     <Route path="/cursos" element={<Academia hydroPoints={hydroPoints} wasiLevel={wasiStage} />} />
     <Route path="/juegos" element={<Juegos />} />
     <Route path="/misiones" element={<Misiones />} />
@@ -74,11 +68,7 @@ function ProtectedRoutes() {
     <Route path="/avatares" element={<Suspense fallback={null}><Avatares wasiStage={wasiStage} /></Suspense>} />
     <Route path="/perfil" element={<Perfil />} />
     <Route path="/album" element={<Album />} />
-    <Route path="/familias" element={<Familias />} />
-    <Route path="/colegios" element={<Colegios />} />
     <Route path="/ranking" element={<Ranking />} />
-    <Route path="/estadisticas" element={<Estadisticas />} />
-    <Route path="/config" element={<Config />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></Layout>
 }

@@ -33,7 +33,9 @@ export type MinigameType =
   | "DUCHA_MUSICAL"
   | "CORTE_AGUA"
   | "ACUIFERO_ALGARROBO"
-  | "CLORACION_SEGURA";
+  | "CLORACION_SEGURA"
+  | "QUIZ_AGUA"
+  | "CONSTRUYE_WASI";
 
 export interface Task {
   id: string;
@@ -54,8 +56,7 @@ export interface Minigame {
   description: string;
   type: MinigameType;
   xpMaxReward: number; // 30-100
-  durationSeconds: number; // 60 o 90 — UI_UX_Guide.md:4.1
-  videoIntroUri: string | null;
+  durationSeconds: number; // varía por juego, ver jg-14 (240s)
   played?: boolean;
   bestScore?: number;
 }
@@ -257,7 +258,6 @@ export const MINIGAMES: Minigame[] = [
     type: "FUGAS_DETECT",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-fugas.mp4",
   },
   {
     id: "jg-2",
@@ -267,7 +267,6 @@ export const MINIGAMES: Minigame[] = [
     type: "HUELLA_HIDRICA",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-huella.mp4",
   },
   {
     id: "jg-3",
@@ -277,7 +276,6 @@ export const MINIGAMES: Minigame[] = [
     type: "COSECHA_LLUVIA",
     xpMaxReward: 100,
     durationSeconds: 90,
-    videoIntroUri: "/videos/mock-cosecha.mp4",
   },
   {
     id: "jg-4",
@@ -287,7 +285,6 @@ export const MINIGAMES: Minigame[] = [
     type: "RIEGO_OPT",
     xpMaxReward: 100,
     durationSeconds: 90,
-    videoIntroUri: "/videos/mock-riego.mp4",
   },
   {
     id: "jg-5",
@@ -297,7 +294,6 @@ export const MINIGAMES: Minigame[] = [
     type: "FILTROS_LAB",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-filtros.mp4",
   },
   {
     id: "jg-6",
@@ -307,7 +303,6 @@ export const MINIGAMES: Minigame[] = [
     type: "RUTAS_AGUAS",
     xpMaxReward: 100,
     durationSeconds: 90,
-    videoIntroUri: "/videos/mock-rutas.mp4",
   },
   {
     id: "jg-7",
@@ -317,7 +312,6 @@ export const MINIGAMES: Minigame[] = [
     type: "SODIS_UV",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-sodis.mp4",
   },
   {
     id: "jg-8",
@@ -327,7 +321,6 @@ export const MINIGAMES: Minigame[] = [
     type: "GUARDIAN_RIO",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-guardian-rio.mp4",
   },
   {
     id: "jg-9",
@@ -337,7 +330,6 @@ export const MINIGAMES: Minigame[] = [
     type: "DUCHA_MUSICAL",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-ducha.mp4",
   },
   {
     id: "jg-10",
@@ -347,7 +339,6 @@ export const MINIGAMES: Minigame[] = [
     type: "CORTE_AGUA",
     xpMaxReward: 100,
     durationSeconds: 90,
-    videoIntroUri: "/videos/mock-corte.mp4",
   },
   {
     id: "jg-11",
@@ -357,7 +348,6 @@ export const MINIGAMES: Minigame[] = [
     type: "ACUIFERO_ALGARROBO",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-acuifero.mp4",
   },
   {
     id: "jg-12",
@@ -367,7 +357,24 @@ export const MINIGAMES: Minigame[] = [
     type: "CLORACION_SEGURA",
     xpMaxReward: 100,
     durationSeconds: 60,
-    videoIntroUri: "/videos/mock-cloracion.mp4",
+  },
+  {
+    id: "jg-13",
+    title: "Sabios del Agua",
+    description:
+      "10 preguntas contrarreloj sobre el agua, Piura y los temas de la Academia. Responde rápido para sumar más, y aprende el porqué de cada respuesta.",
+    type: "QUIZ_AGUA",
+    xpMaxReward: 100,
+    durationSeconds: 90,
+  },
+  {
+    id: "jg-14",
+    title: "Construye tu Wasi",
+    description:
+      "Arma la instalación de agua de tu casa en 3D isométrico: conecta el techo con el tanque, el filtro y el biohuerto para que el agua llegue a todas partes. 3 rondas.",
+    type: "CONSTRUYE_WASI",
+    xpMaxReward: 100,
+    durationSeconds: 240,
   },
 ];
 
