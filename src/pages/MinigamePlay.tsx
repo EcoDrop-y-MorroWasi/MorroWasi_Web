@@ -812,7 +812,7 @@ function AtrapaLluviasGame({ duration, onComplete }: { duration: number; onCompl
   const [cleanLiters, setCleanLiters] = useState(0);
   const [contamination, setContamination] = useState(0);
   const [clima, setClima] = useState<Clima>("sucia");
-  const [climaSegundosLeft, setClimaSegundosLeft] = useState(CLIMA_MIN_SEGUNDOS);
+  const [, setClimaSegundosLeft] = useState(CLIMA_MIN_SEGUNDOS);
   const finishedRef = useRef(false);
 
   const theoreticalMax = CANALETAS * duration * LITROS_POR_CANALETA_SEG;
