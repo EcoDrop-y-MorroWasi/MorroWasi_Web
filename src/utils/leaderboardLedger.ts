@@ -74,19 +74,29 @@ export function readLedger(): LedgerEvent[] {
 /**
  * Registra un evento que otorgó puntos. Lo llaman los mismos lugares que ya
  * llamaban addExp()/addHydroPoints() — el libro no otorga nada por su cuenta,
- * solo deja constancia de lo que se otorgó.
+ * solo deja constancia de lo que se otorgó. Devuelve el `t` del evento agregado
+ * (o null si no otorgaba puntos), para poder revertirlo con removeLedgerEvent
+ * si la misión se borra.
  */
 export function recordLedgerEvent(
   tipo: LedgerEventType,
   ref: string,
   puntos: { exp?: number; hydro?: number },
-): void {
+): number | null {
   const exp = Math.max(0, Math.round(puntos.exp ?? 0));
   const hydro = Math.max(0, Math.round(puntos.hydro ?? 0));
-  if (exp === 0 && hydro === 0) return;
+  if (exp === 0 && hydro === 0) return null;
 
   const events = readLedger();
-  events.push({ t: Date.now(), tipo, ref, exp, hydro });
+  const t = Date.now();
+  events.push({ t, tipo, ref, exp, hydro });
+  write(events);
+  return t;
+}
+
+/** Saca del libro el evento exacto (t + ref) — se usa al borrar una misión personalizada ya completada, para que no siga sumando en el ranking. */
+export function removeLedgerEvent(t: number, ref: string): void {
+  const events = readRaw().filter((e) => !(e.t === t && e.ref === ref));
   write(events);
 }
 

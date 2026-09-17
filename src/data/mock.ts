@@ -20,7 +20,7 @@ export const WASI_STAGES: WasiStage[] = [
 // en sus propios stores (hydroStore.ts / litersStore.ts) — acá solo quedan los
 // campos que aún no tienen store propio.
 export const mockFamily: FamilyProgress = {
-  name: 'Familia MorroWasi',
+  name: 'Guardián Piurano',
   avatar: '🌊',
   hydroPoints: 0,
   streakDays: 0,

@@ -95,6 +95,22 @@ const RONDAS: Ronda[] = [
       { col: 6, row: 6, requiereFiltro: true },
     ],
   },
+  {
+    titulo: "Ronda 4 — Dos techos, una sola casa",
+    objetivo: "Une el agua de los dos techos y reparte agua filtrada a la ducha y sin filtrar al biohuerto.",
+    pista: "Las dos ramas se pueden juntar antes del filtro — después del filtro, esa agua ya solo debería ir a la ducha.",
+    fijas: [
+      { col: 0, row: 0, pieza: "techo" },
+      { col: 6, row: 0, pieza: "techo" },
+      { col: 3, row: 6, pieza: "ducha" },
+      { col: 0, row: 3, pieza: "biohuerto" },
+    ],
+    presupuesto: { canaleta: 20, filtro: 1, tanque: 1 },
+    destinos: [
+      { col: 3, row: 6, requiereFiltro: true },
+      { col: 0, row: 3, requiereFiltro: false },
+    ],
+  },
 ];
 
 const clave = (col: number, row: number) => `${col},${row}`;

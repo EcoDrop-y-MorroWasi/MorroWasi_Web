@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
+import Footer from '../components/Footer'
 import Logo from '../components/Logo'
 
 const SECTIONS = [
-  { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', text: 'Una plataforma educativa para que familias, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
+  { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', text: 'Una plataforma educativa para que personas, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
   { icon: '🌱', title: 'Cómo ayuda', tone: 'bg-secondary', text: 'Registra hábitos de ahorro, aprende con cursos de video, juega desafíos educativos y hace crecer tu Wasi en sus 10 etapas. Cada acción suma litros, HydroPuntos y motivación para seguir cuidando el agua.' },
   { icon: '📍', title: 'Dónde nació', tone: 'bg-surface', text: 'MorroWasi nace en Morropón, Piura, como parte del Desafío Amauta 2026: una respuesta local, alegre y práctica para una necesidad que compartimos.' },
-  { icon: '🎯', title: 'Nuestro objetivo', tone: 'bg-primary/30', text: 'Promover el uso responsable del agua en hogares y escuelas mediante educación práctica, actividades familiares y una comunidad que celebra cada gota ahorrada.' },
+  { icon: '🎯', title: 'Nuestro objetivo', tone: 'bg-primary/30', text: 'Promover el uso responsable del agua en hogares y escuelas mediante educación práctica, actividades cotidianas y una comunidad que celebra cada gota ahorrada.' },
 ] as const
 
 const GALLERY = [
@@ -53,6 +54,7 @@ export default function InicioPublico() {
         </section>
 
         <section className="keyline-border rounded-2xl bg-secondary p-6 text-center shadow-[4px_4px_0_var(--color-ink)]"><h2 className="font-display text-2xl font-extrabold">¿Listos para ahorrar juntos?</h2><p className="mx-auto mt-2 max-w-xl font-semibold text-ink/80">Entra, registra tus hábitos y mira cómo florece tu Wasi.</p><AccessLink label="Acceder" extra="mt-5 bg-accent text-white shadow-[2px_2px_0_var(--color-ink)]" /></section>
+        <Footer />
       </div>
     </main>
   )

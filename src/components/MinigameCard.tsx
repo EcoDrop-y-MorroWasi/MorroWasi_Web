@@ -27,6 +27,7 @@ const typeMeta: Record<MinigameType, { emoji: string; label: string; color: stri
   CLORACION_SEGURA: { emoji: "🧪", label: "Cloración segura", color: "bg-[#FFB793]" },
   QUIZ_AGUA: { emoji: "❓", label: "Sabios del agua", color: "bg-[#99B4D8]" },
   CONSTRUYE_WASI: { emoji: "🏗️", label: "Construye tu Wasi", color: "bg-[#FFB793]" },
+  MEMORAMA_AGUA: { emoji: "🧠", label: "Memorama del agua", color: "bg-[#99B4D8]" },
 };
 
 // MinigameCard — variante Arcade juvenil (ui-warm-neobrutalism): borde 3px, sombra 6px, hover arcade

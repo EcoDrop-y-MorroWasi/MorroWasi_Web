@@ -2,20 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import MissionCard from "../components/MissionCard";
 import {
   calcCustomXp,
+  CUSTOM_TASK_ICONS,
   getConsejoDiario,
   getConsejoSemanal,
   getDayPeriodKey,
   getMisionesDiariasDeHoy,
   getMisionesSemanalesDeEstaSemana,
+  getMonthPeriodKey,
   getWeekPeriodKey,
+  MISIONES_MENSUALES,
 } from "../utils/gamification";
 import type { Task } from "../utils/gamification";
 import { useExp } from "../utils/expStore";
 import { addLiters } from "../utils/litersStore";
 import { markActivityToday } from "../utils/streakStore";
-import { recordLedgerEvent } from "../utils/leaderboardLedger";
+import { recordLedgerEvent, removeLedgerEvent } from "../utils/leaderboardLedger";
+import { playPop } from "../utils/sound";
 
-type Tab = "diarias" | "semanales" | "personalizadas";
+type Tab = "diarias" | "semanales" | "mensuales" | "personalizadas";
 
 const STORAGE_KEY = "morrowasi_misiones_v1";
 
@@ -25,11 +29,22 @@ interface StoredState {
   litrosHoy: number;
   periodoSemanal: string;
   semanalesCompletadas: string[];
+  periodoMensual: string;
+  mensualesCompletadas: string[];
   customTasks: Task[];
 }
 
 function readStored(): StoredState {
-  const vacio: StoredState = { periodoDiario: "", diariasCompletadas: [], litrosHoy: 0, periodoSemanal: "", semanalesCompletadas: [], customTasks: [] };
+  const vacio: StoredState = {
+    periodoDiario: "",
+    diariasCompletadas: [],
+    litrosHoy: 0,
+    periodoSemanal: "",
+    semanalesCompletadas: [],
+    periodoMensual: "",
+    mensualesCompletadas: [],
+    customTasks: [],
+  };
   if (typeof window === "undefined") return vacio;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -41,6 +56,8 @@ function readStored(): StoredState {
       litrosHoy: Number.isFinite(parsed.litrosHoy) ? (parsed.litrosHoy as number) : 0,
       periodoSemanal: parsed.periodoSemanal ?? "",
       semanalesCompletadas: parsed.semanalesCompletadas ?? [],
+      periodoMensual: parsed.periodoMensual ?? "",
+      mensualesCompletadas: parsed.mensualesCompletadas ?? [],
       customTasks: parsed.customTasks ?? [],
     };
   } catch {
@@ -65,14 +82,17 @@ export default function Misiones() {
 
   const periodoDiario = useMemo(() => getDayPeriodKey(), []);
   const periodoSemanal = useMemo(() => getWeekPeriodKey(), []);
+  const periodoMensual = useMemo(() => getMonthPeriodKey(), []);
 
   const defaultsDiarias = useMemo<Task[]>(() => getMisionesDiariasDeHoy().map((m) => ({ ...m, completed: false } as Task)), []);
   const defaultsSemanales = useMemo<Task[]>(() => getMisionesSemanalesDeEstaSemana().map((m) => ({ ...m, completed: false } as Task)), []);
+  const defaultsMensuales = useMemo<Task[]>(() => MISIONES_MENSUALES.map((m) => ({ ...m, completed: false } as Task)), []);
 
   const stored = useMemo(() => readStored(), []);
   const [tasks, setTasks] = useState<Task[]>(() => [
     ...mergeStored(defaultsDiarias, stored.diariasCompletadas, stored.periodoDiario, periodoDiario),
     ...mergeStored(defaultsSemanales, stored.semanalesCompletadas, stored.periodoSemanal, periodoSemanal),
+    ...mergeStored(defaultsMensuales, stored.mensualesCompletadas, stored.periodoMensual, periodoMensual),
   ]);
   const [customTasks, setCustomTasks] = useState<Task[]>(stored.customTasks);
   // Litros ahorrados hoy vía misiones — se resetea solo cuando cambia periodoDiario
@@ -81,18 +101,29 @@ export default function Misiones() {
 
   const [customText, setCustomText] = useState("");
   const [customLitros, setCustomLitros] = useState(30);
+  const [customIcon, setCustomIcon] = useState<string>(CUSTOM_TASK_ICONS[0]);
   const previewXp = calcCustomXp(customLitros);
 
   useEffect(() => {
     try {
       const diariasCompletadas = tasks.filter((t) => t.tab === "diaria" && t.completed).map((t) => t.id);
       const semanalesCompletadas = tasks.filter((t) => t.tab === "semanal" && t.completed).map((t) => t.id);
-      const state: StoredState = { periodoDiario, diariasCompletadas, litrosHoy, periodoSemanal, semanalesCompletadas, customTasks };
+      const mensualesCompletadas = tasks.filter((t) => t.tab === "mensual" && t.completed).map((t) => t.id);
+      const state: StoredState = {
+        periodoDiario,
+        diariasCompletadas,
+        litrosHoy,
+        periodoSemanal,
+        semanalesCompletadas,
+        periodoMensual,
+        mensualesCompletadas,
+        customTasks,
+      };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* mock local, sin BLE */
     }
-  }, [tasks, customTasks, litrosHoy, periodoDiario, periodoSemanal]);
+  }, [tasks, customTasks, litrosHoy, periodoDiario, periodoSemanal, periodoMensual]);
 
   // Completar una misión es definitivo por hoy — no se puede desmarcar (queda
   // "✓ Listo" hasta que rote a otra misión al día siguiente, ver
@@ -101,16 +132,34 @@ export default function Misiones() {
     const list = isCustom ? customTasks : tasks;
     const target = list.find((t) => t.id === id);
     if (!target || target.completed) return;
+    playPop();
     addExp(target.xp);
     // Las personalizadas las escribe el usuario, así que no tienen un id fijo en
     // el catálogo: van bajo "personalizada", cuyo rango de EXP el servidor acota
     // igual que calcCustomXp() (5 a 40).
-    recordLedgerEvent("mision", isCustom ? "personalizada" : target.id, { exp: target.xp });
+    const ref = isCustom ? "personalizada" : target.id;
+    const t = recordLedgerEvent("mision", ref, { exp: target.xp });
     addLiters(target.litersSaved);
     markActivityToday();
     setLitrosHoy((l) => l + target.litersSaved);
-    if (isCustom) setCustomTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
-    else setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)));
+    if (isCustom) setCustomTasks((prev) => prev.map((task) => (task.id === id ? { ...task, completed: true, completedAt: t ?? undefined } : task)));
+    else setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, completed: true } : task)));
+  };
+
+  // Solo las personalizadas se pueden borrar (las diarias/semanales son del
+  // catálogo fijo, rotan solas). Si ya estaba completada, revierte el EXP y los
+  // litros que otorgó y saca su evento del ledger para que no siga sumando en
+  // el ranking.
+  const deleteCustom = (id: string) => {
+    const target = customTasks.find((t) => t.id === id);
+    if (!target) return;
+    if (target.completed) {
+      addExp(-target.xp);
+      addLiters(-target.litersSaved);
+      setLitrosHoy((l) => Math.max(0, l - target.litersSaved));
+      if (target.completedAt !== undefined) removeLedgerEvent(target.completedAt, "personalizada");
+    }
+    setCustomTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
   const addCustom = () => {
@@ -125,6 +174,7 @@ export default function Misiones() {
       completed: false,
       category: "otros",
       tab: "personalizada",
+      icon: customIcon,
     };
     setCustomTasks((p) => [...p, nt]);
     setCustomText("");
@@ -134,6 +184,7 @@ export default function Misiones() {
   // por rotación), no requieren reordenarse por id.
   const diariasOrdenadas = useMemo(() => tasks.filter((t) => t.tab === "diaria"), [tasks]);
   const semanales = useMemo(() => tasks.filter((t) => t.tab === "semanal"), [tasks]);
+  const mensuales = useMemo(() => tasks.filter((t) => t.tab === "mensual"), [tasks]);
 
   const emojiPorCategoria = (cat: string) =>
     cat === "fugas" ? "🚰" : cat === "ducha" ? "🚿" : cat === "lavanderia" ? "♻️" : cat === "riego" ? "🌙" : cat === "cocina" ? "🍳" : "🎯";
@@ -152,7 +203,7 @@ export default function Misiones() {
 
       {/* Tabs 48dp */}
       <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Categorías de misiones">
-        {(["diarias", "semanales", "personalizadas"] as Tab[]).map((t) => (
+        {(["diarias", "semanales", "mensuales", "personalizadas"] as Tab[]).map((t) => (
           <button
             key={t}
             role="tab"
@@ -228,6 +279,34 @@ export default function Misiones() {
             </ul>
           </section>
         </div>
+      ) : tab === "mensuales" ? (
+        <div className="flex flex-col gap-4">
+          <section className="rounded-xl border-2 border-ink bg-[#8fcf9f]/30 p-4 shadow-[4px_4px_0_#1c1c11]">
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-ink">
+              <span aria-hidden>🗓️</span> Retos del mes
+            </h2>
+            <p className="text-sm text-ink">Objetivos más grandes, con todo el mes para lograrlos. Se reinician al empezar el mes siguiente.</p>
+          </section>
+
+          <section className="rounded-xl border-2 border-ink bg-surface p-[18px] shadow-[4px_4px_0_#1c1c11]">
+            <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-ink">
+              <span aria-hidden>🏆</span> Misiones del Mes
+            </h2>
+            <ul className="flex flex-col gap-3" role="list">
+              {mensuales.map((m) => (
+                <MissionCard
+                  key={m.id}
+                  text={m.text}
+                  liters={m.litersSaved}
+                  xp={m.xp}
+                  completed={m.completed}
+                  emoji="🗓️"
+                  onToggle={() => toggle(m.id, false)}
+                />
+              ))}
+            </ul>
+          </section>
+        </div>
       ) : (
         <section className="rounded-xl border-2 border-ink bg-surface p-[18px] shadow-[4px_4px_0_#1c1c11]">
           <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-ink">
@@ -241,6 +320,21 @@ export default function Misiones() {
               className="min-h-12 rounded-lg border-2 border-ink bg-surface px-3 text-sm"
               aria-label="Descripción de misión personalizada"
             />
+            <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Elegir ícono de la misión">
+              <span className="text-sm font-bold">Ícono:</span>
+              {CUSTOM_TASK_ICONS.map((ic) => (
+                <button
+                  key={ic}
+                  type="button"
+                  role="radio"
+                  aria-checked={customIcon === ic}
+                  onClick={() => setCustomIcon(ic)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg border-2 border-ink text-lg shadow-[2px_2px_0_#1c1c11] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${customIcon === ic ? "bg-[#E26D5C]" : "bg-surface hover:brightness-105"}`}
+                >
+                  {ic}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm font-bold">Litros:</label>
               <input
@@ -266,7 +360,16 @@ export default function Misiones() {
           </div>
           <ul className="mt-4 flex flex-col gap-3" role="list">
             {customTasks.map((m) => (
-              <MissionCard key={m.id} text={m.text} liters={m.litersSaved} xp={m.xp} completed={m.completed} emoji="✏️" onToggle={() => toggle(m.id, true)} />
+              <MissionCard
+                key={m.id}
+                text={m.text}
+                liters={m.litersSaved}
+                xp={m.xp}
+                completed={m.completed}
+                emoji={m.icon ?? "✏️"}
+                onToggle={() => toggle(m.id, true)}
+                onDelete={() => deleteCustom(m.id)}
+              />
             ))}
           </ul>
           {customTasks.length === 0 && <p className="mt-3 text-sm text-ink/60">Aún no creaste misiones personalizadas.</p>}

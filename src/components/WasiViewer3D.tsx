@@ -9,7 +9,7 @@ interface WasiViewer3DProps {
 }
 
 const SIZE_CLASSES: Record<"md" | "sm", string> = {
-  md: "h-56 sm:h-64",
+  md: "h-52 sm:h-60",
   sm: "h-44 sm:h-52",
 };
 

@@ -40,6 +40,10 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Raíz del sitio: siempre lo público, para todo el mundo, nuevo o
+          recurrente. Entrar a la cuenta (nueva o con código existente) es
+          un paso explícito desde acá, nunca automático. */}
+      <Route path="/" element={<InicioPublico />} />
       <Route path="/inicio-publico" element={<InicioPublico />} />
       <Route path="/login" element={<Login />} />
       <Route path="*" element={<ProtectedRoutes />} />
@@ -59,7 +63,7 @@ function ProtectedRoutes() {
   if (!session) return <Navigate to="/inicio-publico" replace state={{ from: location }} />
   const wasiStage = calcWasiStage(calcPew(exp, streakDays)).stage
   return <Layout><Routes>
-    <Route path="/" element={<Dashboard />} />
+    <Route path="/inicio" element={<Dashboard />} />
     <Route path="/cursos" element={<Academia hydroPoints={hydroPoints} wasiLevel={wasiStage} />} />
     <Route path="/juegos" element={<Juegos />} />
     <Route path="/misiones" element={<Misiones />} />
@@ -69,6 +73,6 @@ function ProtectedRoutes() {
     <Route path="/perfil" element={<Perfil />} />
     <Route path="/album" element={<Album />} />
     <Route path="/ranking" element={<Ranking />} />
-    <Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="*" element={<Navigate to="/inicio" replace />} />
   </Routes></Layout>
 }

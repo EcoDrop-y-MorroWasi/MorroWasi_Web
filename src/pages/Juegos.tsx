@@ -8,6 +8,7 @@ import { MINIGAMES, calcMinigameScore } from "../utils/gamification";
 import { useHydroPoints } from "../utils/hydroStore";
 import { markActivityToday } from "../utils/streakStore";
 import { recordLedgerEvent } from "../utils/leaderboardLedger";
+import { playChime, playMiss } from "../utils/sound";
 
 const GAMES_STORAGE_KEY = "morrowasi_games_v1";
 
@@ -91,8 +92,10 @@ export default function Juegos() {
       recordLedgerEvent("juego", gameId, { hydro: earned });
       pushToast(`+${earned} XP`, `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!`);
       fireConfetti();
+      playChime();
     } else {
-      pushToast(`${earned} XP`, `No superaste tu récord (${prevBest} pts) — sin XP extra`);
+      pushToast(`${earned} XP`, earned === 0 ? "Perdiste — inténtalo de nuevo" : `No superaste tu récord (${prevBest} pts) — sin XP extra`);
+      playMiss();
     }
 
     return { earned, isNewBest, bestScore: nextBest };
@@ -158,9 +161,9 @@ export default function Juegos() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-xl bg-[#FFB793] border-[3px] border-ink shadow-[6px_6px_0_#1c1c11] p-4">
-        <h3 className="font-extrabold text-ink">ℹ️ Sobre los juegos</h3>
-        <ul className="list-disc pl-5 text-sm text-ink/80 mt-1 space-y-1">
+      <div className="mt-6 rounded-xl bg-[#FFB793] border-[3px] border-ink shadow-[6px_6px_0_#1c1c11] p-4 text-[#1c1c11]">
+        <h3 className="font-extrabold">ℹ️ Sobre los juegos</h3>
+        <ul className="list-disc pl-5 text-sm text-[#1c1c11]/80 mt-1 space-y-1">
           <li>
             <b>Caza-Fugas Exprés</b>: arrastra 🔧 llave, ⚪ teflón o 🛑 válvula a cada fuga de la casa antes de que se pierda el agua. 60 s.
           </li>
@@ -201,7 +204,10 @@ export default function Juegos() {
             <b>Sabios del Agua</b>: 10 preguntas al azar sobre agua, Piura y los temas de la Academia. Responde rápido para sumar más. 90 s.
           </li>
           <li>
-            <b>Construye tu Wasi</b>: arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 3 rondas, 240 s.
+            <b>Construye tu Wasi</b>: arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 4 rondas, 240 s.
+          </li>
+          <li>
+            <b>Memorama del Agua</b>: da vuelta las cartas y encuentra las 8 parejas antes de que se acabe el tiempo, encadenando combos. 90 s.
           </li>
           <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Solo el nuevo récord suma puntos (anti-farmeo) y cuenta como actividad para tu racha diaria.</li>
         </ul>

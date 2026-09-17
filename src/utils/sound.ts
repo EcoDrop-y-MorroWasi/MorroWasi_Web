@@ -34,3 +34,8 @@ export function playPop() {
 export function playChime() {
   beep([660, 880, 1050]);
 }
+
+/** Tono descendente corto — al perder un mini-juego o no superar el récord. */
+export function playMiss() {
+  beep([300, 220], 110);
+}

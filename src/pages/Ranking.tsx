@@ -114,10 +114,10 @@ export const Ranking = () => {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <section className="keyline-border rounded-2xl bg-primary/25 p-5 shadow-[4px_4px_0_var(--color-ink)]">
+      <section data-tour="tarjeta-ranking" className="keyline-border rounded-2xl bg-primary/25 p-5 shadow-[4px_4px_0_var(--color-ink)]">
         <h1 className="font-display text-xl font-extrabold">🏆 Tabla de clasificación</h1>
         <p className="mt-1 font-body text-sm font-semibold text-ink/75">
-          Top {TOP} de familias que más HydroPuntos acumulan. El conteo del día arranca a las
+          Top {TOP} de personas que más HydroPuntos acumulan. El conteo del día arranca a las
           00:00 y cierra a las 23:59, hora de Perú.
         </p>
 
@@ -143,7 +143,6 @@ export const Ranking = () => {
           type="button"
           onClick={() => void compartir()}
           disabled={enviando}
-          data-tour="compartir-puntaje"
           className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-accent px-5 font-display text-sm font-bold text-white shadow-[2px_2px_0_var(--color-ink)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60"
         >
           {enviando ? 'Compartiendo…' : '📤 Compartir mi puntaje'}

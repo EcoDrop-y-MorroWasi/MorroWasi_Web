@@ -165,7 +165,7 @@ export default function ChatWidget() {
         setMensajes([]);
         setAdvertencias(0);
         setEstado("cerrado");
-        setError("El chat se cerró (la otra familia salió o se superó el límite de lenguaje inapropiado).");
+        setError("El chat se cerró (la otra persona salió o se superó el límite de lenguaje inapropiado).");
       }
     }, 15_000);
     return () => window.clearInterval(id);
@@ -187,7 +187,7 @@ export default function ChatWidget() {
   // servidor, solo se sale de la vista local.
   useEffect(() => {
     if (!huboSegundaFamiliaRef.current || otroConectado || !sala) return;
-    setAvisoCierre("La otra familia se desconectó.");
+    setAvisoCierre("La otra persona se desconectó.");
     const id = window.setTimeout(() => {
       setSala(null);
       setMensajes([]);
@@ -287,7 +287,7 @@ export default function ChatWidget() {
   // Borra la sala de verdad (cascada se lleva mensajes y participantes) —
   // afecta a las dos familias, no solo cierra la vista local de quien sale.
   const salirDelChat = async () => {
-    if (!window.confirm("¿Salir de este chat? Se borra para las dos familias. No se puede deshacer.")) return;
+    if (!window.confirm("¿Salir de este chat? Se borra para las dos personas. No se puede deshacer.")) return;
     if (sala) await supabase.rpc("leave_chat", { p_chat_id: sala.id });
     volverAlInicio();
   };
@@ -315,9 +315,9 @@ export default function ChatWidget() {
   if (estado === "unirse") {
     return (
       <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
-        <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3">
-          <h2 className="text-sm font-extrabold text-ink">💬 Chat temporal</h2>
-          <button type="button" onClick={() => setEstado("cerrado")} aria-label="Cerrar" className="text-lg font-black text-ink">
+        <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
+          <h2 className="text-sm font-extrabold">💬 Chat temporal</h2>
+          <button type="button" onClick={() => setEstado("cerrado")} aria-label="Cerrar" className="text-lg font-black">
             ✕
           </button>
         </div>
@@ -368,14 +368,14 @@ export default function ChatWidget() {
   if (estado === "codigo-generado" && sala) {
     return (
       <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
-        <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3">
-          <h2 className="text-sm font-extrabold text-ink">💬 Chat creado</h2>
-          <button type="button" onClick={volverAlInicio} aria-label="Cancelar" className="text-lg font-black text-ink">
+        <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
+          <h2 className="text-sm font-extrabold">💬 Chat creado</h2>
+          <button type="button" onClick={volverAlInicio} aria-label="Cancelar" className="text-lg font-black">
             ✕
           </button>
         </div>
         <div className="flex flex-col items-center gap-3 p-5 text-center">
-          <p className="text-xs font-bold text-ink/70">Comparte este código con la otra familia</p>
+          <p className="text-xs font-bold text-ink/70">Comparte este código con la otra persona</p>
           <p className="rounded-xl border-2 border-ink bg-bg-light px-4 py-3 text-3xl font-black tracking-[0.3em] text-ink">
             {sala.codigo}
           </p>
@@ -395,12 +395,12 @@ export default function ChatWidget() {
   if (!sala) return null;
   return (
     <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-[480px] w-[340px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
-      <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3">
+      <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-extrabold text-ink">💬 Sala {sala.codigo}</h2>
-          <p className="flex items-center gap-1 text-[10px] font-bold text-ink/70">
+          <h2 className="truncate text-sm font-extrabold">💬 Sala {sala.codigo}</h2>
+          <p className="flex items-center gap-1 text-[10px] font-bold text-[#1c1c11]/70">
             <span className={`inline-block h-2 w-2 rounded-full ${otroConectado ? "bg-green-600" : "bg-red-600"}`} aria-hidden />
-            {otroConectado ? "Otra familia conectada" : "Esperando a la otra familia..."} · {formatearTiempoRestante(sala.expiraEn)}
+            {otroConectado ? "Otra persona conectada" : "Esperando a la otra persona..."} · {formatearTiempoRestante(sala.expiraEn)}
           </p>
         </div>
         <button
@@ -423,7 +423,7 @@ export default function ChatWidget() {
         <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto bg-bg-light p-3">
           {mensajes.length === 0 && (
             <p className="mt-6 text-center text-xs font-semibold text-ink/50">
-              Aún no hay mensajes. Cuando la otra familia se una, aparecerán aquí.
+              Aún no hay mensajes. Cuando la otra persona se una, aparecerán aquí.
             </p>
           )}
           {mensajes.map((m) => {
@@ -445,7 +445,7 @@ export default function ChatWidget() {
 
         {advertencias > 0 && (
           <p className="border-t-2 border-ink bg-[#E26D5C]/20 px-3 py-1.5 text-center text-[11px] font-bold text-accent">
-            ⚠️ Advertencia {advertencias}/3 por lenguaje inapropiado — al llegar a 3, el chat se cierra para las dos familias.
+            ⚠️ Advertencia {advertencias}/3 por lenguaje inapropiado — al llegar a 3, el chat se cierra para las dos personas.
           </p>
         )}
         <div className="flex items-center gap-2 border-t-2 border-ink p-2">

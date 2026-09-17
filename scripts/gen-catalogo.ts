@@ -16,6 +16,7 @@ import {
   MISIONES_DIARIAS_POOL,
   MISIONES_SEMANALES_POOL,
   MISIONES_MENSUALES,
+  calcCourseExp,
 } from "../src/utils/gamification.ts";
 import { coursesMock } from "../src/data/courses.mock.ts";
 
@@ -70,13 +71,15 @@ filas.push({
   segundosMin: 0,
 });
 
-// Cursos: Academia.tsx acredita course.xpReward en HydroPuntos, una sola vez por curso.
+// Cursos: Academia.tsx acredita course.xpReward en HydroPuntos + calcCourseExp() en EXP,
+// una sola vez por curso.
 for (const curso of coursesMock) {
+  const exp = calcCourseExp(curso.xpReward);
   filas.push({
     ref: curso.id,
     tipo: "curso",
-    expMin: 0,
-    expMax: 0,
+    expMin: exp,
+    expMax: exp,
     hydroMin: curso.xpReward,
     hydroMax: curso.xpReward,
     segundosMin: 0,

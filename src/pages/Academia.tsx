@@ -2,7 +2,10 @@ import { useState } from "react";
 import CourseCard from "../components/CourseCard";
 import VideoPlayerView from "../components/VideoPlayerView";
 import { coursesMock, isCourseUnlocked, type WaterCourse } from "../data/courses.mock";
+import { WASI_STAGES } from "../data/mock";
 import { addHydroPoints } from "../utils/hydroStore";
+import { useExp } from "../utils/expStore";
+import { calcCourseExp } from "../utils/gamification";
 import { recordLedgerEvent } from "../utils/leaderboardLedger";
 import { markActivityToday } from "../utils/streakStore";
 
@@ -44,11 +47,13 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
   const [lessonIndex, setLessonIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [progress, setProgress] = useState<LessonProgress>(() => loadProgress());
+  const [, addExp] = useExp();
   const lesson = selected?.lessons[lessonIndex];
   const flashcardLesson = selected?.lessons[flashcardIndex];
 
-  // Al completar la última lección del curso, se acreditan sus HydroPuntos una sola
-  // vez (los cursos ya no tocan EXP — eso es de Misiones; ver corrección de moneda).
+  // Al completar la última lección del curso, se acreditan sus HydroPuntos y un
+  // EXP proporcional una sola vez (calcCourseExp — las misiones siguen siendo
+  // la fuente principal de EXP, esto es un aporte extra, no un reemplazo).
   const markLessonDone = (course: WaterCourse, lessonId: string) => {
     const done = progress[course.id] ?? [];
     if (done.includes(lessonId)) return;
@@ -57,8 +62,10 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
     saveProgress(next);
     markActivityToday();
     if (next[course.id].length === course.lessons.length) {
+      const exp = calcCourseExp(course.xpReward);
       addHydroPoints(course.xpReward);
-      recordLedgerEvent("curso", course.id, { hydro: course.xpReward });
+      addExp(exp);
+      recordLedgerEvent("curso", course.id, { hydro: course.xpReward, exp });
     }
   };
 
@@ -215,16 +222,29 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
             {lesson.title}: {lesson.quiz.question}
           </h2>
           <div className="mt-3 grid gap-2">
-            {lesson.quiz.options.map((option, index) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => selectAnswer(lesson.id, index)}
-                className={`min-h-12 rounded-xl border-2 border-ink px-4 py-3 text-left font-semibold ${answers[lesson.id] === index ? "bg-[#FFB793]" : "bg-surface"}`}
-              >
-                {option}
-              </button>
-            ))}
+            {lesson.quiz.options.map((option, index) => {
+              const respondida = answers[lesson.id] !== undefined;
+              const esElegida = answers[lesson.id] === index;
+              const esCorrecta = index === lesson.quiz.correctAnswer;
+              const clase =
+                respondida && esElegida && esCorrecta
+                  ? "bg-[#28a745] text-white"
+                  : respondida && esElegida && !esCorrecta
+                    ? "bg-[#E26D5C] text-white"
+                    : "bg-surface";
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={respondida && answers[lesson.id] !== lesson.quiz.correctAnswer && esElegida}
+                  onClick={() => selectAnswer(lesson.id, index)}
+                  className={`flex min-h-12 items-center justify-between gap-2 rounded-xl border-2 border-ink px-4 py-3 text-left font-semibold ${clase}`}
+                >
+                  <span>{option}</span>
+                  {respondida && esElegida && (esCorrecta ? <span aria-hidden="true">✓</span> : <span aria-hidden="true">✗</span>)}
+                </button>
+              );
+            })}
           </div>
           {answers[lesson.id] !== undefined ? (
             <p className="mt-3 text-sm font-bold">
@@ -246,16 +266,18 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
           {lessonIndex < selected.lessons.length - 1 ? (
             <button
               type="button"
+              disabled={answers[lesson.id] !== lesson.quiz.correctAnswer}
               onClick={() => setLessonIndex((index) => index + 1)}
-              className={`min-h-12 flex-1 rounded-xl border-2 border-ink bg-[#FFB793] font-bold ${HARD_SHADOW}`}
+              className={`min-h-12 flex-1 rounded-xl border-2 border-ink bg-[#FFB793] font-bold disabled:opacity-40 disabled:shadow-none ${HARD_SHADOW}`}
             >
               Siguiente
             </button>
           ) : (
             <button
               type="button"
+              disabled={answers[lesson.id] !== lesson.quiz.correctAnswer}
               onClick={closeCourse}
-              className={`min-h-12 flex-1 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white ${HARD_SHADOW}`}
+              className={`min-h-12 flex-1 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white disabled:opacity-40 disabled:shadow-none ${HARD_SHADOW}`}
             >
               Finalizar
             </button>
@@ -266,29 +288,44 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
 
   return (
     <main className="mx-auto max-w-6xl bg-bg-light px-4 py-6 text-ink" data-tour="pagina-cursos">
-      <header className={`mb-6 rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 ${HARD_SHADOW}`}>
+      <header className={`mb-6 rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 text-[#1c1c11] ${HARD_SHADOW}`}>
         <p className="font-bold text-[#E26D5C]">ACADEMIA DEL AGUA</p>
         <h1 className="font-display text-3xl font-bold">Aprende, cuida y suma HydroPuntos</h1>
         <p className="mt-2">
-          Videos educativos vía YouTube (temáticos, MVP demo) — cuando grabemos contenido propio, cambiarán a
-          Firebase Storage con caché offline sin tocar esta pantalla.
+          Cursos con lecciones en video y quiz al final de cada una. Completa todas las lecciones de un curso para
+          sumar sus HydroPuntos.
         </p>
         <p className="mt-3 text-sm font-bold">
           {hydroPoints} HydroPuntos · Wasi nivel {wasiLevel}
         </p>
       </header>
-      <section aria-label="Catálogo de cursos" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {coursesMock.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            unlocked={isCourseUnlocked(course, hydroPoints, wasiLevel)}
-            completed={isCourseComplete(course)}
-            completedLessons={completedLessonsFor(course)}
-            onOpen={openCourse}
-          />
-        ))}
-      </section>
+      {/* Agrupados por etapa del Wasi: 3 cursos por etapa, 10 etapas. */}
+      {WASI_STAGES.map((wasiStage) => {
+        const cursosDeEtapa = coursesMock.filter((c) => c.stage === wasiStage.number);
+        if (cursosDeEtapa.length === 0) return null;
+        return (
+          <section key={wasiStage.number} aria-label={`Cursos de la etapa ${wasiStage.number}: ${wasiStage.name}`} className="mb-8 space-y-3">
+            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-[#FFB793] text-sm font-black">
+                {wasiStage.number}
+              </span>
+              {wasiStage.name}
+            </h2>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {cursosDeEtapa.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  unlocked={isCourseUnlocked(course, hydroPoints, wasiLevel)}
+                  completed={isCourseComplete(course)}
+                  completedLessons={completedLessonsFor(course)}
+                  onOpen={openCourse}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </main>
   );
 }

@@ -54,20 +54,20 @@ interface PasoTutorial {
 
 const PASOS: PasoTutorial[] = [
   {
-    ruta: "/",
+    ruta: "/inicio",
     titulo: "👋 Bienvenido a MorroWasi",
     descripcion:
       "Te voy a llevar por cada pantalla de la app para mostrarte qué hace, cómo ganar puntos y cómo evitar que tu progreso se pierda.<br><br>Son 11 pasos y puedes salir cuando quieras con Esc.",
   },
   {
-    ruta: "/",
+    ruta: "/inicio",
     ancla: "metricas",
     titulo: "💧 Tus tres números",
     descripcion:
       "<b>Litros hoy</b>: lo que ahorraste en el día.<br><b>HydroPuntos</b>: tu moneda, sirve para comprar avatares.<br><b>Racha</b>: días seguidos usando la app. Cada día de racha suma PEW y hace crecer a tu Wasi.",
   },
   {
-    ruta: "/",
+    ruta: "/inicio",
     ancla: "wasi",
     titulo: "🌱 Tu Wasi crece contigo",
     descripcion:
@@ -85,7 +85,7 @@ const PASOS: PasoTutorial[] = [
     ancla: "pagina-juegos",
     titulo: "🎮 Juegos — así ganas HydroPuntos",
     descripcion:
-      "14 mini-juegos de 60 a 240 segundos. Dan entre <b>30 y 100 HydroPuntos</b>, pero solo cuando <b>superas tu propio récord</b>: repetir una partida floja no suma.<br><br>Jugar cuenta como actividad para tu racha diaria.",
+      "15 mini-juegos de 60 a 240 segundos. Dan entre <b>30 y 100 HydroPuntos</b>, pero solo cuando <b>superas tu propio récord</b>: repetir una partida floja no suma.<br><br>Jugar cuenta como actividad para tu racha diaria.",
   },
   {
     ruta: "/cursos",
@@ -110,17 +110,17 @@ const PASOS: PasoTutorial[] = [
   },
   {
     ruta: "/ranking",
-    ancla: "compartir-puntaje",
-    titulo: "🏆 Ranking — compite con otras familias",
+    ancla: "tarjeta-ranking",
+    titulo: "🏆 Ranking — compite con otras personas",
     descripcion:
       "Cuando tengas HydroPuntos y EXP, toca este botón para entrar a la tabla.<br><br><b>Nada se sube solo</b>: tu progreso viaja únicamente cuando lo tocas. El conteo del día va de las 00:00 a las 23:59 hora de Perú, y también hay ranking por semana, mes e histórico.",
   },
   {
     ruta: "/perfil",
-    ancla: "salir",
+    ancla: "tarjeta-perfil",
     titulo: "🧑‍🤝‍🧑 Tu perfil",
     descripcion:
-      "Aquí cambias el nombre de tu familia y tu avatar — es el nombre que verán los demás en el ranking. También es donde cierras sesión.",
+      "Aquí cambias tu nombre y tu avatar — es el nombre que verán los demás en el ranking. También es donde cierras sesión.",
   },
   {
     ruta: "/perfil",
@@ -130,7 +130,7 @@ const PASOS: PasoTutorial[] = [
       "Tu avance vive <b>solo en este dispositivo</b>. Si limpias el navegador, se pierde.<br><br>Más abajo en esta misma pantalla: usa <b>Exportar</b> para descargar un archivo de respaldo, o el <b>código de sincronización</b> para recuperarlo en otro celular, sin correo ni contraseña.",
   },
   {
-    ruta: "/",
+    ruta: "/inicio",
     titulo: "¡Listo! 🎉",
     descripcion:
       "Empieza por una misión diaria: es lo más rápido para ver crecer a tu Wasi.<br><br>Puedes repetir este recorrido cuando quieras con el botón <b>¿Cómo funciona MorroWasi?</b> del inicio.",

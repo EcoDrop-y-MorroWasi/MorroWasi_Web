@@ -106,6 +106,45 @@ async function pushRemote(code: string, local: RemoteProgressData): Promise<stri
   return data as string;
 }
 
+/**
+ * Login — "soy nuevo": genera un código, sube el progreso local (vacío recién
+ * instalado) bajo ese código y lo deja enlazado. El código es la única forma
+ * de recuperar la cuenta después, así que quien lo llama debe mostrarlo y
+ * pedir que lo guarde antes de seguir.
+ */
+export async function claimNewCode(): Promise<string> {
+  const code = generateSyncCode();
+  const local = readLocal();
+  const updatedAt = await pushRemote(code, local);
+  writeMarker(code, { serverUpdatedAt: updatedAt, localAtSync: local.lastModified });
+  setLinkedCode(code);
+  return code;
+}
+
+/**
+ * Login — "ya tengo cuenta": trae el progreso de un código existente y lo
+ * aplica directo, sin pasar por el modal de conflicto de syncProgress() — un
+ * dispositivo recién entrado no tiene nada propio que valga la pena conservar.
+ *
+ * Usa intentar_codigo_login(), no get_progress_sync(): ese RPC lleva el
+ * cooldown escalonado contra fuerza bruta (por auth.uid(), en la base — no en
+ * localStorage, que se salta llamando al RPC directo). get_progress_sync()
+ * sigue siendo para releer un código ya enlazado (sync periódico), donde no
+ * aplica el mismo freno porque no es un intento de adivinar.
+ *
+ * Lanza si el código no existe (typo o nunca creado) o si el cooldown sigue
+ * activo — en ambos casos el mensaje del error ya viene listo para mostrar.
+ */
+export async function restoreFromCode(code: string): Promise<void> {
+  const { data, error } = await supabase.rpc("intentar_codigo_login", { p_code: code });
+  if (error) throw new Error(error.message);
+  const row = data?.[0];
+  if (!row) throw new Error("Código no encontrado. Revisa que esté bien escrito.");
+  applyRemote(row.data as RemoteProgressData);
+  setLinkedCode(code);
+  writeMarker(code, { serverUpdatedAt: row.updated_at as string, localAtSync: getLastModified() });
+}
+
 /** Borra el respaldo del servidor de este código — parte de "Eliminar cuenta" en Perfil. */
 export async function deleteProgressSync(code: string): Promise<void> {
   const { error } = await supabase.rpc("delete_progress_sync", { p_code: code });

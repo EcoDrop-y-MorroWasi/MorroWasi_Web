@@ -10,7 +10,9 @@ El ecosistema completo tiene tres piezas: una app Android familiar (el uso diari
 
 ## Qué hace esta web puntualmente
 
-Portal educativo y de administración: cursos y minijuegos, misiones, panel de ahorro/estadísticas, ranking, tienda de avatares 3D, y un **chat temporal entre familias** (se crea una sala con un código de 6 dígitos, dura 1 día, y sirve para que dos familias se motiven o compartan tips entre ellas sin exponer datos a nadie más). El acceso es con cuenta real (Google o correo), no con usuario/contraseña genérico.
+Portal educativo y de administración: cursos y minijuegos, misiones diarias/semanales/mensuales, panel de ahorro/estadísticas, logros/álbum de badges, tienda de avatares 3D (accesorios y personalización visible en el Wasi), un **ranking comunitario** (diario/semanal/mensual/global, validado en servidor) y un **chat temporal entre familias** (se crea una sala con un código de 6 dígitos, dura 1 día, y sirve para que dos familias se motiven o compartan tips entre ellas sin exponer datos a nadie más). El acceso es con cuenta real (Google o correo), no con usuario/contraseña genérico.
+
+El progreso también se puede sincronizar entre dispositivos sin cuenta, con un código corto generado en el propio dispositivo.
 
 Construida en React 19 + TypeScript + Vite + Tailwind CSS 4, desplegada en Vercel.
 
@@ -43,7 +45,11 @@ Sin estas variables, la app no arranca: `src/lib/supabaseClient.ts` tira un erro
 
 ## Backend (Supabase)
 
-- `supabase/migrations/0001_chat.sql` — tablas `chats`/`chat_participants`/`messages`, Row Level Security y la función `join_chat_by_code()` que valida código + expiración + cupo antes de dejar entrar a una sala. Se corre pegando el contenido en el SQL Editor del dashboard de Supabase, o con `supabase db push` si tenés el proyecto linkeado por CLI.
+- `supabase/migrations/` — todo el esquema SQL vive acá, versionado como una migración por cambio. Se corren pegando el contenido en el SQL Editor del dashboard de Supabase, en orden, o con `supabase db push` si tenés el proyecto linkeado por CLI. Grupos principales:
+  - **Chat temporal** (`0001`, `0002`, `0003`, `0004`) — tablas `chats`/`chat_participants`/`messages`, Realtime, rate limit de intentos de unirse por código, y `join_chat_by_code()` que valida código + expiración + cupo antes de dejar entrar a una sala.
+  - **Moderación de texto** (`0005`, `0008`) — filtro de palabras aplicado a mensajes del chat y al nombre público del ranking, con límite de advertencias.
+  - **Sync de progreso entre dispositivos** (`0006`, `0007`, `0011`, `0012`, `0015`) — guarda/restaura el progreso local con un código corto generado en el dispositivo, sin necesidad de cuenta; incluye rate limiting contra fuerza bruta del código.
+  - **Ranking comunitario** (`0009`, `0010`, `0013`, `0014`) — el cliente no envía un puntaje final, envía el historial de eventos (qué misión/juego/curso y cuándo); el servidor recalcula el total y lo valida contra un catálogo de recompensas espejo de `src/utils/gamification.ts` (se regenera con `pnpm gen:catalogo`).
 - `supabase/functions/create-chat/` — Edge Function (Deno) que genera el código de 6 dígitos del lado servidor con `crypto.getRandomValues` (nunca en el navegador) y crea la sala. Se deploya con:
   ```bash
   supabase login

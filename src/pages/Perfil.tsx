@@ -209,7 +209,7 @@ export default function Perfil() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 pb-24">
       {/* Cabecera perfil */}
-      <section className={`rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 text-ink ${HARD_SHADOW}`}>
+      <section data-tour="tarjeta-perfil" className={`rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 text-[#1c1c11] ${HARD_SHADOW}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-4">
             <span
@@ -219,7 +219,7 @@ export default function Perfil() {
               <ProfileAvatarGlyph value={profile.avatar} imgClassName="h-14 w-14 object-contain" />
             </span>
             <div className="min-w-0">
-              <p className="font-body text-sm font-semibold text-ink/70">Perfil familiar</p>
+              <p className="font-body text-sm font-semibold text-[#1c1c11]/70">Tu perfil</p>
               <h1 className="font-display text-2xl font-extrabold leading-tight">{profile.name}</h1>
               <span className="mt-1 inline-flex items-center gap-1 rounded-full border-2 border-ink bg-[#FFB793] px-3 py-1 text-xs font-black">
                 🏅 Guardián del Agua · {wasiStage.name}
@@ -232,23 +232,22 @@ export default function Perfil() {
           <button
             type="button"
             onClick={signOut}
-            data-tour="salir"
             className="min-h-12 shrink-0 rounded-xl border-2 border-ink bg-secondary px-4 text-sm font-bold text-ink shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             Salir
           </button>
         </div>
-        <p className="mt-3 text-xs font-semibold text-ink/70">
+        <p className="mt-3 text-xs font-semibold text-[#1c1c11]/70">
           Entraste sin correo ni contraseña: tu progreso local no se borra al salir, pero si tenías un
           chat abierto vas a perder tu lugar ahí (se crea una identidad nueva al volver a entrar).
         </p>
       </section>
 
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>
-        <h2 className="font-display text-lg font-bold">Editar perfil familiar</h2>
+        <h2 className="font-display text-lg font-bold">Editar tu perfil</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-bold">Nombre de la familia<input value={profile.name} maxLength={40} onChange={(event) => setProfile((p) => ({ ...p, name: event.target.value }))} className="mt-1 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3 font-semibold" /></label>
-          <label className="text-sm font-bold">Integrantes<input type="number" min={1} max={20} value={profile.members} onChange={(event) => setProfile((p) => ({ ...p, members: Math.max(1, Math.min(20, Number(event.target.value) || 1)) }))} className="mt-1 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3 font-semibold" /></label>
+          <label className="text-sm font-bold">Tu nombre<input value={profile.name} maxLength={40} onChange={(event) => setProfile((p) => ({ ...p, name: event.target.value }))} className="mt-1 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3 font-semibold" /></label>
+          <label className="text-sm font-bold">Personas en tu hogar<input type="number" min={1} max={20} value={profile.members} onChange={(event) => setProfile((p) => ({ ...p, members: Math.max(1, Math.min(20, Number(event.target.value) || 1)) }))} className="mt-1 min-h-12 w-full rounded-xl border-2 border-ink bg-bg-light px-3 font-semibold" /></label>
         </div>
         <fieldset className="mt-4"><legend className="text-sm font-bold">Avatar (12 opciones o inicial)</legend><div className="mt-2 flex flex-wrap gap-2">
           {AVATARS.map((avatar) => <button key={avatar} type="button" aria-label={`Usar avatar ${avatar}`} aria-pressed={profile.avatar === avatar} onClick={() => setProfile((p) => ({ ...p, avatar }))} className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 border-ink text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${profile.avatar === avatar ? "bg-[#FFB793]" : "bg-bg-light"}`}>{avatar}</button>)}
@@ -614,10 +613,6 @@ export default function Perfil() {
           </button>
         </div>
       </section>
-
-      <p className="text-center font-body text-xs text-ink/50">
-        Versión 2.0.0 · MorroWasi · Datos locales sin conexión
-      </p>
     </div>
   );
 }

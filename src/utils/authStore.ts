@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
-// Sesión real de Supabase (reemplaza el login falso admin/1234 en localStorage).
 // A diferencia de hydroStore/expStore no hace falta un evento custom: supabase-js
 // ya emite onAuthStateChange en cualquier pestaña donde haya sesión activa.
 export function useAuthSession(): { session: Session | null; loading: boolean } {

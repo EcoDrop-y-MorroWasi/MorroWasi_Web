@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { mockFamily } from '../data/mock'
+import Footer from './Footer'
 import Logo from './Logo'
 import ProfileAvatarGlyph from './ProfileAvatarGlyph'
 import LiveClock from './LiveClock'
@@ -24,7 +25,7 @@ const TABS: NavTab[] = [
   { to: '/misiones', label: 'Misiones', icon: '✅', tour: 'nav-misiones' },
   // Inicio va al centro de los 7 tabs: es el destino más usado y el pulgar llega
   // al medio de la barra inferior más fácil que a los extremos.
-  { to: '/', label: 'Inicio', icon: '💧', tour: 'nav-inicio' },
+  { to: '/inicio', label: 'Inicio', icon: '💧', tour: 'nav-inicio' },
   { to: '/noticias', label: 'Noticias', icon: '📰', tour: 'nav-noticias' },
   { to: '/avatares', label: 'Avatares', icon: '🧑', tour: 'nav-avatares' },
   { to: '/ranking', label: 'Ranking', icon: '🏆', tour: 'nav-ranking' },
@@ -54,7 +55,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* El logo ocupa ~190px a h-14 (viewBox 400x120). Con 7 tabs y el
                 contenedor capado en max-w-6xl no quedaba ancho para las etiquetas,
                 así que en desktop se achica. */}
-            <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="MorroWasi inicio">
+            <Link to="/inicio" className="flex shrink-0 items-center gap-2" aria-label="MorroWasi inicio">
               <Logo className="h-12 w-auto sm:h-10 xl:h-12" />
             </Link>
 
@@ -69,12 +70,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <NavLink
                   key={tab.to}
                   to={tab.to}
-                  end={tab.to === '/'}
+                  end={tab.to === '/inicio'}
                   data-tour={tab.tour}
                   title={tab.label}
                   className={({ isActive }) =>
                     `flex min-h-12 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-ink px-3 text-sm font-semibold shadow-[2px_2px_0_#1c1c11] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                      isActive ? (tab.to === '/' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
+                      isActive ? (tab.to === '/inicio' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
                     }`
                   }
                 >
@@ -127,6 +128,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           contenido; en sm+ no hay bottom nav (los tabs viven en el header), así que pb vuelve a lo normal. */}
       <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-4">
         {children}
+        <Footer />
       </main>
 
       {/* Bottom nav: solo mobile — en desktop/tablet los tabs ya están en el header de arriba. */}
@@ -140,11 +142,11 @@ export default function Layout({ children }: { children: ReactNode }) {
             <NavLink
               key={tab.to}
               to={tab.to}
-              end={tab.to === '/'}
+              end={tab.to === '/inicio'}
               data-tour={tab.tour}
               className={({ isActive }) =>
                 `my-2 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-xl border-2 border-ink px-0.5 text-[10px] font-semibold shadow-[2px_2px_0_#1c1c11] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:gap-1 sm:text-xs ${
-                  isActive ? (tab.to === '/' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
+                  isActive ? (tab.to === '/inicio' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
                 }`
               }
             >
@@ -161,6 +163,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
 
 function readProfile() {
   try {

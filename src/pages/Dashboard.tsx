@@ -58,23 +58,23 @@ export default function Dashboard() {
         <span className="font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
       </button>
 
-      {/* Métricas 48dp, contraste, accesible */}
-      <div className="grid grid-cols-3 gap-3" data-tour="metricas">
-        <MetricCard label="Litros hoy" value={`${mockFamily.litersToday} L`} />
-        <MetricCard label="HydroPuntos" value={String(hydroPoints)} highlight />
-        <MetricCard label="Racha" value={`${streakDays} días`} sub="🔥 días consecutivos" />
-      </div>
-
-      {/* Modelo 3D del Wasi en la etapa actual — visible siempre en Inicio, debajo de HydroPuntos */}
+      {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
       <Suspense
         fallback={
-          <div className="keyline-border flex h-56 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-64">
+          <div className="keyline-border flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
             Cargando Wasi en 3D…
           </div>
         }
       >
         <WasiViewer3D stage={stage} />
       </Suspense>
+
+      {/* Métricas 48dp, contraste, accesible */}
+      <div className="grid grid-cols-3 gap-3" data-tour="metricas">
+        <MetricCard label="Litros hoy" value={`${mockFamily.litersToday} L`} />
+        <MetricCard label="HydroPuntos" value={String(hydroPoints)} highlight />
+        <MetricCard label="Racha" value={`${streakDays} días`} sub="🔥 días consecutivos" />
+      </div>
 
       {/* Tarjeta viva Wasi — clickable abre modal 10 etapas */}
       <section aria-label="Tarjeta viva del Wasi" data-tour="wasi">
@@ -144,11 +144,11 @@ export default function Dashboard() {
       {/* Monitor reservorio — ola SVG animada por % */}
       <section
         className="keyline-border rounded-2xl bg-primary/20 p-5 shadow-[4px_4px_0_var(--color-ink)]"
-        aria-label="Monitor de reservorio familiar"
+        aria-label="Monitor de tu reservorio"
         data-tour="reservorio"
       >
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold">Reservorio familiar</h2>
+          <h2 className="font-display text-lg font-bold">Tu reservorio</h2>
           <span className="keyline-border rounded-full bg-bg-light px-3 py-1 font-body text-xs font-bold">
             {hasCapacity ? `${reservoirPct}% lleno` : 'Configura tu reservorio'}
           </span>
@@ -183,8 +183,8 @@ export default function Dashboard() {
             <dd className="font-bold">{mockReservoir.daysOfWaterCut} días</dd>
           </div>
           <div className="keyline-border rounded-xl bg-bg-light p-3">
-            <dt className="text-xs font-bold text-ink/60">Integrantes</dt>
-            <dd className="font-bold">{mockReservoir.familyMembersCount} familias</dd>
+            <dt className="text-xs font-bold text-ink/60">Personas en tu hogar</dt>
+            <dd className="font-bold">{mockReservoir.familyMembersCount}</dd>
           </div>
         </dl>
       </section>

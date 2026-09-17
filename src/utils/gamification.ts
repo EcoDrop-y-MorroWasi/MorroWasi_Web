@@ -7,19 +7,29 @@ export function calcCustomXp(litros: number): number {
   return Math.max(5, Math.min(40, raw));
 }
 
+/** EXP que otorga completar un curso, además de sus HydroPuntos (course.xpReward).
+ * Antes los cursos solo daban HydroPuntos y no movían al Wasi para nada — un
+ * quinto del HydroPuntos como EXP los deja aportando de verdad sin opacar a las
+ * misiones, que siguen siendo la fuente principal de EXP. */
+export function calcCourseExp(hydroReward: number): number {
+  return Math.max(5, Math.round(hydroReward / 5));
+}
+
 /** Suma con clamp >=0, para revertir sin bajar de 0 */
 export function addClamped(current: number, delta: number): number {
   return Math.max(0, current + delta);
 }
 
-/** RN-16: XP de minijuego = clamp(round(30 + accuracy × 70), 30, 100).
+/** RN-16: XP de minijuego = clamp(round(30 + accuracy × 70), 30, 100), pero SOLO si el
+ * jugador de verdad logró algo (accuracy > 0) — antes el piso de 30 se aplicaba también a
+ * un fracaso total (accuracy 0), o sea que perder igual regalaba EXP/HydroPuntos.
  * Cada motor entrega accuracy en [0,1]; Juegos.tsx solo acredita el XP si supera bestScore. */
 export function calcMinigameScore(accuracy: number): number {
   const safeAccuracy = Math.max(0, Math.min(1, accuracy));
+  if (safeAccuracy <= 0) return 0;
   return Math.round(Math.max(30, Math.min(100, 30 + safeAccuracy * 70)));
 }
 
-/** Tipos de misión / juego */
 export type TaskCategory = "ducha" | "lavanderia" | "riego" | "cocina" | "fugas" | "otros";
 export type MinigameType =
   | "FUGAS_DETECT"
@@ -35,7 +45,8 @@ export type MinigameType =
   | "ACUIFERO_ALGARROBO"
   | "CLORACION_SEGURA"
   | "QUIZ_AGUA"
-  | "CONSTRUYE_WASI";
+  | "CONSTRUYE_WASI"
+  | "MEMORAMA_AGUA";
 
 export interface Task {
   id: string;
@@ -48,7 +59,13 @@ export interface Task {
   tab: "diaria" | "semanal" | "mensual" | "personalizada";
   /** Misión vinculada al progreso de Academia (cursos/lecciones) — UI_UX_Guide.md:3 */
   linkedToCourses?: boolean;
+  /** Emoji elegido por el usuario para misiones personalizadas */
+  icon?: string;
+  /** Marca de tiempo (ms) del evento de ledger que otorgó esta misión, si ya se completó. */
+  completedAt?: number;
 }
+
+export const CUSTOM_TASK_ICONS = ["✏️", "🚿", "🚰", "♻️", "🌙", "🍳", "🧺", "🏠", "🪴", "💧"] as const;
 
 export interface Minigame {
   id: string;
@@ -68,33 +85,33 @@ export interface Minigame {
 // mismo set de 4 misiones dos semanas seguidas.
 export const MISIONES_DIARIAS_POOL: Omit<Task, "completed">[] = [
   // Bloque 0
-  { id: "diaria-01", text: "Revisa el caño y las mangueras del patio antes de empezar el día", litersSaved: 15, xp: 5, category: "fugas", tab: "diaria" },
-  { id: "diaria-02", text: "Riega el almácigo con agua reusada de la cocina", litersSaved: 25, xp: 8, category: "riego", tab: "diaria" },
+  { id: "diaria-01", text: "Revisa los caños y las mangueras de tu casa antes de empezar el día", litersSaved: 15, xp: 5, category: "fugas", tab: "diaria" },
+  { id: "diaria-02", text: "Riega tu jardín, planta o maceta con agua reusada de la cocina", litersSaved: 25, xp: 8, category: "riego", tab: "diaria" },
   { id: "diaria-03", text: "Lava los platos con el caño cerrado entre enjuagues", litersSaved: 20, xp: 7, category: "cocina", tab: "diaria" },
   { id: "diaria-04", text: "Báñate en 5 minutos aprovechando el agua tibia del tanque", litersSaved: 30, xp: 10, category: "ducha", tab: "diaria" },
   // Bloque 1
-  { id: "diaria-05", text: "Junta el agua de enjuagar la ropa para el corral", litersSaved: 35, xp: 12, category: "lavanderia", tab: "diaria" },
-  { id: "diaria-06", text: "Dale agua reusada de cocinar a las cabras o gallinas", litersSaved: 18, xp: 6, category: "otros", tab: "diaria" },
-  { id: "diaria-07", text: "Revisa el tanque elevado o cisterna antes del reparto", litersSaved: 22, xp: 7, category: "fugas", tab: "diaria" },
-  { id: "diaria-08", text: "Cierra bien el caño de la pileta después de lavarte las manos", litersSaved: 10, xp: 5, category: "fugas", tab: "diaria" },
+  { id: "diaria-05", text: "Junta el agua de enjuagar la ropa para regar el jardín o el patio", litersSaved: 35, xp: 12, category: "lavanderia", tab: "diaria" },
+  { id: "diaria-06", text: "Usa el agua reusada de cocinar para trapear el piso de tu casa", litersSaved: 18, xp: 6, category: "otros", tab: "diaria" },
+  { id: "diaria-07", text: "Revisa el tanque, la cisterna o las tinas antes del reparto", litersSaved: 22, xp: 7, category: "fugas", tab: "diaria" },
+  { id: "diaria-08", text: "Cierra bien el caño del lavadero después de lavarte las manos", litersSaved: 10, xp: 5, category: "fugas", tab: "diaria" },
   // Bloque 2
   { id: "diaria-09", text: "Riega las plantas del patio al atardecer, no al mediodía", litersSaved: 20, xp: 7, category: "riego", tab: "diaria" },
   { id: "diaria-10", text: "Lava las verduras en un recipiente, no con el caño abierto", litersSaved: 15, xp: 5, category: "cocina", tab: "diaria" },
-  { id: "diaria-11", text: "Usa un balde en vez de manguera para lavar el carro o la moto", litersSaved: 40, xp: 13, category: "otros", tab: "diaria" },
+  { id: "diaria-11", text: "Usa un balde en vez de manguera para lavar tus zapatillas o la bicicleta", litersSaved: 40, xp: 13, category: "otros", tab: "diaria" },
   { id: "diaria-12", text: "Enjabona toda la ropa antes de abrir el caño para enjuagar", litersSaved: 30, xp: 10, category: "lavanderia", tab: "diaria" },
   // Bloque 3
   { id: "diaria-13", text: "Revisa si el bidón o la tinaja de agua tiene alguna fuga", litersSaved: 12, xp: 5, category: "fugas", tab: "diaria" },
-  { id: "diaria-14", text: "Recoge el agua fría del inicio de la ducha en un balde para el patio", litersSaved: 15, xp: 5, category: "ducha", tab: "diaria" },
-  { id: "diaria-15", text: "Riega el huerto familiar con agua de lluvia guardada, si hay", litersSaved: 35, xp: 12, category: "riego", tab: "diaria" },
+  { id: "diaria-14", text: "Recoge el agua fría del inicio de la ducha en un balde para regar o limpiar la casa", litersSaved: 15, xp: 5, category: "ducha", tab: "diaria" },
+  { id: "diaria-15", text: "Riega el huerto con agua de lluvia guardada, si hay", litersSaved: 35, xp: 12, category: "riego", tab: "diaria" },
   { id: "diaria-16", text: "Apila los trastes de la cocina y enjuágalos todos juntos, no uno por uno", litersSaved: 25, xp: 8, category: "cocina", tab: "diaria" },
   // Bloque 4
-  { id: "diaria-17", text: "Comparte con tu familia un truco de ahorro de agua que aprendiste", litersSaved: 10, xp: 5, category: "otros", tab: "diaria" },
+  { id: "diaria-17", text: "Comparte con alguien de tu casa un truco de ahorro de agua que aprendiste", litersSaved: 10, xp: 5, category: "otros", tab: "diaria" },
   { id: "diaria-18", text: "Revisa las conexiones de la manguera del riego por goteo", litersSaved: 18, xp: 6, category: "fugas", tab: "diaria" },
   { id: "diaria-19", text: "Usa el agua de cocinar los alimentos, ya fría, para regar las plantas", litersSaved: 22, xp: 7, category: "riego", tab: "diaria" },
   { id: "diaria-20", text: "Lávate los dientes con el caño cerrado", litersSaved: 8, xp: 5, category: "otros", tab: "diaria" },
   // Bloque 5
-  { id: "diaria-21", text: "Baña a los animales menores con agua reusada, no del caño directo", litersSaved: 28, xp: 9, category: "otros", tab: "diaria" },
-  { id: "diaria-22", text: "Reutiliza el agua vieja del bebedero de animales para regar", litersSaved: 20, xp: 7, category: "otros", tab: "diaria" },
+  { id: "diaria-21", text: "Trapea la sala o el piso de tu casa con agua reusada, no con el caño directo", litersSaved: 28, xp: 9, category: "otros", tab: "diaria" },
+  { id: "diaria-22", text: "Reutiliza el agua vieja de los floreros o macetas para regar", litersSaved: 20, xp: 7, category: "otros", tab: "diaria" },
   { id: "diaria-23", text: "Revisa el techo o la canaleta para aprovechar el agua de lluvia", litersSaved: 15, xp: 5, category: "otros", tab: "diaria" },
   { id: "diaria-24", text: "Lava toda la ropa de trabajo del campo en una sola tanda, no varias veces", litersSaved: 40, xp: 13, category: "lavanderia", tab: "diaria" },
   // Bloque 6
@@ -104,30 +121,25 @@ export const MISIONES_DIARIAS_POOL: Omit<Task, "completed">[] = [
   { id: "diaria-28", text: "Guarda el agua de lluvia de la noche anterior en baldes para el día siguiente", litersSaved: 30, xp: 10, category: "otros", tab: "diaria" },
 ];
 
-// Pool de 16 misiones semanales únicas, agrupadas en 4 bloques de 4. Rotan por
+// Pool de 12 misiones semanales únicas, agrupadas en 3 bloques de 4. Rotan por
 // semana del mes — ver getMisionesSemanalesDeEstaSemana() — así el mes completo
-// pasa por las 16 sin repetir el mismo bloque dos semanas seguidas.
+// pasa por las 12 sin repetir el mismo bloque dos semanas seguidas.
 export const MISIONES_SEMANALES_POOL: Omit<Task, "completed">[] = [
   // Bloque 0
-  { id: "semanal-01", text: "Limpia el filtro SODIS o casero de la familia", litersSaved: 40, xp: 13, category: "otros", tab: "semanal" },
+  { id: "semanal-01", text: "Limpia y desinfecta los baldes, bidones o el filtro de agua de tu casa", litersSaved: 40, xp: 13, category: "otros", tab: "semanal" },
   { id: "semanal-02", text: "Revisa el reservorio buscando grietas antes del corte de agua programado", litersSaved: 50, xp: 17, category: "fugas", tab: "semanal" },
   { id: "semanal-03", text: "Riega la chacra o huerto de madrugada o al atardecer", litersSaved: 60, xp: 20, category: "riego", tab: "semanal" },
   { id: "semanal-04", text: "Junta agua de lluvia en baldes o cilindros en temporada de lluvia", litersSaved: 80, xp: 27, category: "otros", tab: "semanal" },
   // Bloque 1
-  { id: "semanal-05", text: "Organiza el lavado de ropa familiar en una sola tanda a la semana", litersSaved: 70, xp: 23, category: "lavanderia", tab: "semanal" },
-  { id: "semanal-06", text: "Enséñale a un vecino un truco de ahorro de agua", litersSaved: 30, xp: 10, category: "otros", tab: "semanal" },
-  { id: "semanal-07", text: "Revisa las tuberías y conexiones de toda la casa buscando fugas ocultas", litersSaved: 55, xp: 18, category: "fugas", tab: "semanal" },
-  { id: "semanal-08", text: "Limpia el bebedero y el tanque de los animales sin desperdiciar agua", litersSaved: 45, xp: 15, category: "otros", tab: "semanal" },
+  { id: "semanal-05", text: "Organiza el lavado de ropa en una sola tanda a la semana", litersSaved: 70, xp: 23, category: "lavanderia", tab: "semanal" },
+  { id: "semanal-06", text: "Revisa las tuberías y conexiones de toda la casa buscando fugas ocultas", litersSaved: 55, xp: 18, category: "fugas", tab: "semanal" },
+  { id: "semanal-07", text: "Prepara una reserva de agua para el día de corte programado en la semana", litersSaved: 90, xp: 30, category: "otros", tab: "semanal" },
+  { id: "semanal-08", text: "Poda o limpia el huerto para que el riego rinda más", litersSaved: 40, xp: 13, category: "riego", tab: "semanal" },
   // Bloque 2
-  { id: "semanal-09", text: "Prepara una reserva de agua para el día de corte programado en la semana", litersSaved: 90, xp: 30, category: "otros", tab: "semanal" },
-  { id: "semanal-10", text: "Poda o limpia el huerto para que el riego rinda más", litersSaved: 40, xp: 13, category: "riego", tab: "semanal" },
-  { id: "semanal-11", text: "Revisa el estado del caño principal de la casa y la conexión al reservorio", litersSaved: 35, xp: 12, category: "fugas", tab: "semanal" },
-  { id: "semanal-12", text: "Reutiliza el agua de lavar la ropa de toda la semana para el riego del patio", litersSaved: 65, xp: 22, category: "lavanderia", tab: "semanal" },
-  // Bloque 3
-  { id: "semanal-13", text: "Organiza con la familia un día de cero desperdicio de agua", litersSaved: 50, xp: 17, category: "otros", tab: "semanal" },
-  { id: "semanal-14", text: "Revisa el sistema de riego por goteo casero y repara fugas", litersSaved: 55, xp: 18, category: "riego", tab: "semanal" },
-  { id: "semanal-15", text: "Enseña a los niños de la casa a cerrar bien los caños", litersSaved: 20, xp: 7, category: "otros", tab: "semanal" },
-  { id: "semanal-16", text: "Haz un balance semanal de cuánta agua ahorró la familia", litersSaved: 35, xp: 12, category: "otros", tab: "semanal" },
+  { id: "semanal-09", text: "Revisa el estado del caño principal de la casa y la conexión al reservorio", litersSaved: 35, xp: 12, category: "fugas", tab: "semanal" },
+  { id: "semanal-10", text: "Reutiliza el agua de lavar la ropa de toda la semana para regar tus plantas o trapear la casa", litersSaved: 65, xp: 22, category: "lavanderia", tab: "semanal" },
+  { id: "semanal-11", text: "Organiza en tu casa un día de cero desperdicio de agua", litersSaved: 50, xp: 17, category: "otros", tab: "semanal" },
+  { id: "semanal-12", text: "Revisa el sistema de riego por goteo casero y repara fugas", litersSaved: 55, xp: 18, category: "riego", tab: "semanal" },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -163,11 +175,11 @@ export function getMisionesDiariasDeHoy(date: Date = new Date()): Omit<Task, "co
 }
 
 /**
- * 4 misiones semanales de la semana indicada (actual por defecto). Ciclo de 4
- * bloques: el mes recorre las 16 misiones sin repetir bloque en semanas seguidas.
+ * 4 misiones semanales de la semana indicada (actual por defecto). Ciclo de 3
+ * bloques: el mes recorre las 12 misiones sin repetir bloque en semanas seguidas.
  */
 export function getMisionesSemanalesDeEstaSemana(date: Date = new Date()): Omit<Task, "completed">[] {
-  const bloque = (getWeekIndex(date) % 4 + 4) % 4
+  const bloque = (getWeekIndex(date) % 3 + 3) % 3
   return MISIONES_SEMANALES_POOL.slice(bloque * 4, bloque * 4 + 4)
 }
 
@@ -187,6 +199,10 @@ export function getWeekPeriodKey(date: Date = new Date()): string {
   return String(getWeekIndex(date))
 }
 
+export function getMonthPeriodKey(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+}
+
 // Consejos recordatorio (no otorgan XP/litros) — contexto Morropón/Piura.
 const CONSEJOS_DIARIOS = [
   "El agua que usas para lavar arroz o menestras sirve para regar las plantas del patio.",
@@ -200,7 +216,7 @@ const CONSEJOS_DIARIOS = [
 
 const CONSEJOS_SEMANALES = [
   "Revisa el tanque o la cisterna una vez por semana: una grieta pequeña se convierte en una fuga grande.",
-  "Organiza el lavado de ropa de toda la familia en un solo día para ahorrar agua y jabón.",
+  "Organiza el lavado de ropa de toda la casa en un solo día para ahorrar agua y jabón.",
   "Enseña a los más pequeños de la casa a cerrar bien los caños después de usarlos.",
   "Comparte con tus vecinos lo que ahorraste esta semana: la meta del agua se cumple en comunidad.",
 ]
@@ -308,7 +324,7 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-7",
     title: "Desafío SODIS: Rayos UV vs. Microbios",
     description:
-      "Arrastra el espejo hacia cada botella PET para reflejar el sol y desinfectar el agua antes de que las bacterias se multipliquen. Usa el power-up de Mr. Gota al mediodía.",
+      "Arrastra el espejo hacia cada botella PET para reflejar el sol y desinfectar el agua antes de que las bacterias se multipliquen. Usa el power-up de EcoDrop al mediodía.",
     type: "SODIS_UV",
     xpMaxReward: 100,
     durationSeconds: 60,
@@ -335,7 +351,7 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-10",
     title: "El Desafío del Corte de Agua",
     description:
-      "Administra 1000 L de reservorio para una familia de 4 durante un corte de 3 días con tarjetas de decisión diaria, sin sacrificar la higiene del hogar.",
+      "Administra 1000 L de reservorio para un hogar de 4 personas durante un corte de 3 días con tarjetas de decisión diaria, sin sacrificar la higiene del hogar.",
     type: "CORTE_AGUA",
     xpMaxReward: 100,
     durationSeconds: 90,
@@ -376,6 +392,15 @@ export const MINIGAMES: Minigame[] = [
     xpMaxReward: 100,
     durationSeconds: 240,
   },
+  {
+    id: "jg-15",
+    title: "Memorama del Agua",
+    description:
+      "Da vuelta las cartas y encuentra las 8 parejas de acción-de-ahorro y litros reales antes de que se acabe el tiempo. Cadena aciertos seguidos para más combo.",
+    type: "MEMORAMA_AGUA",
+    xpMaxReward: 100,
+    durationSeconds: 90,
+  },
 ];
 
 // Botones rápidos Ahorro AGENTS.md:224
@@ -386,8 +411,11 @@ export const QUICK_SAVE = [
   { label: "Riego nocturno", emoji: "🌙", liters: 15 },
 ] as const;
 
-// Calculadora soles: tarifa S/ 0.67 por litro (referencia EPS Grau, operador real de agua en Piura)
-export const TARIFA_SOLES_POR_LITRO = 0.67;
+// Calculadora soles: tarifa real EPS Grau para Morropón, tramo Doméstico I 8-25 m3/mes
+// (S/ 0.804 por m3 = S/ 0.000804 por litro). Antes decía "0.67 por litro" — en realidad
+// la tarifa real es por m3 (1000 L), así que estaba cobrando ~1000x de más.
+// Fuente: Estructura Tarifaria EPS Grau, Resolución Consejo Directivo Nº 02-2012-SUNASS-CD.
+export const TARIFA_SOLES_POR_LITRO = 0.000804;
 export function calcCostoSoles(litros: number): number {
   return Number((litros * TARIFA_SOLES_POR_LITRO).toFixed(2));
 }

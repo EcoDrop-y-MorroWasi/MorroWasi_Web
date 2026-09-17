@@ -48,9 +48,16 @@ function formatearFecha(pubDate: string): string {
   return parsed.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Lima" });
 }
 
+// Google News ordena por relevancia, no estrictamente por fecha, así que una
+// nota vieja puede colarse antes que una reciente. Acá se ordena por fecha real
+// y se descarta todo lo más viejo que MAX_EDAD_DIAS (año y medio): pasado ese
+// punto ya no es "noticia reciente" y el boletín no debe mostrar info vencida.
+const MAX_EDAD_DIAS = 548;
+
 function parseRssItems(xml: string): NoticiaAgua[] {
   const bloques = xml.split("<item>").slice(1);
-  const items: NoticiaAgua[] = [];
+  const items: (NoticiaAgua & { pubTime: number })[] = [];
+  const ahora = Date.now();
 
   for (const bloqueCrudo of bloques) {
     const bloque = bloqueCrudo.split("</item>")[0] ?? bloqueCrudo;
@@ -66,6 +73,10 @@ function parseRssItems(xml: string): NoticiaAgua[] {
 
     if (!tituloCrudo || !link) continue;
 
+    const pubTime = new Date(pubDate).getTime();
+    if (Number.isNaN(pubTime)) continue;
+    if ((ahora - pubTime) / 86_400_000 > MAX_EDAD_DIAS) continue;
+
     items.push({
       id: link,
       date: formatearFecha(pubDate),
@@ -74,10 +85,14 @@ function parseRssItems(xml: string): NoticiaAgua[] {
       tag: "💧 Agua",
       source: fuenteCruda || "Google News",
       url: link,
+      pubTime,
     });
   }
 
-  return items.slice(0, 8);
+  return items
+    .sort((a, b) => b.pubTime - a.pubTime)
+    .slice(0, 8)
+    .map(({ pubTime: _pubTime, ...item }) => item);
 }
 
 export default async function handler() {

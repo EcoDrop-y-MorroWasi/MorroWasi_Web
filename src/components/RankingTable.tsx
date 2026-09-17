@@ -28,7 +28,7 @@ export function RankingTable({
         <p className="text-4xl" aria-hidden="true">🏜️</p>
         <p className="mt-2 font-display text-base font-extrabold">Todavía no hay nadie en {periodoLabel.toLowerCase()}</p>
         <p className="mt-1 font-body text-sm text-ink/70">
-          Sé la primera familia en compartir su puntaje y encabeza la tabla.
+          Sé la primera persona en compartir su puntaje y encabeza la tabla.
         </p>
       </div>
     )
@@ -75,7 +75,7 @@ export function RankingTable({
           <thead>
             <tr className="border-b-2 border-ink text-left font-body text-xs font-bold text-ink/60">
               <th scope="col" className="p-3">#</th>
-              <th scope="col" className="p-3">Familia</th>
+              <th scope="col" className="p-3">Persona</th>
               <th scope="col" className="p-3">HydroPuntos</th>
               <th scope="col" className="p-3">EXP</th>
               <th scope="col" className="p-3">Etapa Wasi</th>

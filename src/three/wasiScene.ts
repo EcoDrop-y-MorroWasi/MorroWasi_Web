@@ -515,10 +515,13 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
   // FOV angosto + mucha distancia: se ve todo el terreno flotando dentro del cuadro,
   // como una "carta" (estilo Clash Royale), no solo la casa recortada de cerca.
   const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 200);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  // antialias off + shadow PCF (no soft) + mapa de sombra más chico: carga y pinta
+  // notablemente más rápido en celulares gama baja, sin diferencia visible en un
+  // modelo voxel pequeño como este.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "low-power" });
   renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   container.appendChild(renderer.domElement);
 
   const hemi = new THREE.HemisphereLight(0xfff3e6, 0x6b5a46, 0.9);
@@ -526,7 +529,7 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
   const sun = new THREE.DirectionalLight(0xfff0dc, 1.15);
   sun.position.set(9, 14, 7);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.mapSize.set(512, 512);
   sun.shadow.camera.left = -14;
   sun.shadow.camera.right = 14;
   sun.shadow.camera.top = 14;
@@ -651,7 +654,7 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
     const h = container.clientHeight || 1;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(w, h);
     applyCamera();
   }

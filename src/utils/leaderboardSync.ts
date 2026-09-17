@@ -124,7 +124,7 @@ export async function fetchLeaderboard(
 
 /**
  * Se suscribe a los inserts de leaderboard_events para refrescar el ranking en
- * vivo mientras otras familias comparten su puntaje. Devuelve la función para
+ * vivo mientras otras personas comparten su puntaje. Devuelve la función para
  * cortar la suscripción.
  */
 export function subscribeLeaderboard(onChange: () => void): () => void {

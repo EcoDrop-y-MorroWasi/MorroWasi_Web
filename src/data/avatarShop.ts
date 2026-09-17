@@ -89,13 +89,13 @@ const AVATAR_SEED: AvatarSeed[] = [
   { id: "angie", name: "Angie", gender: "f", hair: "#241a14", skin: "#f6d3a8", hairStyle: "coleta", eye: "#8a5a2e", shirtStyle: "vneck" },
   { id: "britney", name: "Britney", gender: "f", hair: "#3b2417", skin: "#e0ad75", hairStyle: "chongo", eye: "#6b4a2b", shirtStyle: "collar" },
   { id: "francheska", name: "Francheska", gender: "f", hair: "#241a14", skin: "#c48952", hairStyle: "corto", eye: "#5c3a22", shirtStyle: "vneck" },
-  { id: "dayra", name: "Dayra", gender: "f", hair: "#6b3a1f", skin: "#8b5a34", hairStyle: "largo", eye: "#5a3d22", shirtStyle: "vneck" },
-  { id: "felipe", name: "Felipe", gender: "m", hair: "#241a14", skin: "#f6d3a8", hairStyle: "rapado", eye: "#4a2f1c", shirtStyle: "basic" },
+  { id: "dayra", name: "Dayra", gender: "f", hair: "#6b3a1f", skin: "#c48952", hairStyle: "largo", eye: "#5a3d22", shirtStyle: "vneck" },
+  { id: "felipe", name: "Felipe", gender: "m", hair: "#241a14", skin: "#8b5a34", hairStyle: "rapado", eye: "#4a2f1c", shirtStyle: "basic" },
   { id: "milagros", name: "Milagros", gender: "f", hair: "#241a14", skin: "#c48952", hairStyle: "afro", eye: "#8a5a2e", shirtStyle: "vneck" },
-  { id: "jimmy", name: "Jimmy", gender: "m", hair: "#3b2417", skin: "#e0ad75", hairStyle: "rapado", eye: "#6b4423", shirtStyle: "tank" },
+  { id: "jimmy", name: "Jimmy", gender: "m", hair: "#3b2417", skin: "#8b5a34", hairStyle: "rapado", eye: "#6b4423", shirtStyle: "tank" },
   { id: "genesis", name: "Genesis", gender: "f", hair: "#6b3a1f", skin: "#c48952", hairStyle: "colitas", eye: "#a67c3d", shirtStyle: "collar" },
   { id: "rihana", name: "Rihana", gender: "f", hair: "#241a14", skin: "#f6d3a8", hairStyle: "colaAlta", eye: "#42301f", shirtStyle: "vneck", streak: "#e07fb0" },
-  { id: "flordejesus", name: "Flor De Jesús", gender: "f", hair: "#3b2417", skin: "#8b5a34", hairStyle: "trenza", eye: "#7a4a26", shirtStyle: "dress" },
+  { id: "flordejesus", name: "Flor De Jesús", gender: "f", hair: "#3b2417", skin: "#c48952", hairStyle: "trenza", eye: "#7a4a26", shirtStyle: "dress" },
 ];
 
 export const AVATARS: Avatar[] = AVATAR_SEED.map((a, i) => {
@@ -129,7 +129,7 @@ AVATARS.push({
   tierIndex: 10,
   stage: null,
   special: true,
-  skin: "#c48952", // más claro que el bronceado oscuro original (#5c3a22)
+  skin: "#8b5a34", // varones con piel oscura (política de género); más claro que #5c3a22, que daba problemas de textura
   hairColor: "#fff6df",
   hairStyle: "trenzaDorada",
   eyeColor: "#7a4a26",

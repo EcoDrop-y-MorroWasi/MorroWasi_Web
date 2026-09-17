@@ -48,7 +48,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
   SODIS_UV: [
     { emoji: "🧴", titulo: "Botellas contaminadas", texto: "Botellas PET con agua y bacterias multiplicándose adentro." },
     { emoji: "🪞", titulo: "Refleja el sol", texto: "Arrastra el espejo para dirigir los rayos UV a cada botella." },
-    { emoji: "⚡", titulo: "Power-up del mediodía", texto: "Mr. Gota potencia el sol. Úsalo cuando más botellas haya en riesgo." },
+    { emoji: "⚡", titulo: "Power-up del mediodía", texto: "EcoDrop potencia el sol. Úsalo cuando más botellas haya en riesgo." },
   ],
   GUARDIAN_RIO: [
     { emoji: "🏞️", titulo: "Baja el río Piura", texto: "Por la corriente vienen basura y también fauna del manglar." },
@@ -61,7 +61,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "🚿", titulo: "No dejes correr", texto: "Cada segundo con el agua abierta de más te pinta la barra en rojo." },
   ],
   CORTE_AGUA: [
-    { emoji: "🛢️", titulo: "1000 litros", texto: "Es todo lo que tiene tu familia de 4 para aguantar 3 días de corte." },
+    { emoji: "🛢️", titulo: "1000 litros", texto: "Es todo lo que tiene tu hogar para aguantar 3 días de corte." },
     { emoji: "🃏", titulo: "Tarjetas de decisión", texto: "Cada día aparecen dilemas: cocinar, lavar, bañarse. Elige." },
     { emoji: "🧼", titulo: "Sin perder higiene", texto: "Ahorrar a costa de la salud también es perder. Busca el equilibrio." },
   ],
@@ -84,6 +84,11 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "👆", titulo: "Toca para construir", texto: "Elige una pieza abajo y tócala en el terreno. Toca otra vez para quitarla." },
     { emoji: "🔗", titulo: "Conecta el camino", texto: "El agua solo pasa entre piezas que se tocan por un lado. Sin diagonales." },
     { emoji: "⚗️", titulo: "Filtra lo que se bebe", texto: "La ducha necesita agua filtrada. El biohuerto acepta agua sin filtrar." },
+  ],
+  MEMORAMA_AGUA: [
+    { emoji: "🧠", titulo: "8 parejas", texto: "Da vuelta 2 cartas por turno. Si coinciden, quedan boca arriba." },
+    { emoji: "🔥", titulo: "Encadena combo", texto: "Acertar seguido suma combo. Fallar lo reinicia a cero." },
+    { emoji: "💡", titulo: "Aprende al acertar", texto: "Cada pareja encontrada muestra un dato real de ahorro de agua." },
   ],
 };
 

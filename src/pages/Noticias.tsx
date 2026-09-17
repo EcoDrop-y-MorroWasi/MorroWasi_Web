@@ -22,6 +22,8 @@ interface NewsItem {
 // Boletín de respaldo con noticias REALES verificadas (título/fecha/fuente confirmados
 // contra el artículo original) — se muestra si /api/noticias-agua todavía no está
 // desplegado o falla. Se actualiza a mano cada tanto; no reemplaza el feed en vivo.
+// Regla: nada de más de año y medio de antigüedad — sacar la nota vieja cuando
+// se agregue una nueva, no dejarla acumular.
 const NEWS: NewsItem[] = [
   {
     date: "10 jun. 2026",
@@ -49,15 +51,6 @@ const NEWS: NewsItem[] = [
     tag: "🌧️ Emergencia",
     source: "La República",
     url: "https://larepublica.pe/sociedad/2026/02/02/piura-lluvias-dejan-caserios-incomunicados-en-morropon-y-huancabamba-70826",
-  },
-  {
-    date: "31 oct. 2024",
-    title: "Declaran en emergencia Piura por déficit hídrico",
-    snippet:
-      "El Consejo de Ministros aprobó un decreto de emergencia por 60 días en 34 distritos de 7 provincias piuranas —incluida Morropón— ante el peligro inminente por escasez de agua.",
-    tag: "💧 Déficit hídrico",
-    source: "El Peruano",
-    url: "https://www.elperuano.pe/noticia/256667-declaran-en-emergencia-piura-por-deficit-hidrico",
   },
 ];
 

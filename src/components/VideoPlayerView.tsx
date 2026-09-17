@@ -31,6 +31,9 @@ export default function VideoPlayerView({ title, videoUrl, thumbnailUrl, onEnded
   const [poster, setPoster] = useState(thumbnailUrl);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const youtube = isYouTubeEmbed(videoUrl);
+  // Cursos nuevos sin video real verificado todavía: mejor avisar que no hay
+  // video que intentar reproducir un .mp4 local que no existe (se vería roto).
+  const sinVideo = videoUrl === "";
 
   // Protocolo postMessage de YouTube: con enablejsapi=1 basta escuchar "infoDelivery"
   // tras registrar el listener "listening" — no requiere cargar iframe_api.js completo.
@@ -60,7 +63,14 @@ export default function VideoPlayerView({ title, videoUrl, thumbnailUrl, onEnded
       className="overflow-hidden rounded-2xl border-2 border-ink bg-[#1c1c11] shadow-[4px_4px_0_0_#1c1c11]"
       aria-label={`Video: ${title}`}
     >
-      {playing ? (
+      {sinVideo ? (
+        <img
+          src={poster}
+          alt={`Imagen del curso ${title}`}
+          className="aspect-video w-full object-cover"
+          onError={() => setPoster(fallbackThumbnail(title))}
+        />
+      ) : playing ? (
         youtube ? (
           <iframe
             ref={iframeRef}
