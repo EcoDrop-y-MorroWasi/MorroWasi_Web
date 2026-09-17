@@ -6,6 +6,7 @@ import TutorialCard from "../components/TutorialCard";
 import GameIntroVinetas from "../components/GameIntroVinetas";
 import ConstruyeWasiGame from "../components/ConstruyeWasiGame";
 import { sortearPreguntas, barajar, TEMAS_QUIZ, type PreguntaQuiz } from "../data/quiz";
+import { playDuranteJuego, playVictoria, playDerrota, detenerAudio, desbloquearAudio } from "../utils/gameAudio";
 
 export interface MinigameResult {
   earned: number;
@@ -134,16 +135,35 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      // Cierre del modal por cualquier vía (X, Esc, click afuera, desmontaje
+      // del padre): se corta el audio que esté sonando, sea cual sea la fase.
+      detenerAudio();
     };
   }, [onClose]);
+
+  // Suena mientras se juega. No hace falta cortarla al salir de "playing": el
+  // audio de victoria/derrota ya arranca con un detenerAudio() propio antes de
+  // sonar (ver reproducir() en gameAudio.ts) — poner un cleanup acá pisaría esa
+  // llamada justo después de empezar, porque el efecto se limpia recién cuando
+  // React reacciona al cambio de fase, un tick después de que handleComplete ya
+  // puso a sonar el audio nuevo.
+  useEffect(() => {
+    if (phase !== "playing") return;
+    playDuranteJuego();
+  }, [phase]);
 
   const handleComplete = (accuracy: number) => {
     const res = onFinish(accuracy);
     setResult(res);
     setPhase("result");
+    // Mismo criterio que el toast/chime de Juegos.tsx: nuevo récord = victoria,
+    // cualquier otro resultado (incluida una derrota total) = derrota.
+    if (res.isNewBest) playVictoria();
+    else playDerrota();
   };
 
   const playAgain = () => {
+    detenerAudio();
     setResult(null);
     setPhase("intro");
   };
@@ -182,7 +202,13 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
         <AnimatePresence mode="wait">
           {phase === "intro" && (
             <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <GameIntroVinetas game={game} onStart={() => setPhase("tutorial")} />
+              <GameIntroVinetas
+                game={game}
+                onStart={() => {
+                  desbloquearAudio();
+                  setPhase("tutorial");
+                }}
+              />
             </motion.div>
           )}
 
@@ -248,6 +274,23 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
       </motion.div>
     </motion.div>
   );
+}
+
+/**
+ * Encuentra el objetivo de un drag-and-drop bajo el punto soltado, buscando
+ * `selector` en TODA la pila de elementos superpuestos en ese punto — no solo
+ * el de más arriba. `elementFromPoint` solo devuelve el tope, y ahí sigue el
+ * propio elemento que se está arrastrando (todavía no se re-renderizó ni se
+ * movió), así que buscar solo con `elementFromPoint` puede devolver el
+ * material arrastrado en vez del slot debajo, y el drop nunca se registra
+ * aunque el usuario haya soltado justo en el lugar correcto.
+ */
+function objetivoDeDrop(x: number, y: number, selector: string): HTMLElement | null {
+  for (const el of document.elementsFromPoint(x, y)) {
+    const target = (el as HTMLElement).closest<HTMLElement>(selector);
+    if (target) return target;
+  }
+  return null;
 }
 
 // ---------- HUD compartido ----------
@@ -1117,8 +1160,7 @@ function FiltrosLabGame({ duration, onComplete }: { duration: number; onComplete
   }, [slots]);
 
   const handleDrop = (material: MaterialKind, info: PanInfo) => {
-    const el = document.elementFromPoint(info.point.x, info.point.y);
-    const slotEl = el?.closest<HTMLElement>("[data-slot-index]");
+    const slotEl = objetivoDeDrop(info.point.x, info.point.y, "[data-slot-index]");
     if (!slotEl) return;
     const idx = Number(slotEl.dataset.slotIndex);
     if (slotsRef.current[idx]) return;
@@ -1465,8 +1507,7 @@ function SodisUvGame({ duration, onComplete }: { duration: number; onComplete: (
   };
 
   const handleMirrorDrop = (info: PanInfo) => {
-    const el = document.elementFromPoint(info.point.x, info.point.y);
-    const bottleEl = el?.closest<HTMLElement>("[data-bottle-index]");
+    const bottleEl = objetivoDeDrop(info.point.x, info.point.y, "[data-bottle-index]");
     if (!bottleEl) return;
     clearBottle(Number(bottleEl.dataset.bottleIndex));
   };
@@ -2256,11 +2297,11 @@ function CloracionSeguraGame({ duration, onComplete }: { duration: number; onCom
 }
 
 // ======================================================================
-// 15. MEMORAMA DEL AGUA (MEMORAMA_AGUA, 90s) — juego de memoria clásico:
-// da vuelta 2 cartas por turno, encuentra las 8 parejas antes de que se
-// acabe el tiempo. Pensado para engachar a estudiantes jóvenes con un
-// formato muy conocido (memorama/concentración) en vez de un mecanismo
-// nuevo que aprender.
+// 15. MEMORAMA DEL AGUA (MEMORAMA_AGUA, 90s) — juego de memoria progresivo:
+// arranca con 4 cartas (2 parejas) y sube de a 2 cartas por nivel hasta 30
+// (15 parejas) según se van completando niveles dentro de la misma partida.
+// Cada nivel sortea qué parejas del pool usa y en qué posición, así ninguna
+// partida repite el layout de la anterior.
 // ======================================================================
 
 interface MemoramaPar {
@@ -2268,9 +2309,10 @@ interface MemoramaPar {
   dato: string;
 }
 
-// 8 acciones reales de ahorro, cada una con el dato real que ya usa el resto
-// de la app (misiones/juegos) — así el memorama también enseña, no es solo
-// buscar parejas al azar.
+// 16 íconos — todo emoji, nada de fotos: mezclar emoji con imagen hacía que
+// unas cartas cargaran al toque y otras tardaran, además de verse desparejo.
+// El nivel más alto (30 cartas) necesita 15 parejas; el pool tiene una de
+// sobra para variar cuál queda afuera entre partida y partida.
 const MEMORAMA_PARES: MemoramaPar[] = [
   { emoji: "🚿", dato: "Ducha de 4 min en vez de 10: ahorras unos 100 L." },
   { emoji: "🪥", dato: "Cerrar el caño al cepillarte ahorra varios litros cada vez." },
@@ -2280,56 +2322,100 @@ const MEMORAMA_PARES: MemoramaPar[] = [
   { emoji: "🔧", dato: "Un goteo de 1 gota/segundo desperdicia unos 30 litros al día." },
   { emoji: "🍽️", dato: "Lavar platos con el caño cerrado entre enjuagues ahorra decenas de litros." },
   { emoji: "🌱", dato: "Regar temprano o al atardecer evita perder agua por evaporación." },
+  { emoji: "🛢️", dato: "Un flotador mal regulado hace rebalsar el tanque sin que nadie lo note." },
+  { emoji: "🧼", dato: "Lavarte las manos con jabón 20 segundos corta la vía fecal-oral." },
+  { emoji: "💧", dato: "Menos del 1% del agua del planeta es dulce y accesible." },
+  { emoji: "🏠", dato: "Inodoro y ducha concentran la mayor parte del consumo de una casa." },
+  { emoji: "☀️", dato: "SODIS desinfecta agua con 6 horas de sol pleno, gratis." },
+  { emoji: "🌦️", dato: "Un aguacero fuerte puede llenar el reservorio de una casa entera." },
+  { emoji: "🚰", dato: "Un aireador de grifo reduce el caudal sin que se note el chorro." },
+  { emoji: "♻️", dato: "El agua de la ducha y la lavadora se puede reusar para regar." },
 ];
+
+// Cartas totales por nivel — 4, 6, 8 ... hasta 30. El índice del array es el
+// nivel (0 = primero); cada valor / 2 es cuántas parejas necesita ese nivel.
+const MEMORAMA_NIVELES: number[] = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30];
 
 interface MemoramaCarta {
   id: number;
-  parIndex: number;
+  parId: number;
   volteada: boolean;
   encontrada: boolean;
 }
 
-function barajarCartas(): MemoramaCarta[] {
-  const cartas: MemoramaCarta[] = MEMORAMA_PARES.flatMap((_, parIndex) => [
-    { id: parIndex * 2, parIndex, volteada: false, encontrada: false },
-    { id: parIndex * 2 + 1, parIndex, volteada: false, encontrada: false },
+/** Sortea qué `cantidadPares` del pool usa este nivel y en qué orden quedan las cartas — distinto en cada llamada. */
+function armarNivel(cantidadPares: number): { cartas: MemoramaCarta[]; paresUsados: number[] } {
+  const indicesPool = MEMORAMA_PARES.map((_, i) => i);
+  for (let i = indicesPool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indicesPool[i], indicesPool[j]] = [indicesPool[j], indicesPool[i]];
+  }
+  const paresUsados = indicesPool.slice(0, cantidadPares);
+
+  const cartas: MemoramaCarta[] = paresUsados.flatMap((parId, i) => [
+    { id: i * 2, parId, volteada: false, encontrada: false },
+    { id: i * 2 + 1, parId, volteada: false, encontrada: false },
   ]);
   for (let i = cartas.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [cartas[i], cartas[j]] = [cartas[j], cartas[i]];
   }
-  return cartas;
+  return { cartas, paresUsados };
 }
 
 function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [cartas, setCartas] = useState<MemoramaCarta[]>(barajarCartas);
+  const [nivel, setNivel] = useState(0);
+  const [{ cartas }, setEstadoNivel] = useState(() => armarNivel(MEMORAMA_NIVELES[0] / 2));
   const [seleccion, setSeleccion] = useState<number[]>([]);
-  const [aciertos, setAciertos] = useState(0);
-  const [intentos, setIntentos] = useState(0);
+  const [aciertosNivel, setAciertosNivel] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
   const [dato, setDato] = useState<string | null>(null);
   const bloqueadoRef = useRef(false);
   const finishedRef = useRef(false);
+  const nivelRef = useRef(0);
+  const aciertosNivelRef = useRef(0);
 
-  const totalPares = MEMORAMA_PARES.length;
-  const completo = aciertos === totalPares;
+  const totalPares = MEMORAMA_NIVELES[nivel] / 2;
+  const ultimoNivel = nivel === MEMORAMA_NIVELES.length - 1;
+  const completo = aciertosNivel === totalPares;
 
   const finalizar = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
-    onComplete(aciertos / totalPares);
+    // Progreso real: nivel ya despejado + fracción del nivel actual, sobre el total de niveles.
+    const progreso = (nivelRef.current + aciertosNivelRef.current / totalPares) / MEMORAMA_NIVELES.length;
+    onComplete(Math.min(1, progreso));
   };
 
-  useEffect(() => {
-    if (completo) {
+  const siguienteNivel = () => {
+    if (ultimoNivel) {
       finalizar();
       return;
     }
+    const proximo = nivel + 1;
+    nivelRef.current = proximo;
+    aciertosNivelRef.current = 0;
+    setNivel(proximo);
+    setEstadoNivel(armarNivel(MEMORAMA_NIVELES[proximo] / 2));
+    setAciertosNivel(0);
+    setSeleccion([]);
+  };
+
+  useEffect(() => {
+    // El tiempo agotado siempre gana, aunque justo en ese mismo instante el
+    // nivel también se haya completado — antes se chequeaba "completo"
+    // primero, así que agotar el tiempo justo al cerrar un nivel disparaba
+    // otro nivel más (con el reloj ya en 0) en vez de terminar la partida, y
+    // el audio de victoria/derrota nunca llegaba a sonar.
     if (timeLeft <= 0) {
       finalizar();
       return;
+    }
+    if (completo) {
+      const t = setTimeout(siguienteNivel, 700);
+      return () => clearTimeout(t);
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
@@ -2343,32 +2429,41 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
     if (seleccion.includes(id)) return;
 
     const nuevaSeleccion = [...seleccion, id];
-    setCartas((prev) => prev.map((c) => (c.id === id ? { ...c, volteada: true } : c)));
+    setEstadoNivel((prev) => ({ ...prev, cartas: prev.cartas.map((c) => (c.id === id ? { ...c, volteada: true } : c)) }));
     setSeleccion(nuevaSeleccion);
 
     if (nuevaSeleccion.length < 2) return;
 
     bloqueadoRef.current = true;
-    setIntentos((n) => n + 1);
     const [idA, idB] = nuevaSeleccion;
     const cartaA = cartas.find((c) => c.id === idA)!;
     const cartaB = cartas.find((c) => c.id === idB)!;
-    const esPar = cartaA.parIndex === cartaB.parIndex;
+    const esPar = cartaA.parId === cartaB.parId;
 
     setTimeout(
       () => {
         if (esPar) {
-          setCartas((prev) => prev.map((c) => (c.id === idA || c.id === idB ? { ...c, encontrada: true } : c)));
-          setAciertos((a) => a + 1);
+          setEstadoNivel((prev) => ({
+            ...prev,
+            cartas: prev.cartas.map((c) => (c.id === idA || c.id === idB ? { ...c, encontrada: true } : c)),
+          }));
+          setAciertosNivel((a) => {
+            const next = a + 1;
+            aciertosNivelRef.current = next;
+            return next;
+          });
           setCombo((c) => {
             const next = c + 1;
             setBestCombo((b) => Math.max(b, next));
             return next;
           });
-          setDato(MEMORAMA_PARES[cartaA.parIndex].dato);
+          setDato(MEMORAMA_PARES[cartaA.parId].dato);
           setTimeout(() => setDato(null), 1800);
         } else {
-          setCartas((prev) => prev.map((c) => (c.id === idA || c.id === idB ? { ...c, volteada: false } : c)));
+          setEstadoNivel((prev) => ({
+            ...prev,
+            cartas: prev.cartas.map((c) => (c.id === idA || c.id === idB ? { ...c, volteada: false } : c)),
+          }));
           setCombo(0);
         }
         setSeleccion([]);
@@ -2378,20 +2473,24 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
     );
   };
 
+  const columnas = Math.min(6, Math.max(4, Math.ceil(Math.sqrt(cartas.length))));
+
   return (
     <div>
-      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`🧠 ${aciertos}/${totalPares} · 🔥 combo ${combo}`} />
-      <div className="grid grid-cols-4 gap-2">
+      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`🧠 Nivel ${nivel + 1}/${MEMORAMA_NIVELES.length} · 🔥 combo ${combo}`} />
+      <p className="mb-2 text-center text-xs font-bold text-ink/70">{aciertosNivel}/{totalPares} parejas de este nivel</p>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))` }}>
         {cartas.map((carta) => {
           const mostrar = carta.volteada || carta.encontrada;
+          const item = MEMORAMA_PARES[carta.parId];
           return (
             <button
               key={carta.id}
               type="button"
               onClick={() => voltear(carta.id)}
               disabled={mostrar}
-              aria-label={mostrar ? `Carta ${MEMORAMA_PARES[carta.parIndex].emoji}` : "Carta boca abajo"}
-              className={`grid aspect-square place-items-center rounded-xl border-2 border-ink text-2xl shadow-[2px_2px_0_#1c1c11] transition-all sm:text-3xl ${
+              aria-label={mostrar ? "Carta descubierta" : "Carta boca abajo"}
+              className={`grid aspect-square place-items-center rounded-xl border-2 border-ink text-3xl shadow-[2px_2px_0_#1c1c11] transition-all sm:text-4xl ${
                 carta.encontrada
                   ? "bg-[#28a745]/25 border-[#28a745]"
                   : carta.volteada
@@ -2399,7 +2498,7 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
                     : "bg-[#FFB793] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               }`}
             >
-              {mostrar ? MEMORAMA_PARES[carta.parIndex].emoji : "💧"}
+              {mostrar ? item.emoji : "💧"}
             </button>
           );
         })}
@@ -2407,9 +2506,7 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
       {dato ? (
         <p className="mt-2 rounded-xl border-2 border-[#28a745] bg-[#28a745]/10 p-2 text-center text-xs font-bold text-ink">💡 {dato}</p>
       ) : (
-        <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-          Intentos: {intentos} · Mejor combo: {bestCombo}
-        </p>
+        <p className="mt-2 text-center text-xs font-semibold text-ink/70">Mejor combo: {bestCombo}</p>
       )}
     </div>
   );

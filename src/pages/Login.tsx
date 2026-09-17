@@ -33,8 +33,8 @@ export default function Login() {
       if (!session) await signInAnonymously()
       const code = await claimNewCode()
       setCodigoGenerado(code)
-    } catch {
-      setError('No se pudo crear tu código. Intenta de nuevo.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo crear tu código. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }

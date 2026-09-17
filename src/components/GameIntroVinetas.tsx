@@ -86,7 +86,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "⚗️", titulo: "Filtra lo que se bebe", texto: "La ducha necesita agua filtrada. El biohuerto acepta agua sin filtrar." },
   ],
   MEMORAMA_AGUA: [
-    { emoji: "🧠", titulo: "8 parejas", texto: "Da vuelta 2 cartas por turno. Si coinciden, quedan boca arriba." },
+    { emoji: "🧠", titulo: "Empieza fácil, sube de a poco", texto: "4 cartas al principio, +2 por cada nivel que despejás, hasta 30." },
     { emoji: "🔥", titulo: "Encadena combo", texto: "Acertar seguido suma combo. Fallar lo reinicia a cero." },
     { emoji: "💡", titulo: "Aprende al acertar", texto: "Cada pareja encontrada muestra un dato real de ahorro de agua." },
   ],

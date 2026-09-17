@@ -396,7 +396,7 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-15",
     title: "Memorama del Agua",
     description:
-      "Da vuelta las cartas y encuentra las 8 parejas de acción-de-ahorro y litros reales antes de que se acabe el tiempo. Cadena aciertos seguidos para más combo.",
+      "Progresivo: arranca con 4 cartas y sube de a 2 hasta 30 según despejás niveles. Las cartas cambian de posición y de parejas cada partida, así no se memoriza la ubicación. Cadena aciertos seguidos para más combo.",
     type: "MEMORAMA_AGUA",
     xpMaxReward: 100,
     durationSeconds: 90,

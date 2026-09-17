@@ -111,12 +111,17 @@ async function pushRemote(code: string, local: RemoteProgressData): Promise<stri
  * instalado) bajo ese código y lo deja enlazado. El código es la única forma
  * de recuperar la cuenta después, así que quien lo llama debe mostrarlo y
  * pedir que lo guarde antes de seguir.
+ *
+ * Usa crear_codigo_nuevo(), no save_progress_sync(): ese RPC lleva un límite
+ * por IP (5 códigos nuevos por día) separado del límite general de guardado,
+ * y solo INSERTA — nunca pisa un código que ya exista.
  */
 export async function claimNewCode(): Promise<string> {
   const code = generateSyncCode();
   const local = readLocal();
-  const updatedAt = await pushRemote(code, local);
-  writeMarker(code, { serverUpdatedAt: updatedAt, localAtSync: local.lastModified });
+  const { data, error } = await supabase.rpc("crear_codigo_nuevo", { p_code: code, p_data: local });
+  if (error) throw new Error(error.message);
+  writeMarker(code, { serverUpdatedAt: data as string, localAtSync: local.lastModified });
   setLinkedCode(code);
   return code;
 }

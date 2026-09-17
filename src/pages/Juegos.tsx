@@ -207,7 +207,7 @@ export default function Juegos() {
             <b>Construye tu Wasi</b>: arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 4 rondas, 240 s.
           </li>
           <li>
-            <b>Memorama del Agua</b>: da vuelta las cartas y encuentra las 8 parejas antes de que se acabe el tiempo, encadenando combos. 90 s.
+            <b>Memorama del Agua</b>: progresivo — 4 cartas al empezar, sube de a 2 hasta 30 según avanzás, sin repetir posición. 90 s.
           </li>
           <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Solo el nuevo récord suma puntos (anti-farmeo) y cuenta como actividad para tu racha diaria.</li>
         </ul>

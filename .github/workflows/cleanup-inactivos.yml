@@ -1,0 +1,23 @@
+name: Limpieza de cuentas inactivas
+
+# Borra los códigos de progreso sin actividad hace más de 90 días
+# (limpiar_cuentas_inactivas() en Supabase, ver migración 0020). Corre una
+# vez al día — no hace falta más seguido, 90 días es una ventana amplia.
+
+on:
+  schedule:
+    - cron: "30 12 * * *" # todos los días, 12:30 UTC
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a limpiar_cuentas_inactivas()
+        run: |
+          curl -sf --retry 3 \
+            -X POST \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            https://osuunexuupokrgeocsin.supabase.co/rest/v1/rpc/limpiar_cuentas_inactivas
