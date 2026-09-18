@@ -45,7 +45,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg-light font-body text-ink">
+    <div className="flex flex-col bg-bg-light font-body text-ink">
       <header className="keyline-border sticky top-0 z-10 border-x-0 border-t-0 bg-bg-light px-4">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 py-2">
           <div className="flex items-center justify-between gap-2">

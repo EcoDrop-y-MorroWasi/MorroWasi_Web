@@ -102,7 +102,7 @@ export default function Juegos() {
   };
 
   return (
-    <div className="relative mx-auto max-w-[1000px] p-4 pb-24" data-tour="pagina-juegos">
+    <div className="relative mx-auto max-w-[1000px] p-4" data-tour="pagina-juegos">
       {/* Toast flotante */}
       <div className="pointer-events-none fixed top-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
         <AnimatePresence>

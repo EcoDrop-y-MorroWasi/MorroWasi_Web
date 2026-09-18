@@ -148,7 +148,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const cancelTry = (acc: Accessory) => setPreviewing((p) => ({ ...p, [previewKey(acc.slot)]: "" }));
 
   return (
-    <div className="relative mx-auto max-w-[800px] space-y-4 p-4 pb-24" data-tour="pagina-avatares">
+    <div className="relative mx-auto max-w-[800px] space-y-4 p-4" data-tour="pagina-avatares">
       <div className="pointer-events-none fixed top-4 left-1/2 z-50 -translate-x-1/2">
         {toast && (
           <div className="rounded-xl border-2 border-white bg-ink px-4 py-2 text-sm font-black text-bg-light shadow-[4px_4px_0_rgba(0,0,0,0.25)]">

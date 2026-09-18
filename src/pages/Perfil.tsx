@@ -207,7 +207,7 @@ export default function Perfil() {
   const unlockedShopAvatars = SHOP_AVATARS.filter((a) => (a.special ? secretAvatarUnlocked : (a.stage ?? Infinity) <= stage));
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 pb-24">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4">
       {/* Cabecera perfil */}
       <section data-tour="tarjeta-perfil" className={`rounded-2xl border-2 border-ink bg-[#99B4D8] p-5 text-[#1c1c11] ${HARD_SHADOW}`}>
         <div className="flex items-start justify-between gap-3">
@@ -237,10 +237,6 @@ export default function Perfil() {
             Salir
           </button>
         </div>
-        <p className="mt-3 text-xs font-semibold text-[#1c1c11]/70">
-          Entraste sin correo ni contraseña: tu progreso local no se borra al salir, pero si tenías un
-          chat abierto vas a perder tu lugar ahí (se crea una identidad nueva al volver a entrar).
-        </p>
       </section>
 
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>

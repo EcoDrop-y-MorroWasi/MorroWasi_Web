@@ -9,7 +9,7 @@ export default function Album() {
   const unlockedCount = badges.filter((b) => b.unlocked).length;
 
   return (
-    <div className="mx-auto max-w-2xl pb-24">
+    <div className="mx-auto max-w-2xl">
       <Link
         to="/juegos"
         className="mb-4 inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-ink bg-surface px-4 text-sm font-extrabold text-ink shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"

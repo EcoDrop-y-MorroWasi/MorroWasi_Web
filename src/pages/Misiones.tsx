@@ -195,7 +195,7 @@ export default function Misiones() {
   const consejoSemanal = useMemo(() => getConsejoSemanal(), []);
 
   return (
-    <div className="mx-auto max-w-[800px] bg-bg-light p-4 pb-24" data-tour="pagina-misiones">
+    <div className="mx-auto max-w-[800px] bg-bg-light p-4" data-tour="pagina-misiones">
       {/* Header */}
       <h1 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold leading-none text-ink">
         <span aria-hidden>🎯</span> Centro de Misiones

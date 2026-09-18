@@ -119,7 +119,7 @@ export default function Noticias() {
   };
 
   return (
-    <div className="relative mx-auto max-w-[800px] p-4 pb-24 space-y-4" data-tour="pagina-noticias">
+    <div className="relative mx-auto max-w-[800px] p-4 space-y-4" data-tour="pagina-noticias">
       {/* Toast flotante */}
       <div className="pointer-events-none fixed top-4 left-1/2 z-50 -translate-x-1/2">
         <AnimatePresence>
