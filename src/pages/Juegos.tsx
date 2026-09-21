@@ -4,8 +4,9 @@ import confetti from "canvas-confetti";
 import { Link } from "react-router-dom";
 import MinigameCard from "../components/MinigameCard";
 import MinigamePlay, { type MinigameResult } from "./MinigamePlay";
-import { MINIGAMES, calcMinigameScore } from "../utils/gamification";
+import { MINIGAMES, calcMinigameScore, calcGameExp } from "../utils/gamification";
 import { useHydroPoints } from "../utils/hydroStore";
+import { useExp } from "../utils/expStore";
 import { markActivityToday } from "../utils/streakStore";
 import { recordLedgerEvent } from "../utils/leaderboardLedger";
 import { playChime, playMiss } from "../utils/sound";
@@ -40,10 +41,11 @@ function saveBestScores(scores: Record<string, number>) {
 }
 
 // Juegos 30-100XP — 4 mini-juegos realmente jugables (MinigamePlay), bestScore persistido en
-// localStorage morrowasi_games_v1, XP solo si supera récord (anti-farmeo), intro con viñetas ilustradas.
+// localStorage morrowasi_games_v1, XP en toda partida ganada (el récord solo se muestra, no filtra), intro con viñetas ilustradas.
 // Paleta AGENTS.md:145, español, sin BLE. Pulido: toast +XP flotante + confeti canvas-confetti.
 export default function Juegos() {
   const [hydro, addHydro] = useHydroPoints();
+  const [, addExp] = useExp();
   const [bestScores, setBestScores] = useState<Record<string, number>>(() => loadBestScores());
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: number; text: string; sub?: string }[]>([]);
@@ -76,7 +78,10 @@ export default function Juegos() {
 
   const activeGame = MINIGAMES.find((g) => g.id === activeGameId) ?? null;
 
-  // Se llama al terminar una partida real (accuracy 0-1). Solo otorga XP si supera el récord guardado.
+  // Se llama al terminar una partida real (accuracy 0-1). Antes solo otorgaba
+  // HydroPuntos/EXP si superabas tu récord guardado (anti-farmeo); ahora toda
+  // partida ganada (earned > 0) paga, superes récord o no — el récord se
+  // sigue guardando solo para mostrarlo en la tarjeta del juego.
   const handleFinish = (gameId: string, accuracy: number): MinigameResult => {
     markActivityToday();
     const earned = calcMinigameScore(accuracy);
@@ -88,13 +93,18 @@ export default function Juegos() {
       const next = { ...bestScores, [gameId]: nextBest };
       setBestScores(next);
       saveBestScores(next);
+    }
+
+    if (earned > 0) {
       addHydro(earned);
-      recordLedgerEvent("juego", gameId, { hydro: earned });
-      pushToast(`+${earned} XP`, `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!`);
+      const exp = calcGameExp(earned);
+      addExp(exp);
+      recordLedgerEvent("juego", gameId, { hydro: earned, exp });
+      pushToast(`+${earned} XP`, isNewBest ? `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!` : "¡Bien jugado!");
       fireConfetti();
       playChime();
     } else {
-      pushToast(`${earned} XP`, earned === 0 ? "Perdiste — inténtalo de nuevo" : `No superaste tu récord (${prevBest} pts) — sin XP extra`);
+      pushToast(`${earned} XP`, "Perdiste — inténtalo de nuevo");
       playMiss();
     }
 

@@ -40,3 +40,23 @@ export async function signInAnonymously() {
 export async function signOut() {
   await supabase.auth.signOut();
 }
+
+/**
+ * Borra SOLO lo propio del chat (parte de "Eliminar cuenta" en Perfil): los
+ * mensajes que esta persona escribió, su participación en cada sala, y su
+ * historial de advertencias de moderación. Las policies de DELETE (0022)
+ * ya acotan cada borrado a auth.uid() = esta sesión, así que no puede tocar
+ * nada de otro participante — la sala y los mensajes ajenos quedan intactos.
+ */
+export async function deleteMyChatData(): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const uid = data.session?.user.id;
+  if (!uid) return;
+  const [m, p, w] = await Promise.all([
+    supabase.from("messages").delete().eq("sender_id", uid),
+    supabase.from("chat_participants").delete().eq("user_id", uid),
+    supabase.from("chat_warnings").delete().eq("user_id", uid),
+  ]);
+  const error = m.error ?? p.error ?? w.error;
+  if (error) throw error;
+}

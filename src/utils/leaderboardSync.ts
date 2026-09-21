@@ -46,6 +46,28 @@ function getLeaderboardSecret(): string {
   }
 }
 
+/**
+ * Borra la entrada del ranking de esta persona (y en cascada su libro de
+ * eventos), parte de "Eliminar cuenta" en Perfil. A diferencia de
+ * getLeaderboardSecret(), NO crea un secret si no hay uno guardado — si nunca
+ * compartió puntaje, no hay nada que borrar y no vale la pena reclamar un
+ * profile_id nuevo solo para esto.
+ */
+export async function deleteLeaderboardEntry(): Promise<void> {
+  let secret: string | null = null;
+  try {
+    secret = window.localStorage.getItem(SECRET_KEY);
+  } catch {
+    /* localStorage no disponible */
+  }
+  if (!secret) return;
+  const { error } = await supabase.rpc("delete_leaderboard_entry", {
+    p_profile_id: getProfileId(),
+    p_secret: secret,
+  });
+  if (error) throw error;
+}
+
 export function tieneConsentimiento(): boolean {
   try {
     return window.localStorage.getItem(CONSENT_KEY) === "true";

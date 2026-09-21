@@ -5,7 +5,8 @@ import { useHydroPoints } from "../utils/hydroStore";
 import { useExp } from "../utils/expStore";
 import { useReservoir } from "../utils/litersStore";
 import { useStreakDays } from "../utils/streakStore";
-import { signOut as signOutSupabase } from "../utils/authStore";
+import { signOut as signOutSupabase, deleteMyChatData } from "../utils/authStore";
+import { deleteLeaderboardEntry } from "../utils/leaderboardSync";
 import { AVATARS as SHOP_AVATARS } from "../data/avatarShop";
 import { getAvatarThumbnail } from "../utils/avatarSkinPainter";
 import { useAvatarShop } from "../utils/avatarShopStore";
@@ -153,8 +154,12 @@ export default function Perfil() {
   };
 
   // No hay email ni contraseña: "la cuenta" es todo lo que vive en este
-  // navegador (progreso, perfil, código de sync) más, si hay uno vinculado, el
-  // respaldo del servidor. Por eso borra ambos lados y no deja nada a medias.
+  // navegador (progreso, perfil, código de sync) más, si hay algo en el
+  // servidor bajo esta identidad: el respaldo de progress_sync, la entrada del
+  // ranking (si alguna vez compartió puntaje) y sus propios mensajes de chat
+  // (nunca los de otros participantes, ni la sala en sí). Cada borrado remoto
+  // corre en su propio try/catch: uno que falle no debe bloquear al resto ni
+  // dejar sin borrar lo local.
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
@@ -164,6 +169,16 @@ export default function Perfil() {
         } catch {
           /* si falla el borrado remoto, igual se borra lo local: no bloquear por eso */
         }
+      }
+      try {
+        await deleteLeaderboardEntry();
+      } catch {
+        /* idem */
+      }
+      try {
+        await deleteMyChatData();
+      } catch {
+        /* idem */
       }
       window.localStorage.clear();
       await signOutSupabase().catch(() => {});
@@ -310,7 +325,7 @@ export default function Perfil() {
           <div>
             <p className="font-body text-sm font-semibold text-ink/70">Etapa {wasiStage.number} de 10</p>
             <h2 className="font-display text-xl font-extrabold">{wasiStage.name}</h2>
-            <p className="font-body text-xs font-semibold text-ink/60">PEW: {pew}</p>
+            <p className="font-body text-xs font-semibold text-ink/60">PEW (Puntos de Evolución del Wasi): {pew}</p>
           </div>
           <span aria-hidden="true" className="text-4xl">
             🌿

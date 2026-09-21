@@ -65,13 +65,39 @@ export default function Login() {
   }
 
   const copiarCodigo = async () => {
+    // navigator.clipboard falla en silencio en varios casos de escritorio: sin
+    // HTTPS/localhost, sin foco en la pestaña en ese instante, o el navegador
+    // simplemente no la expone. Antes el catch se comía el error y el botón no
+    // hacía nada visible. Fallback: textarea oculto + execCommand('copy'), que
+    // funciona en esos mismos casos porque no depende de permisos async.
     try {
+      if (!navigator.clipboard) throw new Error('clipboard API no disponible')
       await navigator.clipboard.writeText(codigoGenerado)
       setCopiado(true)
       setTimeout(() => setCopiado(false), 1500)
+      return
     } catch {
-      /* clipboard no disponible */
+      /* sigue al fallback */
     }
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = codigoGenerado
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (ok) {
+        setCopiado(true)
+        setTimeout(() => setCopiado(false), 1500)
+        return
+      }
+    } catch {
+      /* sigue al mensaje de error */
+    }
+    setError('No se pudo copiar automáticamente — selecciona y copia el código a mano.')
   }
 
   return (

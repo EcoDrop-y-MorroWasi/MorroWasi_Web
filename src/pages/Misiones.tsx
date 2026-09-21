@@ -22,6 +22,10 @@ import { playPop } from "../utils/sound";
 type Tab = "diarias" | "semanales" | "mensuales" | "personalizadas";
 
 const STORAGE_KEY = "morrowasi_misiones_v1";
+// Sin tope, "personalizadas" era una fuente de EXP sin límite (creabas y completabas
+// las que quisieras el mismo día) — rompía cualquier cálculo de cuánto EXP/día es
+// legítimo. Mismo tope que las diarias fijas (4), para que no sea el atajo obvio.
+const CUSTOM_DAILY_CAP = 4;
 
 interface StoredState {
   periodoDiario: string;
@@ -95,6 +99,13 @@ export default function Misiones() {
     ...mergeStored(defaultsMensuales, stored.mensualesCompletadas, stored.periodoMensual, periodoMensual),
   ]);
   const [customTasks, setCustomTasks] = useState<Task[]>(stored.customTasks);
+  // Cuántas personalizadas ya se completaron HOY — se deriva de completedAt (no de
+  // un contador aparte) para no tener que resetearlo a mano cuando cambia el día.
+  const customCompletadasHoy = useMemo(
+    () => customTasks.filter((t) => t.completed && t.completedAt !== undefined && getDayPeriodKey(new Date(t.completedAt)) === periodoDiario).length,
+    [customTasks, periodoDiario],
+  );
+  const customTopeAlcanzado = customCompletadasHoy >= CUSTOM_DAILY_CAP;
   // Litros ahorrados hoy vía misiones — se resetea solo cuando cambia periodoDiario
   // (antes era un useState(68) fijo, mock que ni se guardaba ni reflejaba nada real).
   const [litrosHoy, setLitrosHoy] = useState(() => (stored.periodoDiario === periodoDiario ? stored.litrosHoy : 0));
@@ -132,6 +143,7 @@ export default function Misiones() {
     const list = isCustom ? customTasks : tasks;
     const target = list.find((t) => t.id === id);
     if (!target || target.completed) return;
+    if (isCustom && customCompletadasHoy >= CUSTOM_DAILY_CAP) return;
     playPop();
     addExp(target.xp);
     // Las personalizadas las escribe el usuario, así que no tienen un id fijo en
@@ -312,6 +324,11 @@ export default function Misiones() {
           <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-ink">
             <span aria-hidden>✏️</span> Crear Misión Personalizada
           </h2>
+          <p className={`mb-3 text-xs font-bold ${customTopeAlcanzado ? "text-[#E26D5C]" : "text-ink/60"}`}>
+            {customTopeAlcanzado
+              ? `Ya completaste ${CUSTOM_DAILY_CAP} misiones personalizadas hoy — vuelve mañana por más EXP.`
+              : `Puedes completar ${CUSTOM_DAILY_CAP - customCompletadasHoy} más hoy (${customCompletadasHoy}/${CUSTOM_DAILY_CAP}).`}
+          </p>
           <div className="flex flex-col gap-3">
             <input
               value={customText}
@@ -366,6 +383,7 @@ export default function Misiones() {
                 liters={m.litersSaved}
                 xp={m.xp}
                 completed={m.completed}
+                disabled={!m.completed && customTopeAlcanzado}
                 emoji={m.icon ?? "✏️"}
                 onToggle={() => toggle(m.id, true)}
                 onDelete={() => deleteCustom(m.id)}

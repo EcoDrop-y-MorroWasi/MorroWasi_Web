@@ -7,11 +7,13 @@ type Props = {
   onToggle: () => void;
   /** Solo las misiones personalizadas se pueden borrar. */
   onDelete?: () => void;
+  /** Tope diario alcanzado (personalizadas) — distinto de "completed": esta no se hizo, pero no se puede hacer hoy. */
+  disabled?: boolean;
 };
 
 // MissionCard — pixel-perfect morrowasi-preview.html .mission-item
 // Paleta #99B4D8/#FFB793/#E26D5C, borde 2px #1c1c11, 48dp, español, mock local
-export default function MissionCard({ text, liters, xp, completed, emoji = "💧", onToggle, onDelete }: Props) {
+export default function MissionCard({ text, liters, xp, completed, emoji = "💧", onToggle, onDelete, disabled = false }: Props) {
   return (
     <li
       className={`flex items-center justify-between gap-3 rounded-xl border-2 bg-surface px-3 py-3 shadow-[2px_2px_0_#1c1c11] ${completed ? "!bg-[#28a745]/20 !border-[#28a745]" : "border-ink"}`}
@@ -33,16 +35,18 @@ export default function MissionCard({ text, liters, xp, completed, emoji = "💧
         <button
           type="button"
           onClick={onToggle}
-          disabled={completed}
+          disabled={completed || disabled}
           aria-pressed={completed}
-          aria-label={completed ? `${text} completada por hoy` : `Completar ${text}`}
+          aria-label={completed ? `${text} completada por hoy` : disabled ? `${text}: tope diario alcanzado` : `Completar ${text}`}
           className={`min-h-12 min-w-[96px] rounded-lg border-2 border-ink px-4 py-2 text-sm font-extrabold shadow-[2px_2px_0_#1c1c11] transition-all ${
             completed
               ? "cursor-default bg-[#28a745] text-white"
-              : "bg-[#99B4D8] text-ink hover:bg-[#a9c4e8] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              : disabled
+                ? "cursor-not-allowed bg-stone-300 text-stone-600 shadow-none"
+                : "bg-[#99B4D8] text-ink hover:bg-[#a9c4e8] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           }`}
         >
-          {completed ? "✓ Listo" : "Completar"}
+          {completed ? "✓ Listo" : disabled ? "Mañana" : "Completar"}
         </button>
         {onDelete && (
           <button

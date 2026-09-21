@@ -68,6 +68,8 @@ export default function VideoPlayerView({ title, videoUrl, thumbnailUrl, onEnded
           src={poster}
           alt={`Imagen del curso ${title}`}
           className="aspect-video w-full object-cover"
+          decoding="async"
+          fetchPriority="high"
           onError={() => setPoster(fallbackThumbnail(title))}
         />
       ) : playing ? (
@@ -98,6 +100,8 @@ export default function VideoPlayerView({ title, videoUrl, thumbnailUrl, onEnded
             src={poster}
             alt=""
             className="aspect-video w-full object-cover opacity-80"
+            decoding="async"
+            fetchPriority="high"
             onError={() => setPoster(fallbackThumbnail(title))}
           />
           <span className="absolute inset-0 grid place-items-center">

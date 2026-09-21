@@ -262,7 +262,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                         {accessoryIcon(acc)}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-[11px] font-extrabold leading-tight">{acc.name}</p>
+                        <p className="text-[11px] font-extrabold leading-tight">{acc.name}</p>
                         <p className="text-[9px] font-bold uppercase tracking-wide text-ink/50">{SLOT_LABEL[acc.slot]}</p>
                       </div>
                     </div>

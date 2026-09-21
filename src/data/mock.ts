@@ -48,8 +48,10 @@ export function calcPew(exp: number, streakDays: number): number {
 }
 
 // PEW acumulado requerido para ALCANZAR cada etapa (índice 0 = etapa 1, arranca en 0).
-// Curva creciente: cada etapa pide más que la anterior, hasta 1,000,000 PEW en la etapa 10.
-export const WASI_STAGE_THRESHOLDS = [0, 1000, 3000, 7000, 15000, 30000, 60000, 150000, 400000, 1000000] as const
+// Curva rebalanceada para que completar la plataforma cierre en semanas, no en
+// décadas (antes llegaba a 1,000,000 en la etapa 10 — a ~42 EXP/día real, eso
+// tomaba siglos). Etapa 10 ahora pide 22,000 PEW.
+export const WASI_STAGE_THRESHOLDS = [0, 1000, 2000, 4000, 6000, 8000, 12000, 14000, 18000, 22000] as const
 
 // etapa = la más alta cuyo umbral acumulado ya se superó (máx. 10, no retrocede).
 // progressInStage = PEW ganado dentro de la etapa actual; xpParaSiguiente = lo que pide esa etapa completa.

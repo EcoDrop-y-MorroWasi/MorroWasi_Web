@@ -25,6 +25,10 @@ body,
 html,
 body {
   overflow-x: hidden;
+  /* Sin esto, el rebote elástico (iOS/Android) al pasarse del final de la página
+     revela una franja en blanco debajo del footer que, al volver a subir, queda
+     pintada de más — se veía como una "zona vacía" fantasma tras el pie de página. */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -139,17 +143,18 @@ a {
 .driver-popover.morrowasi-tour .driver-popover-navigation-btns {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
   width: 100%;
 }
 
-/* flex-basis 0 (no "auto"): reparte el ancho mitad y mitad sin importar que
-   "Siguiente →" tenga más texto que "← Atrás" — con "auto" cada botón crecía
-   a partir de su propio ancho de contenido y quedaban deformes, uno chico y
-   el otro estirado. */
+/* Antes flex:1 1 0% estiraba cada botón a la mitad del ancho del popover —
+   en popovers anchos (tablet/desktop) quedaban carteles larguísimos. Ahora
+   crecen solo lo que pide su texto, con un piso táctil de 96px. */
 .driver-popover.morrowasi-tour .driver-popover-navigation-btns button {
-  flex: 1 1 0%;
+  flex: 0 1 auto;
   width: auto;
+  min-width: 72px;
 }
 
 .driver-popover.morrowasi-tour .driver-popover-title {
@@ -179,7 +184,7 @@ a {
    acertar con el pulgar bajo sol intenso. */
 .driver-popover.morrowasi-tour .driver-popover-navigation-btns button {
   min-height: 44px;
-  padding-inline: 0.9rem;
+  padding-inline: 0.65rem;
   border: 2px solid var(--color-ink);
   border-radius: 11px;
   background-color: var(--color-bg-light);

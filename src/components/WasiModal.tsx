@@ -115,7 +115,7 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
             </p>
             <p className="mt-2 font-body text-sm">
               <span className="keyline-border inline-flex rounded-full bg-primary/20 px-2 py-0.5 font-bold">
-                PEW: {pew}
+                PEW (Puntos de Evolución del Wasi): {pew}
               </span>{' '}
               <span className="ml-2">
                 Progreso: {progressInStage.toLocaleString('es-PE')}/{xpParaSiguiente.toLocaleString('es-PE')} ({progressPct}%)

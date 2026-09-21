@@ -298,7 +298,6 @@ export default function Noticias() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[11px] text-ink/50">Sin conexión al feed en vivo — mostrando boletín verificado de MorroWasi.</p>
           </>
         )}
       </section>

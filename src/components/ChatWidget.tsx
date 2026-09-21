@@ -70,6 +70,19 @@ export default function ChatWidget() {
   // "se unió y se fue" (ahí sí hay que avisar) — sin esto, el efecto de abajo
   // disparaba el aviso de desconexión apenas se creaba la sala.
   const huboSegundaFamiliaRef = useRef(false);
+  // La burbuja flota fija cerca del borde inferior de la pantalla — el footer
+  // (copyright + redes) puede terminar en ese mismo tramo al llegar al fondo
+  // del todo, y entonces la burbuja queda pisando Facebook/Instagram. Se
+  // oculta sola mientras el footer está a la vista y reaparece al alejarse.
+  const [footerVisible, setFooterVisible] = useState(false);
+
+  useEffect(() => {
+    const footerEl = document.querySelector("footer");
+    if (!footerEl) return;
+    const io = new IntersectionObserver(([entry]) => setFooterVisible(entry?.isIntersecting ?? false), { rootMargin: "0px 0px -10% 0px" });
+    io.observe(footerEl);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     if (primerRenderRef.current) {
@@ -300,7 +313,11 @@ export default function ChatWidget() {
         type="button"
         onClick={() => setEstado(sala ? "abierto" : "unirse")}
         aria-label={sala ? "Abrir chat temporal" : "Unirse a un chat temporal"}
-        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-ink bg-[#99B4D8] text-2xl shadow-[3px_3px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        aria-hidden={footerVisible}
+        tabIndex={footerVisible ? -1 : 0}
+        className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-ink bg-[#99B4D8] text-2xl shadow-[3px_3px_0_#1c1c11] transition-all duration-200 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+          footerVisible ? "pointer-events-none translate-y-3 opacity-0" : "opacity-100"
+        }`}
       >
         <span aria-hidden>💬</span>
         {sala && estado === "minimizado" && (
@@ -314,7 +331,7 @@ export default function ChatWidget() {
 
   if (estado === "unirse") {
     return (
-      <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
+      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
         <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
           <h2 className="text-sm font-extrabold">💬 Chat temporal</h2>
           <button type="button" onClick={() => setEstado("cerrado")} aria-label="Cerrar" className="text-lg font-black">
@@ -367,7 +384,7 @@ export default function ChatWidget() {
 
   if (estado === "codigo-generado" && sala) {
     return (
-      <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
+      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
         <div className="flex items-center justify-between rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
           <h2 className="text-sm font-extrabold">💬 Chat creado</h2>
           <button type="button" onClick={volverAlInicio} aria-label="Cancelar" className="text-lg font-black">
@@ -394,7 +411,7 @@ export default function ChatWidget() {
 
   if (!sala) return null;
   return (
-    <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-[480px] w-[340px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-[480px] w-[340px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border-2 border-ink bg-surface shadow-[4px_4px_0_#1c1c11]">
       <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b-2 border-ink bg-[#99B4D8] px-4 py-3 text-[#1c1c11]">
         <div className="min-w-0">
           <h2 className="truncate text-sm font-extrabold">💬 Sala {sala.codigo}</h2>

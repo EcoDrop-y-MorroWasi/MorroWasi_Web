@@ -156,9 +156,9 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
     const res = onFinish(accuracy);
     setResult(res);
     setPhase("result");
-    // Mismo criterio que el toast/chime de Juegos.tsx: nuevo récord = victoria,
-    // cualquier otro resultado (incluida una derrota total) = derrota.
-    if (res.isNewBest) playVictoria();
+    // Mismo criterio que el toast/chime de Juegos.tsx: ganaste algo (earned > 0)
+    // = victoria, derrota total (accuracy 0) = derrota. Ya no depende de récord.
+    if (res.earned > 0) playVictoria();
     else playDerrota();
   };
 
@@ -247,10 +247,10 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
               </p>
               <p className="text-sm font-bold text-ink/80">
                 {result.isNewBest
-                  ? "¡Nuevo récord! HydroPuntos otorgados."
+                  ? "¡Nuevo récord! HydroPuntos y EXP otorgados."
                   : result.earned === 0
                     ? "Inténtalo de nuevo la próxima — así se aprende."
-                    : `No superaste tu récord (${result.bestScore} pts) — sin XP extra, pero cuenta como actividad para tu racha diaria 🔥`}
+                    : `HydroPuntos y EXP otorgados (tu récord sigue en ${result.bestScore} pts).`}
               </p>
               <div className="mt-2 flex w-full gap-3">
                 <button

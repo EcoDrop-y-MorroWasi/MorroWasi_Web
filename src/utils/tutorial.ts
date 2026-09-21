@@ -64,14 +64,14 @@ const PASOS: PasoTutorial[] = [
     ancla: "metricas",
     titulo: "💧 Tus tres números",
     descripcion:
-      "<b>Litros hoy</b>: lo que ahorraste en el día.<br><b>HydroPuntos</b>: tu moneda, sirve para comprar avatares.<br><b>Racha</b>: días seguidos usando la app. Cada día de racha suma PEW y hace crecer a tu Wasi.",
+      "<b>Litros hoy</b>: lo que ahorraste en el día.<br><b>HydroPuntos</b>: tu moneda, sirve para comprar avatares.<br><b>Racha</b>: días seguidos usando la app. Cada día de racha suma PEW (Puntos de Evolución del Wasi) y hace crecer a tu Wasi.",
   },
   {
     ruta: "/inicio",
     ancla: "wasi",
     titulo: "🌱 Tu Wasi crece contigo",
     descripcion:
-      "Tu Wasi sube por las 10 etapas según tu <b>PEW</b> (EXP de misiones + racha). Tócalo para ver todas las etapas y cuánto falta para la siguiente.",
+      "Tu Wasi sube por las 10 etapas según tu <b>PEW</b> (Puntos de Evolución del Wasi = EXP de misiones + racha). Tócalo para ver todas las etapas y cuánto falta para la siguiente.",
   },
   {
     ruta: "/misiones",
@@ -138,7 +138,7 @@ const PASOS: PasoTutorial[] = [
 ];
 
 /**
- * Los tabs del nav se pintan dos veces (header en desktop, barra fija en mobile)
+ * Los tabs del nav se pintan dos veces (header en desktop, cierre del cuerpo en mobile)
  * con el mismo data-tour. querySelector devolvería siempre el primero, que en
  * mobile está oculto: driver.js lo resaltaría fuera de la pantalla.
  */
@@ -203,6 +203,10 @@ export function startTutorial(navegar: NavegarTutorial): void {
     if (!destino) return;
     if (window.location.pathname !== destino.ruta) {
       navegar(destino.ruta);
+      // React Router no resetea el scroll al navegar: sin esto la pantalla nueva
+      // podía aparecer scrolleada a donde había quedado la anterior, cortando
+      // el título/info de arriba (Misiones, Cursos, etc.) detrás del popover.
+      window.scrollTo(0, 0);
       await esperarAncla(destino.ancla);
     }
     mover();
@@ -211,6 +215,10 @@ export function startTutorial(navegar: NavegarTutorial): void {
   tour = driver({
     showProgress: true,
     allowClose: !primeraVez,
+    // Sin esto, driver.js deja el elemento resaltado clickeable de verdad —
+    // durante el recorrido se podía navegar la app por debajo del tutorial
+    // tocando el tab o botón que estaba iluminado.
+    disableActiveInteraction: true,
     overlayOpacity: 0.65,
     stagePadding: 6,
     stageRadius: 14,

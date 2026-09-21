@@ -1,18 +1,22 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-import { mockFamily } from '../data/mock'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { calcPew, calcWasiStage, mockFamily } from '../data/mock'
 import Footer from './Footer'
 import Logo from './Logo'
 import ProfileAvatarGlyph from './ProfileAvatarGlyph'
 import LiveClock from './LiveClock'
 import ChatWidget from './ChatWidget'
+import WasiLevelUpModal from './WasiLevelUpModal'
+import { useExp } from '../utils/expStore'
+import { useStreakDays } from '../utils/streakStore'
+import { getCelebratedStage, setCelebratedStage } from '../utils/wasiLevelUp'
 
 interface NavTab {
   to: string
   label: string
   icon: string
   /** Ancla del minitutorial (tutorial.ts). Los tabs se pintan dos veces — header en
-      desktop, barra fija en mobile — así que el tour elige el que esté visible. */
+      desktop, cierre del cuerpo en mobile — así que el tour elige el que esté visible. */
   tour: string
 }
 
@@ -33,6 +37,7 @@ const TABS: NavTab[] = [
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState(readProfile)
+  const { pathname } = useLocation()
 
   useEffect(() => {
     const refresh = () => setProfile(readProfile())
@@ -44,8 +49,49 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // React Router no resetea el scroll al cambiar de tab: sin esto, entrar a
+  // Misiones/Avatares/etc. después de haber scrolleado la pantalla anterior
+  // abría a mitad de página en vez de mostrar el título de arriba.
+  // rAF (no llamada directa): en mobile, el tab recién tocado del bottom nav
+  // se queda con el foco y algunos WebKit intentan centrarlo en la vista —
+  // aunque está en position:fixed, eso alcanza a arrastrar el scroll del
+  // documento hacia abajo justo después de este efecto. Corriendo en el
+  // siguiente frame y sacando el foco, ganamos esa carrera.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      window.scrollTo(0, 0)
+      ;(document.activeElement as HTMLElement | null)?.blur?.()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [pathname])
+
+  // Celebración de "subiste de etapa" — una sola vez por etapa, en cualquier
+  // pantalla (el PEW puede subir desde Misiones, Juegos o Cursos, no solo
+  // desde Inicio). Ver utils/wasiLevelUp.ts para el detalle de la marca.
+  const [exp] = useExp()
+  const streakDays = useStreakDays()
+  const stage = calcWasiStage(calcPew(exp, streakDays)).stage
+  const [levelUpStage, setLevelUpStage] = useState<number | null>(null)
+
+  useEffect(() => {
+    const celebrated = getCelebratedStage()
+    if (celebrated === 0) {
+      // Primera vez que corre este código en este dispositivo: no hay ningún
+      // "ascenso" que celebrar recién ahora — el progreso ya existía antes de
+      // que existiera esta pantalla. Solo fija la línea base.
+      setCelebratedStage(stage)
+      return
+    }
+    if (stage > celebrated) setLevelUpStage(stage)
+  }, [stage])
+
+  const closeLevelUp = () => {
+    if (levelUpStage !== null) setCelebratedStage(levelUpStage)
+    setLevelUpStage(null)
+  }
+
   return (
-    <div className="flex flex-col bg-bg-light font-body text-ink">
+    <div className="flex min-h-dvh flex-col bg-bg-light font-body text-ink">
       <header className="keyline-border sticky top-0 z-10 border-x-0 border-t-0 bg-bg-light px-4">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 py-2">
           <div className="flex items-center justify-between gap-2">
@@ -121,43 +167,40 @@ export default function Layout({ children }: { children: ReactNode }) {
       </header>
 
       {/* Contenedor único: capa el ancho en desktop (1152px) para que ninguna página se estire
-          edge-to-edge en pantallas grandes; en mobile max-w-6xl no aplica (siempre más angosto).
-          pb con env(safe-area-inset-bottom): en celulares con barra/gesto inferior (notch), el
-          nav real ocupa más que su alto nominal — sin esto el contenido queda tapado. */}
-      {/* pb grande + safe-area solo hasta sm: es lo que el bottom nav mobile necesita para no tapar
-          contenido; en sm+ no hay bottom nav (los tabs viven en el header), así que pb vuelve a lo normal. */}
-      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-4">
+          edge-to-edge en pantallas grandes; en mobile max-w-6xl no aplica (siempre más angosto). */}
+      <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-4">
         {children}
+
+        {/* Bottom nav: solo mobile — en desktop/tablet los tabs ya están en el header de arriba.
+            A pedido explícito NO es "fixed": va en el flujo normal, como cierre del cuerpo de la
+            página, justo antes del Footer — nunca flotando encima del contenido ni del footer. */}
+        <nav aria-label="Navegación principal" className="mt-6 sm:hidden">
+          <div className="mx-auto flex h-20 w-full max-w-xl gap-1 px-1.5">
+            {TABS.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.to === '/inicio'}
+                data-tour={tab.tour}
+                className={({ isActive }) =>
+                  `my-2 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-xl border-2 border-ink px-0.5 text-[10px] font-semibold shadow-[2px_2px_0_#1c1c11] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                    isActive ? (tab.to === '/inicio' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
+                  }`
+                }
+              >
+                <span aria-hidden="true" className="text-2xl leading-none">
+                  {tab.icon}
+                </span>
+                <span className="truncate">{tab.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+
         <Footer />
       </main>
 
-      {/* Bottom nav: solo mobile — en desktop/tablet los tabs ya están en el header de arriba. */}
-      <nav
-        aria-label="Navegación principal"
-        className="keyline-border fixed inset-x-0 bottom-0 z-10 border-x-0 border-b-0 bg-bg-light sm:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div className="mx-auto flex h-20 w-full max-w-xl gap-1 px-1.5 sm:gap-1.5 sm:px-2">
-          {TABS.map((tab) => (
-            <NavLink
-              key={tab.to}
-              to={tab.to}
-              end={tab.to === '/inicio'}
-              data-tour={tab.tour}
-              className={({ isActive }) =>
-                `my-2 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-xl border-2 border-ink px-0.5 text-[10px] font-semibold shadow-[2px_2px_0_#1c1c11] transition-colors active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:gap-1 sm:text-xs ${
-                  isActive ? (tab.to === '/inicio' ? 'bg-[#E26D5C] text-white' : 'bg-primary/35 text-ink') : 'bg-bg-light text-ink/80'
-                }`
-              }
-            >
-              <span aria-hidden="true" className="text-2xl leading-none sm:text-[28px]">
-                {tab.icon}
-              </span>
-              <span className="truncate">{tab.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+      {levelUpStage !== null && <WasiLevelUpModal stage={levelUpStage} onClose={closeLevelUp} />}
 
       <ChatWidget />
     </div>

@@ -28,6 +28,10 @@ export default function CourseCard({ course, unlocked, completed = false, comple
         src={coverSrc}
         alt={`Portada del curso ${course.title}`}
         className="h-40 w-full border-b-2 border-ink object-cover"
+        width={640}
+        height={360}
+        loading="lazy"
+        decoding="async"
         onError={() => setCoverSrc(fallbackCover(course.title))}
       />
       <div className="space-y-3 p-4">

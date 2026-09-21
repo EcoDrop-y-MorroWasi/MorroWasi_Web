@@ -81,15 +81,22 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
     setStage("detail");
     setFlashcardIndex(0);
     setLessonIndex(0);
+    // Mismo /cursos, sin cambio de ruta: el scroll global de Layout no dispara acá,
+    // así que sin esto el detalle del curso abría a mitad de página si venías scrolleado.
+    window.scrollTo(0, 0);
   };
   const closeCourse = () => setSelected(null);
 
   const completedLessonsFor = (course: WaterCourse) => progress[course.id]?.length ?? 0;
   const isCourseComplete = (course: WaterCourse) => completedLessonsFor(course) === course.lessons.length;
+  // Set de ids de cursos ya terminados — lo usa isCourseUnlocked para la lógica
+  // "curso C exige haber terminado el curso B" / "curso A exige el C de la etapa anterior".
+  const completedCourseIds = new Set(coursesMock.filter(isCourseComplete).map((c) => c.id));
 
   const startCourse = () => {
     setFlashcardIndex(0);
     setStage("flashcards");
+    window.scrollTo(0, 0);
   };
 
   const nextFlashcard = () => {
@@ -316,7 +323,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
                 <CourseCard
                   key={course.id}
                   course={course}
-                  unlocked={isCourseUnlocked(course, hydroPoints, wasiLevel)}
+                  unlocked={isCourseUnlocked(course, hydroPoints, completedCourseIds)}
                   completed={isCourseComplete(course)}
                   completedLessons={completedLessonsFor(course)}
                   onOpen={openCourse}

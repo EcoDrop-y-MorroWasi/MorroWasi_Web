@@ -15,6 +15,13 @@ export function calcCourseExp(hydroReward: number): number {
   return Math.max(5, Math.round(hydroReward / 5));
 }
 
+/** EXP que otorga un nuevo récord en un minijuego, además de sus HydroPuntos.
+ * Antes los juegos solo daban HydroPuntos y no movían al Wasi — mismo ratio 1/5
+ * que calcCourseExp, para que aporten sin opacar a las misiones (fuente principal de EXP). */
+export function calcGameExp(hydroReward: number): number {
+  return Math.max(3, Math.round(hydroReward / 5));
+}
+
 /** Suma con clamp >=0, para revertir sin bajar de 0 */
 export function addClamped(current: number, delta: number): number {
   return Math.max(0, current + delta);

@@ -4,7 +4,8 @@ export default function Footer() {
   return (
     <footer className="mt-8 flex flex-col items-center gap-3 border-t-2 border-ink pt-4 pb-4 text-center font-body text-xs text-ink/60">
       <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-      <span>© 2026 Club de Ciencias "Código Científico TPC - Todo Por Cristo"</span>
+      <span>© 2026</span>
+      <span>Club de Ciencias "Código Científico TPC - Todo Por Cristo"</span>
       <span aria-hidden="true">·</span>
       <span>Desafío Amauta 2026</span>
       <span aria-hidden="true">·</span>

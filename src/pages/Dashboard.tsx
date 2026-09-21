@@ -49,25 +49,29 @@ export default function Dashboard() {
       {/* Acceso permanente al recorrido guiado. Antes solo arrancaba solo la
           primera vez y repetirlo exigía entrar a Configuración, donde nadie lo
           encontraba. */}
-      <button
-        type="button"
-        onClick={() => startTutorial(navigate)}
-        className="keyline-border flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-secondary/40 px-4 font-display text-sm font-bold shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-      >
-        <span>🧭 ¿Cómo funciona MorroWasi?</span>
-        <span className="font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
-      </button>
+      {/* gap-1 propio (no el gap-4 del contenedor): el Wasi 3D es lo que más
+          protagonismo debe tener bajo esta barra, sin franja suelta entre medio. */}
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => startTutorial(navigate)}
+          className="keyline-border flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-secondary/40 px-4 font-display text-sm font-bold shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        >
+          <span>🧭 ¿Cómo funciona MorroWasi?</span>
+          <span className="font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
+        </button>
 
-      {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
-      <Suspense
-        fallback={
-          <div className="keyline-border flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
-            Cargando Wasi en 3D…
-          </div>
-        }
-      >
-        <WasiViewer3D stage={stage} />
-      </Suspense>
+        {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
+        <Suspense
+          fallback={
+            <div className="keyline-border flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
+              Cargando Wasi en 3D…
+            </div>
+          }
+        >
+          <WasiViewer3D stage={stage} />
+        </Suspense>
+      </div>
 
       {/* Métricas 48dp, contraste, accesible */}
       <div className="grid grid-cols-3 gap-3" data-tour="metricas">
@@ -89,7 +93,7 @@ export default function Dashboard() {
             <div>
               <p className="font-body text-sm font-semibold text-[#1c1c11]/70">Etapa {wasiStage.number} de 10</p>
               <h2 className="font-display text-xl font-extrabold tracking-tight">{wasiStage.name}</h2>
-              <p className="font-body text-xs font-semibold text-[#1c1c11]/60">PEW: {pew}</p>
+              <p className="font-body text-xs font-semibold text-[#1c1c11]/60">PEW (Puntos de Evolución del Wasi): {pew}</p>
             </div>
             <span aria-hidden="true" className="keyline-border flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-light text-4xl shadow-[2px_2px_0_var(--color-ink)]">
               {wasiVisual.icon}
