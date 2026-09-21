@@ -10,9 +10,7 @@ El ecosistema completo tiene tres piezas: una app Android familiar (el uso diari
 
 ## Qué hace esta web puntualmente
 
-Portal educativo y de administración: cursos y minijuegos, misiones diarias/semanales/mensuales, panel de ahorro/estadísticas, logros/álbum de badges, tienda de avatares 3D (accesorios y personalización visible en el Wasi), un **ranking comunitario** (diario/semanal/mensual/global, validado en servidor) y un **chat temporal entre familias** (se crea una sala con un código de 6 dígitos, dura 1 día, y sirve para que dos familias se motiven o compartan tips entre ellas sin exponer datos a nadie más). El acceso es con cuenta real (Google o correo), no con usuario/contraseña genérico.
-
-El progreso también se puede sincronizar entre dispositivos sin cuenta, con un código corto generado en el propio dispositivo.
+Portal educativo y de administración: cursos y minijuegos, misiones diarias/semanales/mensuales, panel de ahorro/estadísticas, logros/álbum de badges, tienda de avatares 3D (accesorios y personalización visible en el Wasi), un **ranking comunitario** (diario/semanal/mensual/global, validado en servidor) y un **chat temporal entre familias** (se crea una sala con un código de 6 dígitos, dura 1 día, y sirve para que dos familias se motiven o compartan tips entre ellas sin exponer datos a nadie más). El acceso no pide correo ni contraseña: es una sesión anónima de Supabase (solo para que el chat y el resto de las RLS tengan un `auth.uid()` real) más un código corto de 10 caracteres generado en el propio dispositivo, que es lo que de verdad identifica el progreso y permite sincronizarlo o recuperarlo en otro celular.
 
 Construida en React 19 + TypeScript + Vite + Tailwind CSS 4, desplegada en Vercel.
 
