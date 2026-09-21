@@ -39,6 +39,10 @@
     />
     <meta name="twitter:image" content="https://morrowasi.vercel.app/og-image.png" />
     <meta name="theme-color" content="#fdfae7" />
+    <!-- Huella del deploy actual — utils/versionCheck.ts la compara contra la
+         que quedó embebida en el bundle que corre en el navegador, para saber
+         si Vercel ya publicó una versión nueva. -->
+    <meta name="app-version" content="%VITE_APP_VERSION%" />
   </head>
   <body>
     <div id="root"></div>

@@ -13,6 +13,7 @@ import { Ranking } from './pages/Ranking'
 import { calcPew, calcWasiStage } from './data/mock'
 import InicioPublico from './pages/InicioPublico'
 import Login from './pages/Login'
+import UpdateGate from './components/UpdateGate'
 import { useAuthSession } from './utils/authStore'
 import { useHydroPoints } from './utils/hydroStore'
 import { useExp } from './utils/expStore'
@@ -39,15 +40,19 @@ export default function App() {
   }, [])
 
   return (
-    <Routes>
-      {/* Raíz del sitio: siempre lo público, para todo el mundo, nuevo o
-          recurrente. Entrar a la cuenta (nueva o con código existente) es
-          un paso explícito desde acá, nunca automático. */}
-      <Route path="/" element={<InicioPublico />} />
-      <Route path="/inicio-publico" element={<InicioPublico />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<ProtectedRoutes />} />
-    </Routes>
+    <>
+      {/* Fuera de las rutas: aplica en cualquier pantalla, con sesión o sin ella. */}
+      <UpdateGate />
+      <Routes>
+        {/* Raíz del sitio: siempre lo público, para todo el mundo, nuevo o
+            recurrente. Entrar a la cuenta (nueva o con código existente) es
+            un paso explícito desde acá, nunca automático. */}
+        <Route path="/" element={<InicioPublico />} />
+        <Route path="/inicio-publico" element={<InicioPublico />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<ProtectedRoutes />} />
+      </Routes>
+    </>
   )
 }
 

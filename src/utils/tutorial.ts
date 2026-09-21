@@ -228,6 +228,26 @@ export function startTutorial(navegar: NavegarTutorial): void {
     doneBtnText: "¡Entendido!",
     progressText: "{{current}} de {{total}}",
     steps,
+    // driver.js centra verticalmente el elemento resaltado en la pantalla — bien
+    // para una tarjeta chica, pero varias anclas (data-tour="pagina-misiones" y
+    // similares) son el contenedor entero de la pantalla, mucho más alto que el
+    // viewport: centrarlo dejaba el título tapado arriba y el popover a mitad
+    // de la lista. Corrige el scroll después de cada resaltado para que el
+    // borde de arriba del elemento quede justo debajo del header, en vez de
+    // dejar que driver.js lo centre — mobile y desktop por igual.
+    onHighlighted: (element) => {
+      if (!element) return;
+      requestAnimationFrame(() => {
+        const headerEl = document.querySelector("header");
+        const offset = (headerEl?.getBoundingClientRect().bottom ?? 76) + 12;
+        const top = element.getBoundingClientRect().top;
+        if (Math.abs(top - offset) > 4) {
+          // Sin behavior: "auto" (salto instantáneo) — "smooth" competiría
+          // visualmente con la animación de entrada del popover.
+          window.scrollBy(0, top - offset);
+        }
+      });
+    },
     onNextClick: () => {
       const actual = tour.getActiveIndex() ?? 0;
       // En el último paso el botón dice "¡Entendido!" y no hay a dónde avanzar:
