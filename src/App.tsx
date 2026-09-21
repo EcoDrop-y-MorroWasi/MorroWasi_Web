@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Academia from './pages/Academia'
@@ -43,6 +44,7 @@ export default function App() {
     <>
       {/* Fuera de las rutas: aplica en cualquier pantalla, con sesión o sin ella. */}
       <UpdateGate />
+      <SpeedInsights />
       <Routes>
         {/* Raíz del sitio: siempre lo público, para todo el mundo, nuevo o
             recurrente. Entrar a la cuenta (nueva o con código existente) es
