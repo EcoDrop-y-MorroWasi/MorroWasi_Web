@@ -144,6 +144,51 @@ export async function fetchLeaderboard(
   return (data ?? []) as LeaderboardRow[];
 }
 
+export interface MyRankRow {
+  posicion: number;
+  totalParticipantes: number;
+  hydroPoints: number;
+  exp: number;
+  etapa: number;
+}
+
+/**
+ * Tu propia posición en el ranking, incluso si quedaste fuera del top que
+ * devuelve fetchLeaderboard() — privado (get_my_rank exige el secret real del
+ * profile_id, ver 0024_get_my_rank.sql): nadie más puede consultar la
+ * posición de otra persona por acá, a diferencia de lo que alguien ya
+ * compartió a propósito con "Compartir mi puntaje".
+ *
+ * Devuelve null si nunca compartiste puntaje (no hay nada que rankear) o si
+ * no tuviste actividad en ese periodo puntual (dia/semana/mes).
+ */
+export async function fetchMyRank(periodo: LeaderboardPeriodo): Promise<MyRankRow | null> {
+  let secret: string | null = null;
+  try {
+    secret = window.localStorage.getItem(SECRET_KEY);
+  } catch {
+    /* localStorage no disponible */
+  }
+  if (!secret) return null;
+
+  const { data, error } = await supabase.rpc("get_my_rank", {
+    p_profile_id: getProfileId(),
+    p_secret: secret,
+    p_periodo: periodo,
+  });
+  if (error) throw new Error(traducirError(error.message));
+
+  const row = (data as Record<string, unknown>[] | null)?.[0];
+  if (!row) return null;
+  return {
+    posicion: Number(row.posicion),
+    totalParticipantes: Number(row.total_participantes),
+    hydroPoints: Number(row.hydro_points),
+    exp: Number(row.exp),
+    etapa: Number(row.etapa),
+  };
+}
+
 /**
  * Se suscribe a los inserts de leaderboard_events para refrescar el ranking en
  * vivo mientras otras personas comparten su puntaje. Devuelve la función para

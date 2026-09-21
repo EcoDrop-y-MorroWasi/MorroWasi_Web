@@ -8,11 +8,13 @@ import {
   PERIODOS,
   darConsentimiento,
   fetchLeaderboard,
+  fetchMyRank,
   subscribeLeaderboard,
   submitScore,
   tieneConsentimiento,
   type LeaderboardPeriodo,
   type LeaderboardRow,
+  type MyRankRow,
 } from '../utils/leaderboardSync'
 
 const TOP = 10
@@ -40,6 +42,9 @@ export const Ranking = () => {
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [pidiendoConsentimiento, setPidiendoConsentimiento] = useState(false)
+  // Privado (fetchMyRank exige tu secret real) — se pide aparte del top porque
+  // solo tiene sentido mostrarlo cuando quedaste fuera de esas primeras 10 filas.
+  const [miRango, setMiRango] = useState<MyRankRow | null>(null)
 
   const miProfileId = getProfileId()
   const hoy = totalsToday()
@@ -63,6 +68,14 @@ export const Ranking = () => {
         rows: [],
         error: e instanceof Error ? e.message : 'No se pudo cargar la tabla.',
       })
+    }
+    // Aparte y sin bloquear la tabla: si esto falla (nunca compartiste puntaje,
+    // sin red), simplemente no se muestra la tarjeta de "tu posición" — no es
+    // motivo para que el resto de la pantalla se caiga.
+    try {
+      setMiRango(await fetchMyRank(p))
+    } catch {
+      setMiRango(null)
     }
   }, [])
 
@@ -199,7 +212,26 @@ export const Ranking = () => {
             <p className="mt-2 font-body text-sm font-semibold">{error}</p>
           </div>
         ) : (
-          <RankingTable entries={entries} miProfileId={miProfileId} periodoLabel={periodoActual.label} />
+          <>
+            <RankingTable entries={entries} miProfileId={miProfileId} periodoLabel={periodoActual.label} />
+            {/* Solo si quedaste fuera del top — si ya estás en la tabla de arriba,
+                mostrarlo de nuevo acá sería redundante. Privado: nadie más ve esto,
+                solo lo pide quien tiene tu secret real (ver fetchMyRank). */}
+            {miRango && !entries.some((e) => e.profile_id === miProfileId) && (
+              <div className="keyline-border mt-3 flex items-center justify-between gap-3 rounded-2xl bg-accent/15 p-3">
+                <div className="min-w-0">
+                  <p className="font-body text-xs font-bold text-ink/60">Tu posición</p>
+                  <p className="font-display text-base font-extrabold">
+                    #{miRango.posicion} <span className="font-body text-xs font-semibold text-ink/60">de {miRango.totalParticipantes}</span>
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-display text-base font-extrabold text-accent">{miRango.hydroPoints.toLocaleString('es-PE')}</p>
+                  <p className="font-body text-[10px] font-bold text-ink/60">{miRango.exp.toLocaleString('es-PE')} EXP</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 
