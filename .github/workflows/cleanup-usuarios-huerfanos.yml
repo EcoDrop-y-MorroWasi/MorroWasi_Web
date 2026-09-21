@@ -1,0 +1,22 @@
+name: Limpieza de usuarios anónimos huérfanos
+
+# Borra sesiones anónimas de Supabase Auth que nunca usaron el chat (única
+# actividad real atada a auth.uid(), ver 0023_usuarios_huerfanos.sql) y tienen
+# más de 30 días. Corre semanal, no diario — no es urgente y cada corrida
+# hace varias llamadas a la Admin API de Supabase.
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # lunes 13:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a la Edge Function cleanup-orphaned-users
+        run: |
+          curl -sf --retry 3 \
+            -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://osuunexuupokrgeocsin.supabase.co/functions/v1/cleanup-orphaned-users

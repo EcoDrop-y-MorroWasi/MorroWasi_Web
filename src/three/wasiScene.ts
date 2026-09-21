@@ -507,6 +507,8 @@ export interface WasiSceneController {
   selectStage: (n: number) => void;
   resize: () => void;
   setPaused: (paused: boolean) => void;
+  /** Animación de "subiste de etapa" — eleva la casa y gira 2 vueltas, bloqueando el arrastre. */
+  playAscent: (onDone?: () => void) => void;
   dispose: () => void;
 }
 
@@ -547,10 +549,14 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
 
   const GAP = 0.03;
   const geo = new THREE.BoxGeometry(1 - GAP, 1 - GAP, 1 - GAP);
+  // riseGroup envuelve casa+props: playAscent() anima su Y para el "elevarse"
+  // de la celebración de etapa sin tocar las posiciones locales de cada bloque.
+  const riseGroup = new THREE.Group();
+  scene.add(riseGroup);
   const root = new THREE.Group();
-  scene.add(root);
+  riseGroup.add(root);
   const propsGroup = new THREE.Group();
-  scene.add(propsGroup);
+  riseGroup.add(propsGroup);
 
   function clearRoot() {
     while (root.children.length) {
@@ -675,7 +681,44 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
     };
     idleRAF = requestAnimationFrame(step);
   }
+
+  // Celebración de "subiste de etapa" (WasiLevelUpModal): la casa se eleva
+  // desde abajo del cuadro mientras la cámara gira rápido dos vueltas
+  // completas alrededor, y recién al terminar vuelve al giro lento normal.
+  // Bloquea el arrastre mientras tanto — no tendría sentido dejar que el
+  // usuario pelee la cámara contra una animación que no controla.
+  let ascending = false;
+  let disposed = false;
+  const ASCENT_MS = 1400;
+  function playAscent(onDone?: () => void) {
+    ascending = true;
+    stopIdle();
+    if (idleTimer) clearTimeout(idleTimer);
+    const startAz = az;
+    const spins = Math.PI * 4; // 2 vueltas completas
+    const dropY = -9; // arranca bien abajo del cuadro (terreno ~15 unidades de lado)
+    const t0 = performance.now();
+    const step = (now: number) => {
+      if (disposed) return; // el modal se cerró a mitad de la animación
+      const t = Math.min(1, (now - t0) / ASCENT_MS);
+      const ease = 1 - (1 - t) ** 3;
+      riseGroup.position.y = dropY * (1 - ease);
+      az = startAz + ease * spins;
+      applyCamera();
+      if (t < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+      riseGroup.position.y = 0;
+      ascending = false;
+      startIdle();
+      onDone?.();
+    };
+    requestAnimationFrame(step);
+  }
+
   function onDown(e: PointerEvent) {
+    if (ascending) return;
     dragging = true;
     container.style.cursor = "grabbing";
     lastX = e.clientX;
@@ -739,12 +782,14 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
   return {
     selectStage,
     resize,
+    playAscent,
     setPaused(p: boolean) {
       paused = p;
       if (p) stopIdle();
       else startIdle();
     },
     dispose() {
+      disposed = true;
       stopIdle();
       if (idleTimer) clearTimeout(idleTimer);
       cancelAnimationFrame(rafId);

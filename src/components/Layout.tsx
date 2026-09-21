@@ -82,6 +82,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       setCelebratedStage(stage)
       return
     }
+    // set-state-in-effect: falso positivo, mismo caso que el efecto de guardado
+    // en Misiones.tsx — este estado depende de localStorage (un sistema externo),
+    // no es derivable puramente del render.
+    // eslint-disable-next-line react/set-state-in-effect
     if (stage > celebrated) setLevelUpStage(stage)
   }, [stage])
 

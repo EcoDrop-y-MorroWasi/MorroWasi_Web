@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createWasiScene } from "../three/wasiScene";
 import type { WasiSceneController } from "../three/wasiScene";
 
@@ -6,6 +6,10 @@ interface WasiViewer3DProps {
   stage: number;
   /** "md" (Dashboard / cabecera del modal) o "sm" (fila expandida del acordeón de etapas) */
   size?: "md" | "sm";
+  /** Reproduce la animación de ascenso (elevarse + 2 vueltas) apenas monta — WasiLevelUpModal. */
+  autoAscend?: boolean;
+  /** Se llama cuando termina la animación de ascenso (si autoAscend está activo). */
+  onAscendEnd?: () => void;
 }
 
 const SIZE_CLASSES: Record<"md" | "sm", string> = {
@@ -18,15 +22,23 @@ const SIZE_CLASSES: Record<"md" | "sm", string> = {
 // mobile y en web. Se manipula arrastrando para girar. Un canvas/contexto WebGL por
 // instancia: mantené como mucho una montada a la vez fuera del Dashboard (por eso el
 // acordeón de WasiModal cierra la fila anterior antes de abrir otra).
-export default function WasiViewer3D({ stage, size = "md" }: WasiViewer3DProps) {
+export default function WasiViewer3D({ stage, size = "md", autoAscend = false, onAscendEnd }: WasiViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<WasiSceneController | null>(null);
+  const [ascending, setAscending] = useState(autoAscend);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const controller = createWasiScene(el);
     controllerRef.current = controller;
+    if (autoAscend) {
+      controller.selectStage(stage);
+      controller.playAscent(() => {
+        setAscending(false);
+        onAscendEnd?.();
+      });
+    }
 
     const ro = new ResizeObserver(() => controller.resize());
     ro.observe(el);
@@ -36,6 +48,7 @@ export default function WasiViewer3D({ stage, size = "md" }: WasiViewer3DProps) 
       controller.dispose();
       controllerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar: stage/autoAscend/onAscendEnd se leen una vez, seleccionar de nuevo reiniciaría el WebGL context innecesariamente
   }, []);
 
   useEffect(() => {
@@ -45,9 +58,15 @@ export default function WasiViewer3D({ stage, size = "md" }: WasiViewer3DProps) 
   return (
     <div className={`relative w-full ${SIZE_CLASSES[size]}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 font-body text-[10px] font-bold text-ink/50">
-        Arrastrá para girar
-      </span>
+      {ascending ? (
+        <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border-2 border-ink bg-bg-light/90 px-2 py-0.5 font-body text-[10px] font-bold text-ink/70">
+          🔒 Bloqueado mientras asciende
+        </span>
+      ) : (
+        <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 font-body text-[10px] font-bold text-ink/50">
+          Arrastrá para girar
+        </span>
+      )}
     </div>
   );
 }
