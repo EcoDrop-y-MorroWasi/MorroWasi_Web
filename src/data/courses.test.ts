@@ -40,13 +40,20 @@ describe("isCourseUnlocked", () => {
     }
   });
 
-  it("un curso que pide HydroPuntos está bloqueado con 0 puntos", () => {
-    const conCosto = coursesMock.find((c) => c.unlock.type === "hydroPoints");
+  it("un curso con HydroPuntos + curso previo está bloqueado con 0 puntos, incluso con el previo ya completado", () => {
+    // Toda la economía es en cadena ahora: cada curso exige el anterior YA
+    // completado, no solo desbloqueado — ver el diseño en el comentario de
+    // arriba de courses.mock.ts. Ya no queda ningún curso con solo "hydroPoints".
+    expect(coursesMock.some((c) => c.unlock.type === "hydroPoints")).toBe(false);
+    const conCosto = coursesMock.find((c) => c.unlock.type === "requiresCourseAndHydroPoints");
     expect(conCosto).toBeDefined();
-    if (conCosto) expect(isCourseUnlocked(conCosto, 0, new Set())).toBe(false);
+    if (conCosto && conCosto.unlock.type === "requiresCourseAndHydroPoints") {
+      const previoCompletado = new Set([conCosto.unlock.courseId]);
+      expect(isCourseUnlocked(conCosto, 0, previoCompletado)).toBe(false);
+    }
   });
 
-  it("un curso que exige terminar el anterior está bloqueado aunque sobren HydroPuntos", () => {
+  it("un curso que exige terminar el anterior está bloqueado aunque sobren HydroPuntos, si no se completó ese curso", () => {
     const requiereCurso = coursesMock.find((c) => c.unlock.type === "requiresCourse" || c.unlock.type === "requiresCourseAndHydroPoints");
     expect(requiereCurso).toBeDefined();
     if (requiereCurso) expect(isCourseUnlocked(requiereCurso, 999_999, new Set())).toBe(false);
