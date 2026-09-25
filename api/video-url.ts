@@ -5,13 +5,15 @@
 // (esa página no requiere cuenta), pero igual pasa por Blob privado + URL rotativa
 // para que no quede un link permanente indexable/compartible.
 //
+// Corre en runtime Node.js (NO edge, a propósito): @vercel/blob usa `undici` real
+// para hablar con la API de Blob, que depende de módulos nativos de Node
+// (node:net, node:tls, etc.) no disponibles en el runtime edge — con `runtime:
+// "edge"` esta función fallaba en el build. El handler igual usa Request/Response
+// estándar: Vercel Functions en Node.js también soporta esa firma.
+//
 // La validación de sesión pega directo al endpoint REST de Supabase Auth (fetch)
-// en vez de importar @supabase/supabase-js: ese paquete arrastra dependencias con
-// módulos de Node (undici/ws) que el runtime edge no soporta y contaminaban el
-// bundle de las demás funciones edge del proyecto.
+// en vez de importar @supabase/supabase-js, para no arrastrar esa dependencia acá.
 import { issueSignedToken, presignUrl } from "@vercel/blob";
-
-export const config = { runtime: "edge" };
 
 const VIDEOS: Record<string, { pathname: string; requiresAuth: boolean }> = {
   "video-1": { pathname: "news/miniferia-cada-gota-cuenta/video-1.mp4", requiresAuth: true },
