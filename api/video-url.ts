@@ -1,10 +1,15 @@
+/// <reference types="node" />
 // Genera una URL firmada de corta duración (Vercel Blob privado) para uno de los
 // videos protegidos. Los 3 de la noticia MiniFeria exigen sesión de Supabase válida
 // (la noticia ya está detrás de login); el cortometraje de InicioPublico es público
 // (esa página no requiere cuenta), pero igual pasa por Blob privado + URL rotativa
 // para que no quede un link permanente indexable/compartible.
+//
+// La validación de sesión pega directo al endpoint REST de Supabase Auth (fetch)
+// en vez de importar @supabase/supabase-js: ese paquete arrastra dependencias con
+// módulos de Node (undici/ws) que el runtime edge no soporta y contaminaban el
+// bundle de las demás funciones edge del proyecto.
 import { issueSignedToken, presignUrl } from "@vercel/blob";
-import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
 
@@ -26,9 +31,10 @@ async function tieneSesionValida(req: Request): Promise<boolean> {
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return false;
 
-  const supabase = createClient(url, anonKey);
-  const { data, error } = await supabase.auth.getUser(token);
-  return !error && !!data.user;
+  const res = await fetch(`${url}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+  });
+  return res.ok;
 }
 
 export default async function handler(req: Request): Promise<Response> {
