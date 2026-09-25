@@ -6,6 +6,8 @@
 import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { createClient } from "@supabase/supabase-js";
 
+export const config = { runtime: "edge" };
+
 const VIDEOS: Record<string, { pathname: string; requiresAuth: boolean }> = {
   "video-1": { pathname: "news/miniferia-cada-gota-cuenta/video-1.mp4", requiresAuth: true },
   "video-2": { pathname: "news/miniferia-cada-gota-cuenta/video-2.mp4", requiresAuth: true },
