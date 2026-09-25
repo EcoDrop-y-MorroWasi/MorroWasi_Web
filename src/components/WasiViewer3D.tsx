@@ -56,17 +56,12 @@ export default function WasiViewer3D({ stage, size = "md", autoAscend = false, o
   }, [stage]);
 
   return (
-    <div className={`relative w-full ${SIZE_CLASSES[size]}`}>
-      <div ref={containerRef} className="h-full w-full" />
-      {ascending ? (
-        <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border-2 border-ink bg-bg-light/90 px-2 py-0.5 font-body text-[10px] font-bold text-ink/70">
-          🔒 Bloqueado mientras asciende
-        </span>
-      ) : (
-        <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 font-body text-[10px] font-bold text-ink/50">
-          Arrastrá para girar
-        </span>
-      )}
+    <div className="w-full">
+      <div ref={containerRef} className={`w-full ${SIZE_CLASSES[size]}`} />
+      {/* Debajo del canvas, no encima: superpuesto tapaba la base del modelo y se leía mal. */}
+      <p className="mt-1 text-center font-body text-[11px] font-bold text-ink/60">
+        {ascending ? "🔒 Bloqueado mientras asciende" : "Arrastra para girar"}
+      </p>
     </div>
   );
 }

@@ -63,7 +63,7 @@ export const rankingMock: RankingEntry[] = [
     rank: 4,
     family: {
       name: 'Familia Gutiérrez',
-      avatar: '🪴',
+      avatar: '🌻',
       hydroPoints: 1240,
       streakDays: 7,
       litersToday: 30,

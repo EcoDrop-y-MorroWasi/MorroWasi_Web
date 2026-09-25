@@ -166,7 +166,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
         </div>
       </div>
       <p className="text-sm text-ink/70">
-        Vestí a tu avatar del Wasi: 8 chicas y 2 chicos, uno por etapa. Completá los 11 accesorios de cada uno para desbloquear su Skin Especial.
+        Viste a tu avatar del Wasi: 8 chicas y 2 chicos, uno por etapa. Completa los 11 accesorios de cada uno para desbloquear su Skin Especial.
       </p>
 
       {/* Fila de avatares — miniatura 2D liviana (no un visor 3D por avatar) */}
@@ -204,7 +204,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
             <div className="keyline-border relative h-64 overflow-hidden rounded-xl bg-bg-light sm:h-72">
               <AvatarSkinViewer skin={skinCanvas} cape={capeCanvas} model={av.model} width={220} height={288} zoom={0.8} autoRotate interactive />
             </div>
-            <p className="mt-2 text-[11px] font-bold text-ink/50">Arrastrá para girar (horizontal)</p>
+            <p className="mt-2 text-[11px] font-bold text-ink/50">Arrastra para girar (horizontal)</p>
             <p className="mt-2 text-lg font-extrabold">{av.name}</p>
             <p className="text-xs font-bold text-ink/60">{av.special ? "Avatar secreto" : `Avatar de la etapa ${av.stage}`}</p>
             <div className="mt-2">
@@ -214,7 +214,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                 </span>
               ) : av.special ? (
                 <div className="keyline-border rounded-xl bg-bg-light p-3 text-left text-xs font-bold">
-                  🔒 Logro secreto — completá todo lo demás:
+                  🔒 Logro secreto — completa todo lo demás:
                   <ul className="mt-1 space-y-1">
                     <li>{achievements.stage10 ? "✅" : "⬜"} Llegar a la etapa 10 del Wasi</li>
                     <li>{achievements.allGames ? "✅" : "⬜"} Completar todos los juegos</li>
@@ -238,7 +238,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                 🔒 Bloqueado hasta completar los 11 accesorios de {prevAvatar(av)?.name}
               </p>
             )}
-            <p className="mt-1 text-xs italic text-ink/60">Tocá cualquier accesorio para probártelo en el modelo 3D antes de comprarlo.</p>
+            <p className="mt-1 text-xs italic text-ink/60">Toca cualquier accesorio para probártelo en el modelo 3D antes de comprarlo.</p>
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {accessories.map((acc) => {
@@ -307,11 +307,11 @@ export default function Avatares({ wasiStage }: AvataresProps) {
               <div className="mt-4 rounded-2xl border-[3px] border-secondary bg-gradient-to-br from-secondary/20 to-surface p-4">
                 <h3 className="flex items-center gap-1 text-sm font-extrabold">🌟 {specialLook.title}</h3>
                 <p className="mt-1 text-xs font-semibold text-ink/60">
-                  Ropa distinta, acorde a {av.name} y su etapa del Wasi — elegí los 2 colores.
+                  Ropa distinta, acorde a {av.name} y su etapa del Wasi — elige los 2 colores.
                 </p>
                 {!complete && (
                   <p className="mt-1 text-xs font-bold text-ink/60">
-                    🔒 Elegís los colores al completar los 11 accesorios ({ownedCount}/11) — mientras tanto podés ver la vista previa con los colores por defecto.
+                    🔒 Eliges los colores al completar los 11 accesorios ({ownedCount}/11) — mientras tanto puedes ver la vista previa con los colores por defecto.
                   </p>
                 )}
                 <ColorRow label="Color principal" value={special.colorA} locked={!complete} onPick={(c) => shop.setSpecialColor(av.id, "colorA", c)} />

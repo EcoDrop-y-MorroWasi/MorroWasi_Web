@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Logo from '../components/Logo'
+import ProtectedVideo from '../components/ProtectedVideo'
 
 const SECTIONS = [
   { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', text: 'Una plataforma educativa para que personas, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
@@ -44,6 +45,12 @@ export default function InicioPublico() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {SECTIONS.map((section) => <article key={section.title} className={`keyline-border rounded-2xl p-5 shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] ${section.tone}`}><span aria-hidden="true" className="text-3xl">{section.icon}</span><h3 className="mt-3 font-display text-xl font-extrabold">{section.title}</h3><p className="mt-2 font-semibold leading-relaxed text-ink/80">{section.text}</p></article>)}
           </div>
+        </section>
+
+        <section className="keyline-border rounded-2xl bg-surface p-5 shadow-[4px_4px_0_var(--color-ink)]" aria-labelledby="corto-title">
+          <h2 id="corto-title" className="font-display text-2xl font-extrabold">🎬 "Una Gota que Cambia Todo": el cortometraje del Club</h2>
+          <p className="mt-2 font-semibold leading-relaxed text-ink/80">Los propios estudiantes del Club de Ciencias "Código Científico TPC - Todo Por Cristo" escribieron, grabaron y actuaron esta historia sobre el valor del agua. Un cortometraje hecho por chicos, para su comunidad.</p>
+          <ProtectedVideo id="cortometraje" className="mt-4 aspect-video w-full rounded-xl border-2 border-ink bg-black" />
         </section>
 
         <section className="keyline-border rounded-2xl bg-surface p-5 shadow-[4px_4px_0_var(--color-ink)]" aria-labelledby="galeria-title">

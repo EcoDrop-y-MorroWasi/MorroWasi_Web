@@ -624,12 +624,11 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
     }
   }
 
-  // Centrado más alto que el nivel del suelo: la casa/árbol sube hasta ~y=9 en la
-  // etapa 10, el suelo está en ~y=-2 — un target bajo dejaba el techo fuera de cuadro.
-  // Más cerca del nivel del suelo que del centro geométrico: la cámara "mira" más abajo,
-  // así la casa/árbol quedan arriba del cuadro en vez de flotando centrados con medio
-  // cuadro de cielo vacío arriba.
+  // target.y se recalcula en selectStage() con la altura real del modelo de cada etapa:
+  // un valor fijo pensado para la etapa 10 (~y=9) dejaba las etapas bajas hundidas al
+  // fondo del cuadro con mucho espacio vacío arriba.
   const target = new THREE.Vector3(2.5, 2.3, 2.5);
+  const frameBox = new THREE.Box3();
   // El terreno completo mide ~15x15 unidades (-4..11) — la distancia tiene que alcanzar
   // para que ese lote entero flote adentro del cuadro, no solo la casa.
   const BASE_RADIUS = 37;
@@ -773,6 +772,12 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
     glowLight.intensity = cfg.gold ? 1.1 : 0;
     buildScene(stageBlocks(cfg));
     setProps(cfg);
+    // Relativo a riseGroup: playAscent() lo mueve en Y y eso no debe correr el encuadre.
+    frameBox.setFromObject(riseGroup, true);
+    if (!frameBox.isEmpty()) {
+      target.y = (frameBox.min.y + frameBox.max.y) / 2 - riseGroup.position.y;
+      applyCamera();
+    }
   }
 
   resize();

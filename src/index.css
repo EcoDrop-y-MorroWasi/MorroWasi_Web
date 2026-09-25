@@ -9,8 +9,10 @@
   --color-ink: #1c1c11;
   --color-surface: #ffffff;
 
-  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  /* Fuentes de emoji explícitas al final: sin ellas algunos Linux/Android pintan los
+     emojis en blanco y negro o como cuadrados. */
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
 }
 
 html,
@@ -22,9 +24,12 @@ body,
 /* Nunca scroll horizontal: sin esto, cualquier elemento que se pase por poco de 100%
    (una tarjeta, el canvas 3D del Wasi, el panel del chat) arrastra consigo el nav y la
    burbuja fijos, que se ven "cortados" en el borde de pantallas angostas. */
+/* clip, no hidden: con hidden en html Y body, el body se vuelve una segunda caja
+   con scroll propio (doble barra) y la página de afuera podía scrollear más allá
+   del footer, dejando una zona vacía debajo. clip corta igual sin crear scroll. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
   /* Sin esto, el rebote elástico (iOS/Android) al pasarse del final de la página
      revela una franja en blanco debajo del footer que, al volver a subir, queda
      pintada de más — se veía como una "zona vacía" fantasma tras el pie de página. */

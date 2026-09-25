@@ -33,7 +33,7 @@ export const TEMAS_QUIZ: Record<QuizTema, { label: string; emoji: string }> = {
   fugas: { label: "Fugas", emoji: "🔧" },
   cloracion: { label: "Cloración", emoji: "💧" },
   "rio-piura": { label: "Río Piura", emoji: "🏞️" },
-  salud: { label: "Agua y salud", emoji: "🩺" },
+  salud: { label: "Agua y salud", emoji: "🏥" },
   consumo: { label: "Consumo en casa", emoji: "🚿" },
 };
 

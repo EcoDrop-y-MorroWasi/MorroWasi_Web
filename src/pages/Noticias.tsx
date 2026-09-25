@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { QUICK_SAVE, TARIFA_SOLES_POR_LITRO, calcCostoSoles } from "../utils/gamification";
@@ -254,6 +255,33 @@ export default function Noticias() {
             </span>
           )}
         </div>
+
+        {/* Noticia fijada #1 — MiniFeria "Cada Gota Cuenta.." (Club de Ciencias "Código
+            Científico TPC - Todo Por Cristo"). FIJA A PEDIDO DEL USUARIO: siempre primera,
+            visible sin importar feedStatus, y NO se debe borrar. Abre la nota completa
+            (con videos) en la misma ventana vía /noticias/miniferia-cada-gota. */}
+        <ul className="space-y-3 mb-3" role="list">
+          <li className="rounded-xl border-2 border-ink bg-bg-light p-3 shadow-[2px_2px_0_#1c1c11]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-ink/60">02 set. 2026 · Código Científico TPC - Todo Por Cristo</span>
+              <span className="rounded-full border-2 border-ink bg-[#99B4D8] px-2 py-0.5 text-[10px] font-black">
+                📌 Fijada
+              </span>
+            </div>
+            <Link
+              to="/noticias/miniferia-cada-gota"
+              className="mt-1 block font-display text-base font-bold text-ink hover:underline"
+            >
+              MiniFeria "Cada Gota Cuenta..": el Club de Ciencias Código Científico TPC - Todo Por Cristo lleva el cuidado
+              del agua al pabellón de 5to A
+            </Link>
+            <p className="mt-1 text-sm text-ink/80 leading-snug">
+              Estands, demostraciones y videos del proyecto "EcoDrop y MorroWasi: Protegiendo el agua para Ti" en la I.E.
+              "Almirante Miguel Grau" — parte del Desafío Amauta 2026. Click para ver la nota completa, el flyer y los
+              videos.
+            </p>
+          </li>
+        </ul>
 
         {feedStatus === "cargando" && (
           <ul className="space-y-3" aria-label="Cargando noticias">

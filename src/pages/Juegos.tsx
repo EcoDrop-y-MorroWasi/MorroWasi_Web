@@ -205,7 +205,7 @@ export default function Juegos() {
             <b>Corte de Agua</b>: administra 1000 L en 3 días de corte con tarjetas de decisión, sin sacrificar la higiene. 90 s.
           </li>
           <li>
-            <b>Acuífero del Algarrobo</b>: guía la raíz con ⬅️➡️ esquivando 🪨 rocas y 🛢️ filtraciones, recoge 💧 bolsas de acuífero. 60 s, 3 rondas.
+            <b>Acuífero del Algarrobo</b>: guía la raíz con ⬅️➡️ esquivando 🌑 rocas y 🛢️ filtraciones, recoge 💧 bolsas de acuífero. 60 s, 3 rondas.
           </li>
           <li>
             <b>Cloración Segura</b>: mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro. 60 s.

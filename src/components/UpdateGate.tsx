@@ -37,7 +37,7 @@ export default function UpdateGate() {
           Hay una versión nueva de MorroWasi
         </h1>
         <p className="mt-2 font-body text-sm text-ink/80">
-          Actualizamos la plataforma. Para seguir usándola necesitás cargar la versión nueva — es un solo paso.
+          Actualizamos la plataforma. Para seguir usándola necesitas cargar la versión nueva — es un solo paso.
         </p>
         <button
           type="button"

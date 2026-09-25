@@ -118,7 +118,7 @@ const PASOS: PasoTutorial[] = [
   {
     ruta: "/perfil",
     ancla: "tarjeta-perfil",
-    titulo: "🧑‍🤝‍🧑 Tu perfil",
+    titulo: "👤 Tu perfil",
     descripcion:
       "Aquí cambias tu nombre y tu avatar — es el nombre que verán los demás en el ranking. También es donde cierras sesión.",
   },

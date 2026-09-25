@@ -137,7 +137,7 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
               />
             </div>
 
-            <ol className="mt-4 flex flex-col gap-2" aria-label="Listado de etapas — tocá una para ver su modelo 3D">
+            <ol className="mt-4 flex flex-col gap-2" aria-label="Listado de etapas — toca una para ver su modelo 3D">
               {WASI_STAGES.map((stage) => {
                 const achieved = stage.number < currentStage
                 const active = stage.number === currentStage

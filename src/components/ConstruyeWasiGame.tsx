@@ -34,7 +34,7 @@ interface PiezaMeta {
 
 const PIEZAS: Record<PiezaId, PiezaMeta> = {
   techo: { emoji: "🏠", nombre: "Techo", color: "#E26D5C", sombra: "#a94b3e", conduce: true },
-  canaleta: { emoji: "🟦", nombre: "Canaleta", color: "#99B4D8", sombra: "#6d87a9", conduce: true },
+  canaleta: { emoji: "🔷", nombre: "Canaleta", color: "#99B4D8", sombra: "#6d87a9", conduce: true },
   filtro: { emoji: "⚗️", nombre: "Filtro", color: "#FFB793", sombra: "#c4835f", conduce: true },
   tanque: { emoji: "🛢️", nombre: "Tanque", color: "#7fa3c9", sombra: "#54708c", conduce: true },
   biohuerto: { emoji: "🌱", nombre: "Biohuerto", color: "#8fcf9f", sombra: "#5d9670", conduce: false },

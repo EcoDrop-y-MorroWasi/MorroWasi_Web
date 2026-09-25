@@ -72,7 +72,7 @@ export interface Task {
   completedAt?: number;
 }
 
-export const CUSTOM_TASK_ICONS = ["✏️", "🚿", "🚰", "♻️", "🌙", "🍳", "🧺", "🏠", "🪴", "💧"] as const;
+export const CUSTOM_TASK_ICONS = ["✏️", "🚿", "🚰", "♻️", "🌙", "🍳", "🧺", "🏠", "🌻", "💧"] as const;
 
 export interface Minigame {
   id: string;
@@ -413,7 +413,7 @@ export const MINIGAMES: Minigame[] = [
 // Botones rápidos Ahorro AGENTS.md:224
 export const QUICK_SAVE = [
   { label: "Ducha", emoji: "🚿", liters: 20 },
-  { label: "Cepillado", emoji: "🪥", liters: 10 },
+  { label: "Cepillado", emoji: "🦷", liters: 10 },
   { label: "Lavadora", emoji: "👕", liters: 40 },
   { label: "Riego nocturno", emoji: "🌙", liters: 15 },
 ] as const;

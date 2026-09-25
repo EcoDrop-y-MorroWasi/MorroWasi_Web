@@ -41,7 +41,7 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
   COSECHA_LLUVIA: {
     instructions: "Arrastra cada gota hasta el tanque antes de que se evapore.",
     from: "💧",
-    to: "🪣",
+    to: "🚰",
     label: "Ej.: gota de lluvia → tanque",
   },
   RIEGO_OPT: {
@@ -52,7 +52,7 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
   },
   FILTROS_LAB: {
     instructions: "Arrastra cada material a su capa correcta, de abajo hacia arriba.",
-    from: "🪨",
+    from: "🌑",
     to: "🧪",
     label: "Ej.: grava → capa inferior de la botella",
   },
@@ -64,7 +64,7 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
   },
   SODIS_UV: {
     instructions: "Arrastra el espejo hacia la botella contaminada para desinfectarla.",
-    from: "🪞",
+    from: "🔆",
     to: "🧴",
     label: "Ej.: espejo → botella con bacterias",
   },
@@ -88,7 +88,7 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
   },
   ACUIFERO_ALGARROBO: {
     instructions: "Guía la raíz con las flechas, esquivando obstáculos y recogiendo acuíferos.",
-    from: "🪨",
+    from: "🌑",
     to: "💧",
     label: "Ej.: esquiva la roca, recoge la bolsa de agua subterránea",
   },
@@ -686,7 +686,7 @@ const PAIRS: [WaterItem, WaterItem][] = [
   ],
   [
     { emoji: "☕", label: "1 taza de café", liters: 140 },
-    { emoji: "🧃", label: "1 vaso de jugo de naranja", liters: 170 },
+    { emoji: "🍊", label: "1 vaso de jugo de naranja", liters: 170 },
   ],
   [
     { emoji: "🍔", label: "1 hamburguesa", liters: 2400 },
@@ -911,12 +911,12 @@ function AtrapaLluviasGame({ duration, onComplete }: { duration: number; onCompl
               isOpen ? "bg-[#99B4D8]" : "bg-surface"
             }`}
           >
-            {isOpen ? "🪣" : "🚫"}
+            {isOpen ? "🚰" : "🚫"}
           </button>
         ))}
       </div>
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        🚫 = hacia el desagüe (seguro con aguas sucias) · 🪣 = hacia el tanque (solo con lluvia limpia).
+        🚫 = hacia el desagüe (seguro con aguas sucias) · 🚰 = hacia el tanque (solo con lluvia limpia).
       </p>
     </div>
   );
@@ -1077,9 +1077,9 @@ type MaterialKind = "algodon" | "carbon" | "arena_fina" | "arena_gruesa" | "grav
 const MATERIALS: { kind: MaterialKind; emoji: string; label: string }[] = [
   { kind: "algodon", emoji: "🧶", label: "Algodón/Gasa" },
   { kind: "carbon", emoji: "⚫", label: "Carbón activado" },
-  { kind: "arena_fina", emoji: "🟡", label: "Arena fina" },
-  { kind: "arena_gruesa", emoji: "🟠", label: "Arena gruesa" },
-  { kind: "grava", emoji: "🪨", label: "Grava" },
+  { kind: "arena_fina", emoji: "🔸", label: "Arena fina" },
+  { kind: "arena_gruesa", emoji: "🔶", label: "Arena gruesa" },
+  { kind: "grava", emoji: "🌑", label: "Grava" },
 ];
 
 // Orden real de un filtro casero: de abajo (índice 0, drena) hacia arriba (índice 4, recibe el agua turbia)
@@ -1232,7 +1232,7 @@ function FiltrosLabGame({ duration, onComplete }: { duration: number; onComplete
       </div>
       {pouring && (
         <p className="mt-2 text-center text-xs font-bold text-ink/80">
-          {pouring === "crystal" ? "💎 ¡Agua cristalina! Orden perfecto." : "🟤 Agua turbia — el orden no filtró bien."}
+          {pouring === "crystal" ? "💎 ¡Agua cristalina! Orden perfecto." : "🌫️ Agua turbia — el orden no filtró bien."}
         </p>
       )}
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
@@ -1541,7 +1541,7 @@ function SodisUvGame({ duration, onComplete }: { duration: number; onComplete: (
           aria-label="Espejo, arrástralo a una botella para reflejar el sol"
           role="button"
         >
-          🪞
+          🔆
         </motion.div>
 
         {powerUpVisible && (
@@ -1557,7 +1557,7 @@ function SodisUvGame({ duration, onComplete }: { duration: number; onComplete: (
         )}
       </div>
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        Arrastra el 🪞 espejo a cada botella para reflejar el sol y matar bacterias 🦠 antes de que se multipliquen.
+        Arrastra el 🔆 espejo a cada botella para reflejar el sol y matar bacterias 🦠 antes de que se multipliquen.
       </p>
     </div>
   );
@@ -1988,7 +1988,7 @@ const AQUIFER_LANES = 3;
 const AQUIFER_ROUNDS = 3;
 const AQUIFER_ITEM_FALL_MS = 2200;
 const AQUIFER_ITEM_META: Record<AquiferItemKind, { emoji: string }> = {
-  rock: { emoji: "🪨" },
+  rock: { emoji: "🌑" },
   contaminated: { emoji: "🛢️" },
   aquifer: { emoji: "💧" },
 };
@@ -2125,7 +2125,7 @@ function AcuiferoAlgarroboGame({ duration, onComplete }: { duration: number; onC
         </button>
       </div>
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        Guía la raíz esquivando 🪨 rocas y 🛢️ filtraciones — recoge 💧 bolsas de acuífero antes de llegar a la corriente profunda.
+        Guía la raíz esquivando 🌑 rocas y 🛢️ filtraciones — recoge 💧 bolsas de acuífero antes de llegar a la corriente profunda.
       </p>
     </div>
   );
@@ -2140,7 +2140,7 @@ type ContainerKind = "jarra" | "balde" | "bidon";
 
 const CLORACION_CONTAINERS: Record<ContainerKind, { label: string; emoji: string; requiredDrops: number; litersLabel: string }> = {
   jarra: { label: "Jarra", emoji: "🏺", requiredDrops: 2, litersLabel: "1 L" },
-  balde: { label: "Balde", emoji: "🪣", requiredDrops: 10, litersLabel: "5 L" },
+  balde: { label: "Balde", emoji: "🥣", requiredDrops: 10, litersLabel: "5 L" },
   bidon: { label: "Bidón azul", emoji: "🛢️", requiredDrops: 40, litersLabel: "20 L (1 tapita)" },
 };
 const CLORACION_ORDER: ContainerKind[] = ["jarra", "balde", "bidon"];
@@ -2315,9 +2315,9 @@ interface MemoramaPar {
 // sobra para variar cuál queda afuera entre partida y partida.
 const MEMORAMA_PARES: MemoramaPar[] = [
   { emoji: "🚿", dato: "Ducha de 4 min en vez de 10: ahorras unos 100 L." },
-  { emoji: "🪥", dato: "Cerrar el caño al cepillarte ahorra varios litros cada vez." },
+  { emoji: "🦷", dato: "Cerrar el caño al cepillarte ahorra varios litros cada vez." },
   { emoji: "🧺", dato: "Lavadora con carga completa: mismo gasto de agua, más ropa limpia." },
-  { emoji: "🪣", dato: "Lavar el carro con balde en vez de manguera ahorra hasta 10 veces más." },
+  { emoji: "🚗", dato: "Lavar el carro con balde en vez de manguera ahorra hasta 10 veces más." },
   { emoji: "🌧️", dato: "50 m² de techo con 20 mm de lluvia cosechan 1000 litros." },
   { emoji: "🔧", dato: "Un goteo de 1 gota/segundo desperdicia unos 30 litros al día." },
   { emoji: "🍽️", dato: "Lavar platos con el caño cerrado entre enjuagues ahorra decenas de litros." },

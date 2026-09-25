@@ -305,7 +305,7 @@ export default function Perfil() {
           <span>🧑 ¿Buscás vestir al avatar 3D del Wasi? Está en la pestaña Avatares</span>
           <span aria-hidden="true">→</span>
         </button>
-        <fieldset className="mt-4"><legend className="text-sm font-bold">Capacidad del tanque</legend><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{CAPACITIES.map((capacity) => <button key={capacity} type="button" aria-pressed={reservoir.capacityLiters === capacity} onClick={() => reservoir.setCapacityLiters(capacity)} className={`min-h-12 rounded-xl border-2 border-ink px-2 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${reservoir.capacityLiters === capacity ? "bg-[#E26D5C] text-white" : "bg-bg-light"}`}>{capacity} L</button>)}</div>{reservoir.capacityLiters === 0 && <p className="mt-2 text-xs font-bold text-[#E26D5C]">Elegí la capacidad de tu tanque para activar el monitor del reservorio.</p>}</fieldset>
+        <fieldset className="mt-4"><legend className="text-sm font-bold">Capacidad del tanque</legend><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{CAPACITIES.map((capacity) => <button key={capacity} type="button" aria-pressed={reservoir.capacityLiters === capacity} onClick={() => reservoir.setCapacityLiters(capacity)} className={`min-h-12 rounded-xl border-2 border-ink px-2 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${reservoir.capacityLiters === capacity ? "bg-[#E26D5C] text-white" : "bg-bg-light"}`}>{capacity} L</button>)}</div>{reservoir.capacityLiters === 0 && <p className="mt-2 text-xs font-bold text-[#E26D5C]">Elige la capacidad de tu tanque para activar el monitor del reservorio.</p>}</fieldset>
         <p className="mt-3 text-xs font-semibold text-ink/80">Los cambios se guardan solo en este dispositivo.</p>
       </section>
 
@@ -399,7 +399,7 @@ export default function Perfil() {
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`} data-tour="respaldo">
         <h2 className="font-display text-lg font-bold">Respaldo de progreso</h2>
         <p className="mt-1 text-xs text-ink/70">
-          Todo tu progreso vive en este navegador. Descargá un backup o restaurá uno para no perderlo.
+          Todo tu progreso vive en este navegador. Descarga un backup o restaura uno para no perderlo.
         </p>
         <div className="mt-3 flex gap-2">
           <button
@@ -569,7 +569,7 @@ export default function Perfil() {
           <div className={`w-full max-w-sm rounded-2xl border-2 border-ink bg-surface p-6 ${HARD_SHADOW}`}>
             <h3 className="font-display text-base font-bold">Progreso distinto en cada lado</h3>
             <p className="mt-2 text-xs text-ink/70">
-              Este navegador y el código <span className="font-bold">{code}</span> tienen cambios que no coinciden. Elegí cuál conservar — el otro se pierde.
+              Este navegador y el código <span className="font-bold">{code}</span> tienen cambios que no coinciden. Elige cuál conservar — el otro se pierde.
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-ink/60">
               <p>Este navegador: {new Date(conflict.local.lastModified).toLocaleString()}</p>

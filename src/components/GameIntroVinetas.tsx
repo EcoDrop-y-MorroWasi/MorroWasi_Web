@@ -28,7 +28,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
   COSECHA_LLUVIA: [
     { emoji: "🌧️", titulo: "Llega el aguacero", texto: "El techo empieza a juntar agua y baja por las canaletas." },
     { emoji: "🚰", titulo: "Desvía lo sucio", texto: "Los primeros litros traen polvo y hojas: mándalos al desagüe." },
-    { emoji: "🪣", titulo: "Abre al tanque", texto: "Recién entonces deja pasar el agua limpia al filtro y al reservorio." },
+    { emoji: "🚰", titulo: "Abre al tanque", texto: "Recién entonces deja pasar el agua limpia al filtro y al reservorio." },
   ],
   RIEGO_OPT: [
     { emoji: "🕐", titulo: "Avanza el día", texto: "El reloj corre de la mañana al atardecer sobre tu biohuerto." },
@@ -36,8 +36,8 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "☀️", titulo: "Evita el mediodía", texto: "Regar con sol fuerte evapora casi todo. Esa decisión te resta puntos." },
   ],
   FILTROS_LAB: [
-    { emoji: "🫙", titulo: "Botella vacía", texto: "Tienes que armar el filtro antes de que caiga el agua turbia." },
-    { emoji: "🪨", titulo: "Ordena las capas", texto: "Grava, arenas, carbón y algodón: de abajo hacia arriba, en orden." },
+    { emoji: "🧴", titulo: "Botella vacía", texto: "Tienes que armar el filtro antes de que caiga el agua turbia." },
+    { emoji: "🌑", titulo: "Ordena las capas", texto: "Grava, arenas, carbón y algodón: de abajo hacia arriba, en orden." },
     { emoji: "🧪", titulo: "3 rondas", texto: "Cada ronda suma capas y baja el tiempo. Se pone difícil rápido." },
   ],
   RUTAS_AGUAS: [
@@ -47,7 +47,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
   ],
   SODIS_UV: [
     { emoji: "🧴", titulo: "Botellas contaminadas", texto: "Botellas PET con agua y bacterias multiplicándose adentro." },
-    { emoji: "🪞", titulo: "Refleja el sol", texto: "Arrastra el espejo para dirigir los rayos UV a cada botella." },
+    { emoji: "🔆", titulo: "Refleja el sol", texto: "Arrastra el espejo para dirigir los rayos UV a cada botella." },
     { emoji: "⚡", titulo: "Power-up del mediodía", texto: "EcoDrop potencia el sol. Úsalo cuando más botellas haya en riesgo." },
   ],
   GUARDIAN_RIO: [
@@ -67,7 +67,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
   ],
   ACUIFERO_ALGARROBO: [
     { emoji: "🌳", titulo: "Raíz de algarrobo", texto: "Baja buscando el acuífero secreto bajo el bosque seco de Piura." },
-    { emoji: "🪨", titulo: "Esquiva obstáculos", texto: "Usa ⬅️➡️ para evitar rocas y filtraciones contaminadas." },
+    { emoji: "🌑", titulo: "Esquiva obstáculos", texto: "Usa ⬅️➡️ para evitar rocas y filtraciones contaminadas." },
     { emoji: "💧", titulo: "Recoge acuíferos", texto: "Cada bolsa de agua subterránea suma. 3 rondas cada vez más hondas." },
   ],
   CLORACION_SEGURA: [

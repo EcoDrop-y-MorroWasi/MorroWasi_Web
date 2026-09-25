@@ -64,7 +64,7 @@ export default function Dashboard() {
         {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
         <Suspense
           fallback={
-            <div className="keyline-border flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
+            <div className="keyline-border mb-5 flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
               Cargando Wasi en 3D…
             </div>
           }
@@ -240,9 +240,12 @@ function ReservoirWave({ percent }: { percent: number }) {
         role="img"
         aria-label={`Tanque al ${safe} por ciento`}
       >
+        {/* Sin rx ni borde propio: con preserveAspectRatio="none" se estiraban y dibujaban
+            un segundo borde deformado dentro del keyline-border del contenedor, que ya
+            redondea y recorta. */}
         <defs>
           <clipPath id="tank-clip">
-            <rect x="0" y="0" width="200" height="100" rx="16" />
+            <rect x="0" y="0" width="200" height="100" />
           </clipPath>
         </defs>
 
@@ -266,9 +269,6 @@ function ReservoirWave({ percent }: { percent: number }) {
             />
           </motion.g>
         </g>
-
-        {/* borde y marca % */}
-        <rect x="1" y="1" width="198" height="98" rx="16" fill="none" stroke="var(--color-ink)" strokeWidth="2" />
       </svg>
 
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

@@ -7,6 +7,7 @@ import Misiones from './pages/Misiones'
 import Juegos from './pages/Juegos'
 import Ahorro from './pages/Ahorro'
 import Noticias from './pages/Noticias'
+import NoticiaMiniferiaCadaGota from './pages/NoticiaMiniferiaCadaGota'
 import Perfil from './pages/Perfil'
 import Album from './components/Album'
 import { Ranking } from './pages/Ranking'
@@ -74,6 +75,7 @@ function ProtectedRoutes() {
     <Route path="/misiones" element={<Misiones />} />
     <Route path="/ahorro" element={<Ahorro />} />
     <Route path="/noticias" element={<Noticias />} />
+    <Route path="/noticias/miniferia-cada-gota" element={<NoticiaMiniferiaCadaGota />} />
     <Route path="/avatares" element={<Suspense fallback={null}><Avatares wasiStage={wasiStage} /></Suspense>} />
     <Route path="/perfil" element={<Perfil />} />
     <Route path="/album" element={<Album />} />
