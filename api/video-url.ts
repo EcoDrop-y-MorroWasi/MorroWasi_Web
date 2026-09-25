@@ -8,8 +8,9 @@
 // Corre en runtime Node.js (NO edge, a propósito): @vercel/blob usa `undici` real
 // para hablar con la API de Blob, que depende de módulos nativos de Node
 // (node:net, node:tls, etc.) no disponibles en el runtime edge — con `runtime:
-// "edge"` esta función fallaba en el build. El handler igual usa Request/Response
-// estándar: Vercel Functions en Node.js también soporta esa firma.
+// "edge"` esta función fallaba en el build. En Node.js la firma Request/Response
+// exige exportar `GET` con nombre: un `export default` se trata como el formato
+// viejo (req, res) de Node y `new URL(req.url)` explota con la ruta relativa.
 //
 // La validación de sesión pega directo al endpoint REST de Supabase Auth (fetch)
 // en vez de importar @supabase/supabase-js, para no arrastrar esa dependencia acá.
@@ -39,7 +40,7 @@ async function tieneSesionValida(req: Request): Promise<boolean> {
   return res.ok;
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id") ?? "";
   const video = VIDEOS[id];
