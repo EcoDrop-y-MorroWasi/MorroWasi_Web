@@ -24,7 +24,7 @@ export const AVATAR_MODEL_FILES: Record<string, { normal?: string; especial?: st
   },
   "flordejesus": {
     "especial": "flordejesus-especial.06c2fc24.glb",
-    "normal": "flordejesus.cad16324.glb"
+    "normal": "flordejesus.60bed4e0.glb"
   },
   "francheska": {
     "especial": "francheska-especial.a639ca22.glb",
@@ -91,8 +91,8 @@ export const AVATAR_THUMB_FILES: Record<string, { cuerpo?: string; busto?: strin
     "cuerpo": "felipe-especial-cuerpo.7c741754.webp"
   },
   "flordejesus": {
-    "busto": "flordejesus-busto.8c21002f.webp",
-    "cuerpo": "flordejesus-cuerpo.387cbf3e.webp"
+    "busto": "flordejesus-busto.0da2d667.webp",
+    "cuerpo": "flordejesus-cuerpo.ffd744d0.webp"
   },
   "flordejesus-especial": {
     "busto": "flordejesus-especial-busto.b30d981d.webp",
