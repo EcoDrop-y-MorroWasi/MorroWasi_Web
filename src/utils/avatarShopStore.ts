@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AVATAR_ACCESSORIES, findAccessory, type Avatar } from "../data/avatarShop";
+import { AVATAR_ACCESSORIES, SPECIAL_SKIN_PRICE, findAccessory, type Avatar } from "../data/avatarShop";
+import { addHydroPoints, getHydroPoints } from "./hydroStore";
 
 // Estado persistente de la Tienda de Avatares: accesorios comprados, equipados,
 // y qué Skin Especial está puesta (su modelo _esp es fijo, sin colores a elegir). Mismo patrón que hydroStore.ts
@@ -17,11 +18,13 @@ interface ShopState {
   ownedAccessoryIds: string[];
   equipped: Record<string, Partial<Record<string, string>>>; // avatarId -> slot -> accessoryId
   specialSkin: Record<string, SpecialSkinState>;
+  /** Avatares cuya Skin Especial ya se pagó (SPECIAL_SKIN_PRICE). */
+  ownedSpecialSkins: string[];
   selectedAvatarId: string;
 }
 
 function defaultState(): ShopState {
-  return { ownedAccessoryIds: [], equipped: {}, specialSkin: {}, selectedAvatarId: "angie" };
+  return { ownedAccessoryIds: [], equipped: {}, specialSkin: {}, ownedSpecialSkins: [], selectedAvatarId: "angie" };
 }
 
 function readState(): ShopState {
@@ -43,6 +46,26 @@ function writeState(next: ShopState) {
   } catch {
     /* localStorage no disponible */
   }
+}
+
+/**
+ * Cobra SPECIAL_SKIN_PRICE y deja la Skin Especial comprada y puesta. Exige el
+ * set de 11 accesorios completo, relee el saldo real al pagar y no cobra dos
+ * veces (mismo criterio que purchaseCourse). Devuelve false si falta algo.
+ */
+export function purchaseSpecialSkin(avatarId: string): boolean {
+  const s = readState();
+  if (s.ownedSpecialSkins.includes(avatarId)) return true;
+  const accs = AVATAR_ACCESSORIES[avatarId];
+  if (!accs || !accs.every((a) => s.ownedAccessoryIds.includes(a.id))) return false;
+  if (getHydroPoints() < SPECIAL_SKIN_PRICE) return false;
+  writeState({
+    ...s,
+    ownedSpecialSkins: [...s.ownedSpecialSkins, avatarId],
+    specialSkin: { ...s.specialSkin, [avatarId]: { active: true } },
+  });
+  addHydroPoints(-SPECIAL_SKIN_PRICE);
+  return true;
 }
 
 export function useAvatarShop() {
@@ -94,14 +117,28 @@ export function useAvatarShop() {
 
   const setSelectedAvatar = useCallback((id: string) => update((prev) => ({ ...prev, selectedAvatarId: id })), [update]);
 
-  const specialSkinFor = useCallback((av: Avatar): SpecialSkinState => ({ active: !!state.specialSkin[av.id]?.active }), [state.specialSkin]);
+  const isSpecialOwned = useCallback((avatarId: string) => state.ownedSpecialSkins.includes(avatarId), [state.ownedSpecialSkins]);
+
+  // "Puesta" exige haberla pagado: un active=true guardado sin compra (la vieja
+  // vista previa lo persistía, y antes no se cobraba) no cuenta.
+  const specialSkinFor = useCallback(
+    (av: Avatar): SpecialSkinState => ({ active: !!state.specialSkin[av.id]?.active && state.ownedSpecialSkins.includes(av.id) }),
+    [state.specialSkin, state.ownedSpecialSkins],
+  );
 
   const toggleSpecialSkin = useCallback(
     (avatarId: string) => {
-      update((prev) => ({ ...prev, specialSkin: { ...prev.specialSkin, [avatarId]: { active: !prev.specialSkin[avatarId]?.active } } }));
+      update((prev) =>
+        prev.ownedSpecialSkins.includes(avatarId)
+          ? { ...prev, specialSkin: { ...prev.specialSkin, [avatarId]: { active: !prev.specialSkin[avatarId]?.active } } }
+          : prev,
+      );
     },
     [update],
   );
+
+  // writeState dispara EVENT_NAME, así que el estado del hook se refresca solo.
+  const buySpecialSkin = useCallback((av: Avatar) => purchaseSpecialSkin(av.id), []);
 
   const equippedIdFor = useCallback((avatarId: string, slot: string) => state.equipped[avatarId]?.[slot], [state.equipped]);
 
@@ -116,7 +153,9 @@ export function useAvatarShop() {
       setSelectedAvatar,
       specialSkinFor,
       toggleSpecialSkin,
+      isSpecialOwned,
+      buySpecialSkin,
     }),
-    [isOwned, allOwned, ownAccessory, toggleEquip, equippedIdFor, state.selectedAvatarId, setSelectedAvatar, specialSkinFor, toggleSpecialSkin],
+    [isOwned, allOwned, ownAccessory, toggleEquip, equippedIdFor, state.selectedAvatarId, setSelectedAvatar, specialSkinFor, toggleSpecialSkin, isSpecialOwned, buySpecialSkin],
   );
 }

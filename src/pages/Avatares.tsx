@@ -5,6 +5,7 @@ import {
   SPECIAL_CAPE_TYPES,
   GOLD,
   SPECIAL_LOOKS,
+  SPECIAL_SKIN_PRICE,
   findAccessory,
   findAvatar,
   prevAvatar,
@@ -25,7 +26,7 @@ import { getHydroPoints, useHydroPoints } from "../utils/hydroStore";
 import { allCoursesCompleted, allGamesCompleted } from "../utils/completionStore";
 import AvatarSkinViewer from "../components/AvatarSkinViewer";
 import AvatarModelViewer from "../components/AvatarModelViewer";
-import { accessoryModelUrl, accessoryPlacements, avatarModelUrl, socketsFor } from "../data/models3d";
+import { accessoryModelUrl, accessoryPlacements, accessoryThumbUrl, avatarModelUrl, socketsFor } from "../data/models3d";
 import type { AvatarModelContent } from "../three/avatarModelScene";
 
 // Tienda de Avatares 3D — portada de web/mockups/tienda-avatares-3d.html.
@@ -34,10 +35,19 @@ import type { AvatarModelContent } from "../three/avatarModelScene";
 // "_esp", ropa fija — no se eligen colores) al completar el set. Gasta y persiste sobre los mismos HydroPuntos del resto
 // de la app (utils/hydroStore.ts) — no crea una moneda paralela.
 
+/** Foto 3D de la pieza (pnpm modelos:miniaturas); mientras no haya, su emoji. */
+function AccessoryPic({ acc }: { acc: Accessory }) {
+  const src = accessoryThumbUrl(acc.id);
+  return src ? <img src={src} alt="" className="h-8 w-8 object-contain" /> : <>{accessoryIcon(acc)}</>;
+}
+
 function accessoryIcon(acc: Accessory): string {
   return ACCESSORY_ICONS[acc.avatarId]?.[acc.index] ?? "❔";
 }
 const SLOT_LABEL: Record<AccessorySlot, string> = { cabeza: "Cabeza", cara: "Cara", pecho: "Pecho", espalda: "Espalda", piernas: "Piernas", manos: "Manos" };
+
+const SPECIAL_BTN =
+  "min-h-12 rounded-full border-2 border-ink px-4 text-sm font-extrabold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none";
 
 function fmt(n: number): string {
   return n.toLocaleString("es-PE");
@@ -55,6 +65,10 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const [toast, setToast] = useState<string | null>(null);
   // URL de avatar .glb que falló al cargar — ese avatar vuelve al visor de skins.
   const [failedModelUrl, setFailedModelUrl] = useState<string | null>(null);
+  // Vista previa de la Skin Especial: solo en pantalla, nunca se guarda. Queda
+  // atada al avatar que se estaba viendo, así al cambiar de avatar o salir de
+  // la tienda se apaga sola.
+  const [specialPreviewFor, setSpecialPreviewFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -86,7 +100,16 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const accessories = accessoriesFor(av.id);
   const ownedCount = accessories.filter((a) => shop.isOwned(a.id)).length;
   const complete = shop.allOwned(av);
+  // Al cambiar de avatar la vista previa se apaga (también al volver al mismo).
+  const [previewAvatarId, setPreviewAvatarId] = useState(av.id);
+  if (previewAvatarId !== av.id) {
+    setPreviewAvatarId(av.id);
+    setSpecialPreviewFor(null);
+  }
   const special = shop.specialSkinFor(av);
+  const specialOwned = shop.isSpecialOwned(av.id);
+  const previewingSpecial = !specialOwned && specialPreviewFor === av.id;
+  const showSpecial = special.active || previewingSpecial;
   const specialLook = SPECIAL_LOOKS[av.id] || SPECIAL_LOOKS.angie;
 
   const previewKey = (slot: AccessorySlot) => `${av.id}:${slot}`;
@@ -103,7 +126,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   }, [av.id, previewing, shop]);
 
   const { skinCanvas, capeCanvas } = useMemo(() => {
-    if (special.active) {
+    if (showSpecial) {
       // Solo si falta el .glb _esp: skin 2D de respaldo con los colores fijos del avatar.
       const skin = buildSpecialSkin(av, av.accent, GOLD);
       const cape = SPECIAL_LOOKS[av.id] && SPECIAL_CAPE_TYPES.has(specialLook.type) ? buildCapeCanvas(GOLD) : null;
@@ -113,23 +136,23 @@ export default function Avatares({ wasiStage }: AvataresProps) {
     const cape = equipped.espalda && equipped.espalda.poolIndex === 0 ? buildCapeCanvas(av.accent) : null;
     return { skinCanvas: skin, capeCanvas: cape };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [av, equipped, special.active]);
+  }, [av, equipped, showSpecial]);
 
   // Avatar con .glb procesado (scripts/modelos-3d.ts) → visor de modelos; si no
   // tiene, o su archivo falló, sigue el visor de skins de siempre. Con la Skin
   // Especial activa va el modelo especial sin accesorios, igual que en 2D.
-  const modelUrl = avatarModelUrl(av.id, special.active);
+  const modelUrl = avatarModelUrl(av.id, showSpecial);
   const modelContent = useMemo<AvatarModelContent | null>(() => {
     if (!modelUrl || modelUrl === failedModelUrl) return null;
     const sockets = socketsFor(av.id);
-    const accs = special.active
+    const accs = showSpecial
       ? []
       : Object.values(equipped).flatMap((acc) => {
           const url = acc ? accessoryModelUrl(acc.id) : null;
           return acc && url ? [{ id: acc.id, url, placements: accessoryPlacements(acc, sockets) }] : [];
         });
     return { avatarUrl: modelUrl, accessories: accs };
-  }, [av.id, modelUrl, failedModelUrl, equipped, special.active]);
+  }, [av.id, modelUrl, failedModelUrl, equipped, showSpecial]);
 
   const handleAccessoryClick = (acc: Accessory) => {
     if (!unlocked) return;
@@ -164,7 +187,19 @@ export default function Avatares({ wasiStage }: AvataresProps) {
     // shop.allOwned(av) todavía no reflejaría esta compra (el setState de
     // ownAccessory no aplicó aún), así que se calcula acá si esta compra completa el set.
     const willComplete = accessories.every((a) => a.id === acc.id || shop.isOwned(a.id));
-    setToast(willComplete ? `¡Set completo! Se desbloqueó la Skin Especial de ${av.name}` : `¡Conseguiste ${acc.name}!`);
+    setToast(willComplete ? `¡Set completo! Ya puedes desbloquear la Skin Especial de ${av.name}` : `¡Conseguiste ${acc.name}!`);
+  };
+
+  const buySpecial = () => {
+    const currentPoints = getHydroPoints();
+    if (currentPoints < SPECIAL_SKIN_PRICE) {
+      setToast(`Te faltan ${fmt(SPECIAL_SKIN_PRICE - currentPoints)} HP para la Skin Especial`);
+      return;
+    }
+    if (shop.buySpecialSkin(av)) {
+      setSpecialPreviewFor(null);
+      setToast(`¡Desbloqueaste ${specialLook.title}!`);
+    }
   };
 
   const cancelTry = (acc: Accessory) => setPreviewing((p) => ({ ...p, [previewKey(acc.slot)]: "" }));
@@ -294,7 +329,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                   >
                     <div className="flex items-center gap-2">
                       <span className="keyline-border flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bg-light text-lg">
-                        {accessoryIcon(acc)}
+                        <AccessoryPic acc={acc} />
                       </span>
                       <div className="min-w-0">
                         <p className="text-[11px] font-extrabold leading-tight">{acc.name}</p>
@@ -345,22 +380,41 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                   <img src={getAvatarThumbnail(av, "cuerpo", true)} alt="" className="h-24 w-16 shrink-0 object-contain" />
                   <div>
                     <p className="text-xs font-semibold text-ink/70">{specialLook.description}</p>
-                    {!complete && (
+                    {!specialOwned && (
                       <p className="mt-1 text-xs font-bold text-ink/60">
-                        🔒 Se desbloquea al completar los 11 accesorios de {av.name} ({ownedCount}/11) — mientras tanto puedes verla en vista previa.
+                        {complete
+                          ? `✅ Set completo — desbloquéala por 💧 ${fmt(SPECIAL_SKIN_PRICE)} HydroPuntos.`
+                          : `🔒 Primero completa los 11 accesorios de ${av.name} (${ownedCount}/11); después se desbloquea por 💧 ${fmt(SPECIAL_SKIN_PRICE)}.`}
                       </p>
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => shop.toggleSpecialSkin(av.id)}
-                  className={`mt-2 min-h-12 rounded-full border-2 border-ink px-4 text-sm font-extrabold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                    special.active ? "bg-secondary" : "bg-surface"
-                  }`}
-                >
-                  {special.active ? "Viendo la Skin Especial · volver al look normal" : complete ? "Usar la Skin Especial" : "Vista previa de la Skin Especial"}
-                </button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {specialOwned ? (
+                    <button
+                      type="button"
+                      onClick={() => shop.toggleSpecialSkin(av.id)}
+                      className={`${SPECIAL_BTN} ${special.active ? "bg-secondary" : "bg-surface"}`}
+                    >
+                      {special.active ? "Viendo la Skin Especial · volver al look normal" : "Usar la Skin Especial"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSpecialPreviewFor(previewingSpecial ? null : av.id)}
+                        className={`${SPECIAL_BTN} ${previewingSpecial ? "bg-secondary" : "bg-surface"}`}
+                      >
+                        {previewingSpecial ? "Quitar vista previa" : "Vista previa de la Skin Especial"}
+                      </button>
+                      {complete && (
+                        <button type="button" onClick={buySpecial} className={`${SPECIAL_BTN} bg-primary`}>
+                          Desbloquear · 💧 {fmt(SPECIAL_SKIN_PRICE)}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

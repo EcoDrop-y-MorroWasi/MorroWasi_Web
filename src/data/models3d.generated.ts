@@ -140,4 +140,90 @@ export const AVATAR_THUMB_FILES: Record<string, { cuerpo?: string; busto?: strin
   }
 };
 
-export const ACCESSORY_MODEL_FILES: Record<string, string> = {};
+export const ACCESSORY_MODEL_FILES: Record<string, string> = {
+  "angie-acc0": "angie-acc0.c5f273c5.glb",
+  "angie-acc1": "angie-acc1.28beaa3a.glb",
+  "angie-acc10": "angie-acc10.fe8af04c.glb",
+  "angie-acc2": "angie-acc2.ea0a40df.glb",
+  "angie-acc3": "angie-acc3.5cb2e553.glb",
+  "angie-acc4": "angie-acc4.608488a6.glb",
+  "angie-acc5": "angie-acc5.3305f062.glb",
+  "angie-acc6": "angie-acc6.59b5e2b8.glb",
+  "angie-acc7": "angie-acc7.95592cd6.glb",
+  "angie-acc8": "angie-acc8.f5c957c2.glb",
+  "angie-acc9": "angie-acc9.b2e07d89.glb"
+};
+
+/** Accesorios que vinieron armados sobre el avatar: van en esta posición (m), no en un socket. */
+export const ACCESSORY_POSED_AT: Record<string, [number, number, number]> = {
+  "angie-acc0": [
+    0,
+    1.643,
+    0.009
+  ],
+  "angie-acc1": [
+    -0.009,
+    1.643,
+    0
+  ],
+  "angie-acc10": [
+    -0.33,
+    0.62,
+    0.081
+  ],
+  "angie-acc2": [
+    0,
+    1.46,
+    0.179
+  ],
+  "angie-acc3": [
+    0,
+    1.469,
+    0.179
+  ],
+  "angie-acc4": [
+    0,
+    1,
+    0.009
+  ],
+  "angie-acc5": [
+    0.09,
+    1.1,
+    0.143
+  ],
+  "angie-acc6": [
+    0,
+    1.302,
+    -0.195
+  ],
+  "angie-acc7": [
+    -0.195,
+    1.079,
+    -0.195
+  ],
+  "angie-acc8": [
+    -0.105,
+    0.153,
+    0.036
+  ],
+  "angie-acc9": [
+    -0.11,
+    0.153,
+    0
+  ]
+};
+
+/** Foto de cada accesorio para su tarjeta en la tienda (pnpm modelos:miniaturas). */
+export const ACCESSORY_THUMB_FILES: Record<string, string> = {
+  "angie-acc0": "angie-acc0.2a210ae8.webp",
+  "angie-acc1": "angie-acc1.675476fa.webp",
+  "angie-acc10": "angie-acc10.3baa5abe.webp",
+  "angie-acc2": "angie-acc2.5736e4f7.webp",
+  "angie-acc3": "angie-acc3.55c9f64d.webp",
+  "angie-acc4": "angie-acc4.864ca1e6.webp",
+  "angie-acc5": "angie-acc5.f57da01f.webp",
+  "angie-acc6": "angie-acc6.100bf19f.webp",
+  "angie-acc7": "angie-acc7.260231a8.webp",
+  "angie-acc8": "angie-acc8.b8b0d847.webp",
+  "angie-acc9": "angie-acc9.a779d7e2.webp"
+};

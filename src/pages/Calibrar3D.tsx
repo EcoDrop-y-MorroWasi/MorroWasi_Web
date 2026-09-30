@@ -94,6 +94,7 @@ export default function Calibrar3D() {
           if (f.offset && f.offset.some((v) => v !== 0)) o.offset = roundVec(f.offset);
           if (f.rot && f.rot.some((v) => v !== 0)) o.rot = roundVec(f.rot);
           if (f.escala != null && f.escala !== 1) o.escala = round(f.escala);
+          if (f.escalaEje && f.escalaEje.some((v) => v !== 1)) o.escalaEje = roundVec(f.escalaEje);
           return [id, o] as const;
         })
         .filter(([, o]) => Object.keys(o).length),
@@ -204,6 +205,21 @@ export default function Calibrar3D() {
             <VecFields label="mover" value={selFit.offset || [0, 0, 0]} step={0.005} range={0.5} onChange={(offset) => setFit(selAcc.id, { offset })} />
             <VecFields label="rot°" value={selFit.rot || [0, 0, 0]} step={1} range={180} onChange={(rot) => setFit(selAcc.id, { rot })} />
             <NumField label="escala" value={selFit.escala ?? 1} step={0.01} min={0.2} max={3} onChange={(escala) => setFit(selAcc.id, { escala })} />
+            {(["x", "y", "z"] as const).map((axis, i) => (
+              <NumField
+                key={axis}
+                label={`escala ${axis}`}
+                value={(selFit.escalaEje || [1, 1, 1])[i]}
+                step={0.01}
+                min={0.3}
+                max={2}
+                onChange={(v) => {
+                  const next: Vec3 = [...(selFit.escalaEje || [1, 1, 1])];
+                  next[i] = v;
+                  setFit(selAcc.id, { escalaEje: next });
+                }}
+              />
+            ))}
           </section>
         )}
 

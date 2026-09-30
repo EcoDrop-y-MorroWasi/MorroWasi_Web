@@ -14,7 +14,8 @@
     "modelos:check": "node scripts/modelos-3d.ts check",
     "modelos:procesar": "node scripts/modelos-3d.ts procesar",
     "modelos:manifiesto": "node scripts/modelos-3d.ts manifiesto",
-    "modelos:miniaturas": "node scripts/modelos-3d.ts miniaturas"
+    "modelos:miniaturas": "node scripts/modelos-3d.ts miniaturas",
+    "modelos:prompts": "node scripts/gen-prompts-accesorios.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.114.0",
@@ -34,6 +35,8 @@
     "@gltf-transform/core": "^4.5.1",
     "@gltf-transform/extensions": "^4.5.1",
     "@gltf-transform/functions": "^4.5.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",

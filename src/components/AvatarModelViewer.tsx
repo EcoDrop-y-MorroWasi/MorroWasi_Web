@@ -8,6 +8,7 @@ interface AvatarModelViewerProps {
   zoom?: number;
   encuadre?: Encuadre;
   yaw?: number;
+  pitch?: number;
   autoRotate?: boolean;
   autoRotateSpeed?: number;
   interactive?: boolean;
@@ -20,7 +21,7 @@ interface AvatarModelViewerProps {
 // AvatarSkinViewer cuando el avatar ya tiene modelo procesado por el pipeline.
 // A diferencia del visor de skins, el contexto WebGL se crea una sola vez por
 // tamaño y el contenido (avatar + accesorios) se cambia en caliente.
-export default function AvatarModelViewer({ content, width, height, zoom, encuadre, yaw, autoRotate, autoRotateSpeed, interactive = true, onError, className }: AvatarModelViewerProps) {
+export default function AvatarModelViewer({ content, width, height, zoom, encuadre, yaw, pitch, autoRotate, autoRotateSpeed, interactive = true, onError, className }: AvatarModelViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const ctrlRef = useRef<AvatarModelSceneController | null>(null);
   const contentRef = useRef(content);
@@ -43,6 +44,7 @@ export default function AvatarModelViewer({ content, width, height, zoom, encuad
         zoom,
         encuadre,
         yaw,
+        pitch,
         autoRotate,
         autoRotateSpeed,
         interactive,
@@ -59,7 +61,7 @@ export default function AvatarModelViewer({ content, width, height, zoom, encuad
       ctrl.dispose();
       ctrlRef.current = null;
     };
-  }, [width, height, zoom, encuadre, yaw, autoRotate, autoRotateSpeed, interactive]);
+  }, [width, height, zoom, encuadre, yaw, pitch, autoRotate, autoRotateSpeed, interactive]);
 
   useEffect(() => {
     ctrlRef.current?.setContent(content);

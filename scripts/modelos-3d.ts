@@ -29,12 +29,13 @@ import { dedup, getBounds, join as joinPrims, meshopt, prune, simplify, textureC
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
 import { AVATARS, AVATAR_ACCESSORIES, type Accessory } from "../src/data/avatarShop.ts";
-import { AVATAR_HEIGHT, AVATAR_SOURCE_DIRS, BUDGET, SHAPE_SPECS, shapeKey, type Anchor, type Vec3 } from "../src/data/models3dSpec.ts";
+import { AVATAR_HEIGHT, AVATAR_SOURCE_DIRS, BUDGET, SHAPE_SPECS, shapeKey, targetSize, type Anchor, type Vec3 } from "../src/data/models3dSpec.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC_DIR = join(ROOT, "public", "models");
 const MANIFEST = join(ROOT, "src", "data", "models3d.generated.ts");
 const THUMB_DIR = join(PUBLIC_DIR, "miniaturas");
+const ACC_SUBDIR = "accesorios";
 
 // ---------- CLI ----------
 const [cmd = "check", ...rest] = process.argv.slice(2);
@@ -126,15 +127,15 @@ function normalize(doc: Document, scaleFor: (size: Vec3) => number, pivot: (min:
   return { size: [size[0] * k, size[1] * k, size[2] * k] };
 }
 
-// Bits de cuantización de meshopt. Los accesorios usan los defaults (medium:
-// posición 14, normal 10, color 8). Los avatares van con más precisión: se ven
-// de cuerpo entero y grandes, y el pedido fue no perder calidad — a 16 bits el
+// Bits de cuantización de meshopt (los defaults de medium son posición 14,
+// normal 10, color 8). Avatares y accesorios van con más precisión: se ven
+// grandes en el visor y el pedido fue no perder calidad — a 16 bits el
 // error de posición en un avatar de 1.70 m es < 0.03 mm, a 12 la normal < 0.05°.
 interface Quality {
   quantize?: { quantizePosition: number; quantizeNormal: number; quantizeColor: number; quantizeTexcoord: number };
   webpQuality?: number;
 }
-const AVATAR_QUALITY: Quality = {
+const HIGH_QUALITY: Quality = {
   quantize: { quantizePosition: 16, quantizeNormal: 12, quantizeColor: 12, quantizeTexcoord: 14 },
   webpQuality: 92,
 };
@@ -223,6 +224,28 @@ function pairWarning(size: Vec3): string | null {
     : null;
 }
 
+/**
+ * ¿La pieza viene armada en el espacio del avatar (como las genera Claude con
+ * las medidas del .md) o suelta en el origen (Meshy/Tripo)? Suelta = centrada
+ * cerca del origen; posada = sobre el cuerpo (cabeza/torso arriba de 0.45 m,
+ * o un pie corrido a un costado).
+ */
+function isPosed(acc: Accessory, center: Vec3): boolean {
+  if (acc.slot === "piernas") return Math.abs(center[0]) > 0.04;
+  return center[1] > 0.45 || Math.hypot(center[0], center[2]) > 0.2;
+}
+
+/** Espeja en X: nodo con escala (-1,1,1) que después se hornea; transformMesh invierte el orden de los triángulos. */
+function mirrorX(doc: Document) {
+  const scene = doc.getRoot().getDefaultScene() || doc.getRoot().listScenes()[0];
+  const wrap = doc.createNode("espejo").setScale([-1, 1, 1]);
+  for (const child of scene.listChildren()) {
+    scene.removeChild(child);
+    wrap.addChild(child);
+  }
+  scene.addChild(wrap);
+}
+
 async function processAccessory(acc: Accessory, src: string, write: boolean): Promise<Row> {
   const row: Row = { key: acc.id, kind: "accesorio", status: "ok", notes: [], kbIn: kb(statSync(src).size) };
   const spec = SHAPE_SPECS[shapeKey(acc)];
@@ -230,16 +253,41 @@ async function processAccessory(acc: Accessory, src: string, write: boolean): Pr
   const doc = await read(src);
   row.trisIn = countTris(doc);
   stripExtras(doc, row.notes);
-  const { size } = normalize(
-    doc,
-    (s) => spec.size / Math.max(...s),
-    (min, max) => [anchorValue(spec.pivot.x, min[0], max[0]), anchorValue(spec.pivot.y, min[1], max[1]), anchorValue(spec.pivot.z, min[2], max[2])],
-  );
-  if (acc.slot === "piernas") {
-    const w = pairWarning(size);
-    if (w) row.notes.push(w);
+  const scene = doc.getRoot().getDefaultScene() || doc.getRoot().listScenes()[0];
+  const b = getBounds(scene);
+  const raw: Vec3 = [b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]];
+  const center: Vec3 = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2];
+  if (isPosed(acc, center)) {
+    // Ya viene ubicado sobre el avatar (1.70 m): se respeta su posición. El
+    // archivo queda con el pivote en su centro y la posición original va en
+    // extras, así el calibrador lo gira/escala sobre sí mismo.
+    let mirror = false;
+    if (acc.slot === "piernas") {
+      if (b.min[0] < -0.03 && b.max[0] > 0.03) row.notes.push("parece un PAR (cruza x = 0) — piernas debe ser un solo pie, el visor lo espeja");
+      else if (center[0] > 0) {
+        mirror = true;
+        row.notes.push("venía en el pie izquierdo: se espejó al derecho");
+      }
+    }
+    const pos: Vec3 = [mirror ? -center[0] : center[0], center[1], center[2]];
+    normalize(doc, () => 1, () => center);
+    if (mirror) mirrorX(doc);
+    scene.setExtras({ ...scene.getExtras(), morrowasi: { posado: pos.map((v) => Math.round(v * 10000) / 10000) } });
+    row.notes.push(`posado sobre el avatar en (${pos.map((v) => v.toFixed(2)).join(", ")})`);
+    const ratio = Math.max(...raw) / targetSize(acc);
+    if (ratio < 0.5 || ratio > 2) row.notes.push(`mide ${Math.max(...raw).toFixed(2)} m, la ficha pide ${targetSize(acc)} m — revisar escala`);
+  } else {
+    const { size } = normalize(
+      doc,
+      (s) => targetSize(acc) / Math.max(...s),
+      (min, max) => [anchorValue(spec.pivot.x, min[0], max[0]), anchorValue(spec.pivot.y, min[1], max[1]), anchorValue(spec.pivot.z, min[2], max[2])],
+    );
+    if (acc.slot === "piernas") {
+      const w = pairWarning(size);
+      if (w) row.notes.push(w);
+    }
   }
-  await optimize(doc, BUDGET.accesorio.trisTarget, BUDGET.accesorio.texture, row.notes);
+  await optimize(doc, BUDGET.accesorio.trisTarget, BUDGET.accesorio.texture, row.notes, HIGH_QUALITY);
   row.trisOut = countTris(doc);
   const buf = await io.writeBinary(doc);
   row.kbOut = kb(buf.byteLength);
@@ -262,12 +310,12 @@ function findSingleGlb(dir: string): { file?: string; error?: string } {
 }
 
 // La skin especial es la única subcarpeta con un .glb, se llame como se llame
-// (en los crudos conviven "skin_esp", "esp" y "skin eso").
+// (en los crudos conviven "skin_esp", "esp" y "skin eso"). "accesorios/" no cuenta.
 function findEspecialDir(dir: string): { dir?: string; error?: string } {
   if (!existsSync(dir)) return {};
   const subs = readdirSync(dir)
     .map((f) => join(dir, f))
-    .filter((p) => statSync(p).isDirectory() && readdirSync(p).some((f) => f.toLowerCase().endsWith(".glb")));
+    .filter((p) => basename(p).toLowerCase() !== ACC_SUBDIR && statSync(p).isDirectory() && readdirSync(p).some((f) => f.toLowerCase().endsWith(".glb")));
   if (subs.length > 1) return { error: `hay ${subs.length} subcarpetas con .glb en ${dir} (${subs.map((s) => basename(s)).join(", ")}) — la especial debe ser una sola` };
   return { dir: subs[0] };
 }
@@ -284,7 +332,7 @@ async function processAvatar(key: string, src: string, write: boolean): Promise<
     (s) => AVATAR_HEIGHT / s[1],
     (min, max) => [(min[0] + max[0]) / 2, min[1], 0],
   );
-  await optimize(doc, null, BUDGET.avatar.texture, row.notes, AVATAR_QUALITY);
+  await optimize(doc, null, BUDGET.avatar.texture, row.notes, HIGH_QUALITY);
   row.trisOut = countTris(doc);
   if (row.trisOut > BUDGET.avatar.trisWarn) row.notes.push(`${row.trisOut} tris (ideal ≤ ${BUDGET.avatar.trisWarn}) — pesado en celulares`);
   const buf = await io.writeBinary(doc);
@@ -300,9 +348,16 @@ async function processAvatar(key: string, src: string, write: boolean): Promise<
 }
 
 // ---------- Manifiesto ----------
+/** El JSON de un .glb sin decodificar nada (alcanza para leer extras). */
+function readGlbJson(path: string): { scenes?: { extras?: { morrowasi?: { posado?: Vec3 } } }[] } {
+  const b = readFileSync(path);
+  return JSON.parse(b.subarray(20, 20 + b.readUInt32LE(12)).toString("utf8"));
+}
+
 function writeManifest() {
   const avatars: Record<string, { normal?: string; especial?: string }> = {};
   const accessories: Record<string, string> = {};
+  const posedAt: Record<string, Vec3> = {};
   const avatarIds = new Set(AVATARS.map((a) => a.id));
   const listDir = (d: string) => (existsSync(d) ? readdirSync(d).sort() : []);
   for (const f of listDir(join(PUBLIC_DIR, "avatares"))) {
@@ -316,8 +371,14 @@ function writeManifest() {
   }
   // Miniaturas: <id>[-especial]-<cuerpo|busto>.<hash>.webp
   const thumbs: Record<string, { cuerpo?: string; busto?: string }> = {};
+  const accThumbs: Record<string, string> = {};
   for (const f of listDir(THUMB_DIR)) {
-    const m = /^(.+)-(cuerpo|busto)$/.exec(parseHashed(f, "webp")?.key || "");
+    const key = parseHashed(f, "webp")?.key || "";
+    if (ACC_BY_ID.has(key)) {
+      accThumbs[key] = f;
+      continue;
+    }
+    const m = /^(.+)-(cuerpo|busto)$/.exec(key);
     if (!m || !avatars[m[1].replace(/-especial$/, "")]) {
       console.warn(`  ! public/models/miniaturas/${f} no corresponde a ningún avatar — ignorado`);
       continue;
@@ -331,6 +392,8 @@ function writeManifest() {
       continue;
     }
     accessories[p.key] = f;
+    const posed = readGlbJson(join(PUBLIC_DIR, "accesorios", f)).scenes?.[0]?.extras?.morrowasi?.posado;
+    if (posed) posedAt[p.key] = posed;
   }
   const out = `// GENERADO por scripts/modelos-3d.ts — no editar a mano (se regenera en cada \`pnpm modelos:procesar\`).
 // Archivos con hash en el nombre dentro de public/models/: cambian de nombre si cambia el contenido.
@@ -341,22 +404,29 @@ export const AVATAR_MODEL_FILES: Record<string, { normal?: string; especial?: st
 export const AVATAR_THUMB_FILES: Record<string, { cuerpo?: string; busto?: string }> = ${JSON.stringify(thumbs, null, 2)};
 
 export const ACCESSORY_MODEL_FILES: Record<string, string> = ${JSON.stringify(accessories, null, 2)};
+
+/** Accesorios que vinieron armados sobre el avatar: van en esta posición (m), no en un socket. */
+export const ACCESSORY_POSED_AT: Record<string, [number, number, number]> = ${JSON.stringify(posedAt, null, 2)};
+
+/** Foto de cada accesorio para su tarjeta en la tienda (pnpm modelos:miniaturas). */
+export const ACCESSORY_THUMB_FILES: Record<string, string> = ${JSON.stringify(accThumbs, null, 2)};
 `;
   writeFileSync(MANIFEST, out);
-  console.log(`Manifiesto: ${Object.keys(avatars).length} avatares, ${Object.keys(thumbs).length} con miniatura, ${Object.keys(accessories).length}/${ALL_ACCESSORIES.length} accesorios → src/data/models3d.generated.ts`);
+  console.log(`Manifiesto: ${Object.keys(avatars).length} avatares, ${Object.keys(thumbs).length} con miniatura, ${Object.keys(accessories).length}/${ALL_ACCESSORIES.length} accesorios (${Object.keys(posedAt).length} posados, ${Object.keys(accThumbs).length} con miniatura) → src/data/models3d.generated.ts`);
 }
 
 // ---------- Main ----------
 async function run(write: boolean) {
   const wanted = (key: string, avatarId: string) => !SOLO || SOLO.includes(key) || SOLO.includes(avatarId);
-  const accDir = join(CRUDOS, "accesorios");
   if (!existsSync(CRUDOS)) throw new Error(`no existe la carpeta de crudos: ${CRUDOS}`);
+  // Los accesorios pueden estar en <crudos>/accesorios/ o en <crudos>/<avatar>/accesorios/.
+  const accDirs = [join(CRUDOS, ACC_SUBDIR), ...AVATARS.map((a) => join(CRUDOS, AVATAR_SOURCE_DIRS[a.id] || a.id, ACC_SUBDIR))].filter((d) => existsSync(d));
 
   // Archivos que no calzan con ningún id — casi siempre un typo en el nombre.
-  if (existsSync(accDir)) {
-    for (const f of readdirSync(accDir)) {
+  for (const d of accDirs) {
+    for (const f of readdirSync(d)) {
       if (f.toLowerCase().endsWith(".glb") && !ACC_BY_ID.has(f.slice(0, -4))) {
-        rows.push({ key: f, kind: "accesorio", status: "error", notes: ["el nombre no es ningún id de accesorio (ej. angie-acc0.glb)"] });
+        rows.push({ key: f, kind: "accesorio", status: "error", notes: [`el nombre no es ningún id de accesorio (ej. angie-acc0.glb) — en ${d}`] });
       }
     }
   }
@@ -373,16 +443,21 @@ async function run(write: boolean) {
     }
     for (const acc of AVATAR_ACCESSORIES[av.id]) {
       if (!wanted(acc.id, av.id)) continue;
-      const src = join(accDir, `${acc.id}.glb`);
-      if (!existsSync(src)) {
+      const found = accDirs.map((d) => join(d, `${acc.id}.glb`)).filter((p) => existsSync(p));
+      if (!found.length) {
         rows.push({ key: acc.id, kind: "accesorio", status: "falta", notes: [] });
         continue;
       }
+      if (found.length > 1) {
+        rows.push({ key: acc.id, kind: "accesorio", status: "error", notes: [`está en ${found.length} carpetas (${found.join(" y ")}) — dejá uno solo`] });
+        continue;
+      }
+      const src = found[0];
       rows.push(await processAccessory(acc, src, write).catch((e: Error) => ({ key: acc.id, kind: "accesorio" as const, status: "error" as const, notes: [e.message] })));
     }
   }
 
-  for (const r of rows) if (r.status === "ok" && r.notes.some((n) => !n.startsWith("origen:") && !n.startsWith("simplificado"))) r.status = "aviso";
+  for (const r of rows) if (r.status === "ok" && r.notes.some((n) => !n.startsWith("origen:") && !n.startsWith("simplificado") && !n.startsWith("posado"))) r.status = "aviso";
   const shown = rows.filter((r) => r.status !== "falta");
   const icon = { ok: "✓", aviso: "!", error: "✗", falta: "·" } as const;
   for (const r of shown) {
@@ -398,7 +473,7 @@ async function run(write: boolean) {
 
 // ---------- Miniaturas ----------
 // Tamaño de la foto: el doble de lo que ocupa en pantalla, para pantallas retina.
-const THUMB_SIZES = { cuerpo: [240, 360], busto: [192, 192] } as const;
+const THUMB_SIZES = { cuerpo: [240, 360], busto: [192, 192], accesorio: [160, 160] } as const;
 
 function findChrome(): string {
   const candidates = [
@@ -449,6 +524,13 @@ async function makeThumbnails() {
   const chrome = findChrome();
   const tmp = mkdtempSync(join(tmpdir(), "miniaturas-"));
   const jobs: { key: string; id: string; especial: boolean; encuadre: keyof typeof THUMB_SIZES }[] = [];
+  // Accesorios: foto de la pieza sola, de tres cuartos, para su tarjeta en la tienda.
+  for (const f of existsSync(join(PUBLIC_DIR, "accesorios")) ? readdirSync(join(PUBLIC_DIR, "accesorios")) : []) {
+    const key = parseHashed(f)?.key;
+    const acc = key ? ACC_BY_ID.get(key) : undefined;
+    if (!acc || (SOLO && !SOLO.includes(acc.id) && !SOLO.includes(acc.avatarId))) continue;
+    jobs.push({ key: acc.id, id: acc.id, especial: false, encuadre: "accesorio" });
+  }
   for (const f of existsSync(join(PUBLIC_DIR, "avatares")) ? readdirSync(join(PUBLIC_DIR, "avatares")) : []) {
     const key = parseHashed(f)?.key;
     if (!key) continue;
@@ -464,7 +546,10 @@ async function makeThumbnails() {
         jobs.slice(i, i + 4).map(async (j, n) => {
           const [w, h] = THUMB_SIZES[j.encuadre];
           const png = join(tmp, `${j.key}-${j.encuadre}.png`);
-          const url = `${base}/dev/miniatura?avatar=${j.id}&especial=${j.especial ? 1 : 0}&encuadre=${j.encuadre}&w=${w}&h=${h}`;
+          const url =
+            j.encuadre === "accesorio"
+              ? `${base}/dev/miniatura?solo=${j.id}&w=${w}&h=${h}&yaw=30&pitch=25`
+              : `${base}/dev/miniatura?avatar=${j.id}&especial=${j.especial ? 1 : 0}&encuadre=${j.encuadre}&w=${w}&h=${h}`;
           try {
             await screenshot(chrome, url, [w, h], png, join(tmp, `perfil-${n}`));
             const { data, info } = await sharp(readFileSync(png)).raw().toBuffer({ resolveWithObject: true });
@@ -473,7 +558,7 @@ async function makeThumbnails() {
             for (let p = 3; p < data.length; p += info.channels) if (data[p] > 0) opaque++;
             if (opaque < (w * h) / 50) throw new Error("la captura salió vacía");
             const webp = await sharp(readFileSync(png)).webp({ quality: 90, alphaQuality: 100, effort: 6 }).toBuffer();
-            const file = writeHashed(THUMB_DIR, `${j.key}-${j.encuadre}`, webp, "webp");
+            const file = writeHashed(THUMB_DIR, j.encuadre === "accesorio" ? j.key : `${j.key}-${j.encuadre}`, webp, "webp");
             console.log(`✓ miniatura ${(j.key + " " + j.encuadre).padEnd(30)} ${kb(webp.byteLength)} KB → ${file}`);
           } catch (e) {
             failed++;

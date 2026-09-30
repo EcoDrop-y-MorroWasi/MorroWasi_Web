@@ -236,8 +236,8 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Vincha de Brote Tierno", "Tocado de Barro Fresco",
     "Lentes de Rocío Suave", "Antifaz de Tierra Seca",
     "Chaleco de Primer Brote", "Insignia de Maceta de Barro",
-    "Manto de Raíz Nueva", "Mochila de Semillero",
-    "Botas de Tierra Seca", "Ojotas de Brote Tierno",
+    "Manto de Raíz Nueva", "Bolsita de Semillero",
+    "Botas de Tierra Seca", "Zapatillas de Brote Tierno",
     "Regadera del Primer Brote",
   ],
   // Britney — Etapa 2, Semilla Germinada (hojas verdes, gota de rocío)
@@ -264,7 +264,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Antifaz de Flor Amarilla", "Gafas de Sol de Algarrobo",
     "Chaleco de Ramas Resilientes", "Insignia de Flor Amarilla",
     "Capa de Arbusto Firme", "Alforja de Algarrobo",
-    "Ojotas de Raíz Firme", "Polainas de Arbusto",
+    "Zapatillas de Raíz Firme", "Polainas de Arbusto",
     "Vara de Algarrobo Florido",
   ],
   // Felipe — Etapa 5, Oasis Temprano (charco cristalino, mariposa)
@@ -282,7 +282,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Visera de Tronco Firme", "Gafas de Refugio Verde",
     "Poncho de Sombra Densa", "Chaleco de Guardiana del Refugio",
     "Capa de Césped Verde", "Manto de Tronco Firme",
-    "Botas de Refugio Verde", "Ojotas de Césped Fresco",
+    "Botas de Refugio Verde", "Zapatillas de Césped Fresco",
     "Balde de Riego del Refugio",
   ],
   // Jimmy — Etapa 7, Flujo del Chira (canalito de agua limpia)
@@ -300,7 +300,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Antifaz de Ave del Bosque", "Gafas de Bosque Seco",
     "Chaleco de Guardiana del Bosque Seco", "Banda de Plumas de Chilalo",
     "Manto de Bosque Robusto", "Mochila de Observadora de Aves",
-    "Ojotas de Sendero Seco", "Vendas de Caminante del Bosque",
+    "Zapatillas de Sendero Seco", "Vendas de Caminante del Bosque",
     "Vara de Rama de Bosque Seco",
   ],
   // Rihana — Etapa 9, Santuario Hídrico (fauna y plantas medicinales)
@@ -318,7 +318,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Antifaz de Flor Radiante", "Gafas de Cielo Despejado",
     "Vestido de Frutos Dorados", "Insignia de Árbol Ancestral",
     "Manto de Oasis Sagrado", "Capa de Flores y Frutos",
-    "Botas de Cielo Despejado", "Ojotas de Árbol Radiante",
+    "Botas de Cielo Despejado", "Zapatillas de Árbol Radiante",
     "Balde del Oasis Sagrado",
   ],
   // Joe — secreto, Guardián Dorado
@@ -336,7 +336,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
 // mismo orden), único por accesorio pago — el gratis (el primero) puede
 // repetir, igual que su nombre. Verificado sin duplicados en avatarShop.test.ts.
 export const ACCESSORY_ICONS: Record<string, string[]> = {
-  angie: ["🌿", "🏺", "💧", "🏜️", "🌱", "🎍", "🍃", "🎒", "🥾", "👟", "🚿"],
+  angie: ["🌿", "🏺", "💧", "🏜️", "🌱", "🎍", "🍃", "🫘", "🥾", "👟", "🚿"],
   britney: ["👑", "🍀", "💦", "🌾", "🌼", "🧺", "🌦️", "🎽", "🦵", "🥿", "🚰"],
   francheska: ["🧕", "🌸", "🕶️", "☀️", "🌵", "🏵️", "🏖️", "👝", "👡", "🦶", "📖"],
   dayra: ["🎗️", "🌻", "💐", "🐝", "🧥", "📛", "🍂", "🧳", "👞", "🥌", "🥢"],
@@ -349,14 +349,18 @@ export const ACCESSORY_ICONS: Record<string, string[]> = {
   claudio: ["🏆", "⚜️", "🎭", "💛", "💰", "🥇", "👘", "✨", "👢", "💫", "🔱"],
 };
 
-const PRICE_STEPS = [0, 120, 200, 280, 360, 460, 560, 680, 810, 950, 1100];
+// HydroPuntos de cada accesorio según su posición (el #0 siempre gratis). Igual
+// para los 11 avatares: antes subía +10 % por etapa (Joe ×2.2) y completar un
+// avatar costaba 5 520–12 140 HP; ahora 750 HP, unas 8–25 partidas ganadas.
+const PRICE_STEPS = [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+
+/** HydroPuntos para desbloquear la Skin Especial, además de tener los 11 accesorios del avatar. */
+export const SPECIAL_SKIN_PRICE = 200;
 
 function buildAccessories(av: Avatar): Accessory[] {
-  const mult = av.special ? 2.2 : 1 + av.tierIndex * 0.1;
   return SLOT_ORDER.map((slot, i) => {
     const poolIdx = slot === "manos" ? 0 : (i + av.tierIndex) % SLOT_POOL_SIZE[slot as Exclude<AccessorySlot, "manos">];
-    let price = Math.round((PRICE_STEPS[i] * mult) / 10) * 10;
-    if (i === 0) price = 0;
+    const price = PRICE_STEPS[i];
     const handShape = slot === "manos" ? HAND_SHAPES[av.tierIndex % HAND_SHAPES.length] : null;
     return {
       id: `${av.id}-acc${i}`,

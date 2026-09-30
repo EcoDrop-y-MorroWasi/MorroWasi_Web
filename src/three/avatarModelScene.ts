@@ -27,6 +27,8 @@ export interface AvatarModelSceneOptions {
   encuadre?: Encuadre;
   /** Ángulo inicial de la cámara en grados (0 = de frente, positivo = hacia su izquierda). */
   yaw?: number;
+  /** Cámara levantada en grados (0 = a la altura del centro). Las fotos de accesorios usan ~25° para que un aro no se vea de canto. */
+  pitch?: number;
   autoRotate?: boolean;
   autoRotateSpeed?: number;
   interactive?: boolean;
@@ -64,7 +66,7 @@ export function preloadAvatarModel(url: string) {
 // sirve para una escena nueva — StrictMode o un cambio de tamaño remontan.
 // Tira excepción si el navegador no puede crear un contexto WebGL.
 export function createAvatarModelScene(container: HTMLElement, opts: AvatarModelSceneOptions): AvatarModelSceneController {
-  const { width, height, zoom = 1, encuadre = "cuerpo", yaw = 0, autoRotate = true, autoRotateSpeed = 0.8, interactive = true, onError } = opts;
+  const { width, height, zoom = 1, encuadre = "cuerpo", yaw = 0, pitch = 0, autoRotate = true, autoRotateSpeed = 0.8, interactive = true, onError } = opts;
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -116,13 +118,14 @@ export function createAvatarModelScene(container: HTMLElement, opts: AvatarModel
     const dist = Math.max((size.y * 1.08) / 2 / Math.tan(vHalf), (across * 1.08) / 2 / Math.tan(hHalf)) / zoom + across / 2;
     const a = THREE.MathUtils.degToRad(yaw);
     controls.target.copy(center);
-    camera.position.set(center.x + Math.sin(a) * dist, center.y, center.z + Math.cos(a) * dist);
+    const p = THREE.MathUtils.degToRad(pitch);
+    camera.position.set(center.x + Math.sin(a) * Math.cos(p) * dist, center.y + Math.sin(p) * dist, center.z + Math.cos(a) * Math.cos(p) * dist);
     controls.update();
   }
   frame(new THREE.Box3(new THREE.Vector3(-0.4, 0, -0.3), new THREE.Vector3(0.4, AVATAR_HEIGHT, 0.3)));
   let framedUrl = "";
-  controls.minPolarAngle = Math.PI / 2;
-  controls.maxPolarAngle = Math.PI / 2;
+  controls.minPolarAngle = Math.PI / 2 - THREE.MathUtils.degToRad(pitch);
+  controls.maxPolarAngle = Math.PI / 2 - THREE.MathUtils.degToRad(pitch);
   controls.enablePan = false;
   controls.enableZoom = false;
   controls.enableRotate = interactive;

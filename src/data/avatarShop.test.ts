@@ -23,10 +23,10 @@ describe("avatarShop", () => {
     });
   });
 
-  it("la skin especial (avatar tierIndex=special) cuesta más que la del primer avatar en el mismo slot", () => {
-    const first = AVATAR_ACCESSORIES.angie[5].price; // pecho, slot con precio
-    const secret = AVATAR_ACCESSORIES.claudio[5].price;
-    expect(secret).toBeGreaterThan(first);
+  it("todos los avatares tienen la misma escalera de precios: gratis y de 30 a 120 HP", () => {
+    AVATARS.forEach((av) => {
+      expect(AVATAR_ACCESSORIES[av.id].map((a) => a.price)).toEqual([0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);
+    });
   });
 
   it("prevAvatar encadena las etapas en orden y no tiene anterior en la primera ni en la secreta", () => {
