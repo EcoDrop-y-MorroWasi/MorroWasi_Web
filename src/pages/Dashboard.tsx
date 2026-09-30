@@ -64,7 +64,7 @@ export default function Dashboard() {
         {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
         <Suspense
           fallback={
-            <div className="keyline-border mb-5 flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-60">
+            <div className="keyline-border mb-5 flex h-64 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50 sm:h-80">
               Cargando Wasi en 3D…
             </div>
           }

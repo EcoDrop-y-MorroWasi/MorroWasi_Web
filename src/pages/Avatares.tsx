@@ -3,8 +3,8 @@ import {
   ACCESSORY_ICONS,
   AVATARS,
   SPECIAL_CAPE_TYPES,
+  GOLD,
   SPECIAL_LOOKS,
-  SWATCHES,
   findAccessory,
   findAvatar,
   prevAvatar,
@@ -24,11 +24,14 @@ import { useAvatarShop } from "../utils/avatarShopStore";
 import { getHydroPoints, useHydroPoints } from "../utils/hydroStore";
 import { allCoursesCompleted, allGamesCompleted } from "../utils/completionStore";
 import AvatarSkinViewer from "../components/AvatarSkinViewer";
+import AvatarModelViewer from "../components/AvatarModelViewer";
+import { accessoryModelUrl, accessoryPlacements, avatarModelUrl, socketsFor } from "../data/models3d";
+import type { AvatarModelContent } from "../three/avatarModelScene";
 
 // Tienda de Avatares 3D — portada de web/mockups/tienda-avatares-3d.html.
 // 10 avatares (uno por etapa del Wasi, RF-Wasi) + 1 secreto, 11 accesorios cada
-// uno en 6 zonas reales del modelo 3D, y una Skin Especial de 2 colores al
-// completar el set. Gasta y persiste sobre los mismos HydroPuntos del resto
+// uno en 6 zonas reales del modelo 3D, y una Skin Especial (su modelo 3D
+// "_esp", ropa fija — no se eligen colores) al completar el set. Gasta y persiste sobre los mismos HydroPuntos del resto
 // de la app (utils/hydroStore.ts) — no crea una moneda paralela.
 
 function accessoryIcon(acc: Accessory): string {
@@ -50,6 +53,8 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const shop = useAvatarShop();
   const [previewing, setPreviewing] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<string | null>(null);
+  // URL de avatar .glb que falló al cargar — ese avatar vuelve al visor de skins.
+  const [failedModelUrl, setFailedModelUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -99,15 +104,32 @@ export default function Avatares({ wasiStage }: AvataresProps) {
 
   const { skinCanvas, capeCanvas } = useMemo(() => {
     if (special.active) {
-      const skin = buildSpecialSkin(av, special.colorA, special.colorB);
-      const cape = SPECIAL_LOOKS[av.id] && SPECIAL_CAPE_TYPES.has(specialLook.type) ? buildCapeCanvas(special.colorB) : null;
+      // Solo si falta el .glb _esp: skin 2D de respaldo con los colores fijos del avatar.
+      const skin = buildSpecialSkin(av, av.accent, GOLD);
+      const cape = SPECIAL_LOOKS[av.id] && SPECIAL_CAPE_TYPES.has(specialLook.type) ? buildCapeCanvas(GOLD) : null;
       return { skinCanvas: skin, capeCanvas: cape };
     }
     const skin = buildSkinCanvas(av, equipped);
     const cape = equipped.espalda && equipped.espalda.poolIndex === 0 ? buildCapeCanvas(av.accent) : null;
     return { skinCanvas: skin, capeCanvas: cape };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [av, equipped, special.active, special.colorA, special.colorB]);
+  }, [av, equipped, special.active]);
+
+  // Avatar con .glb procesado (scripts/modelos-3d.ts) → visor de modelos; si no
+  // tiene, o su archivo falló, sigue el visor de skins de siempre. Con la Skin
+  // Especial activa va el modelo especial sin accesorios, igual que en 2D.
+  const modelUrl = avatarModelUrl(av.id, special.active);
+  const modelContent = useMemo<AvatarModelContent | null>(() => {
+    if (!modelUrl || modelUrl === failedModelUrl) return null;
+    const sockets = socketsFor(av.id);
+    const accs = special.active
+      ? []
+      : Object.values(equipped).flatMap((acc) => {
+          const url = acc ? accessoryModelUrl(acc.id) : null;
+          return acc && url ? [{ id: acc.id, url, placements: accessoryPlacements(acc, sockets) }] : [];
+        });
+    return { avatarUrl: modelUrl, accessories: accs };
+  }, [av.id, modelUrl, failedModelUrl, equipped, special.active]);
 
   const handleAccessoryClick = (acc: Accessory) => {
     if (!unlocked) return;
@@ -188,7 +210,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                 <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-ink bg-surface text-[10px]">
                   {isUnlocked ? "✅" : "🔒"}
                 </span>
-                <img src={getAvatarThumbnail(a)} alt="" className="h-20 w-10 object-contain" style={{ imageRendering: "pixelated" }} />
+                <img src={getAvatarThumbnail(a, "cuerpo", shop.specialSkinFor(a).active)} alt="" className="h-20 w-14 object-contain" />
                 <span className="truncate text-[11px] font-extrabold leading-tight">{a.name}</span>
                 <span className="text-[9px] font-bold text-ink/60">{a.special ? "Secreto" : `Etapa ${a.stage}`}</span>
               </button>
@@ -202,7 +224,20 @@ export default function Avatares({ wasiStage }: AvataresProps) {
         <div className="grid gap-5 sm:grid-cols-[220px_1fr]">
           <div className="text-center">
             <div className="keyline-border relative h-64 overflow-hidden rounded-xl bg-bg-light sm:h-72">
-              <AvatarSkinViewer skin={skinCanvas} cape={capeCanvas} model={av.model} width={220} height={288} zoom={0.8} autoRotate interactive />
+              {modelContent ? (
+                <AvatarModelViewer
+                  content={modelContent}
+                  width={220}
+                  height={288}
+                  autoRotate
+                  interactive
+                  onError={(url) => {
+                    if (url === modelContent.avatarUrl) setFailedModelUrl(url);
+                  }}
+                />
+              ) : (
+                <AvatarSkinViewer skin={skinCanvas} cape={capeCanvas} model={av.model} width={220} height={288} zoom={0.8} autoRotate interactive />
+              )}
             </div>
             <p className="mt-2 text-[11px] font-bold text-ink/50">Arrastra para girar (horizontal)</p>
             <p className="mt-2 text-lg font-extrabold">{av.name}</p>
@@ -306,16 +341,17 @@ export default function Avatares({ wasiStage }: AvataresProps) {
             {unlocked && (
               <div className="mt-4 rounded-2xl border-[3px] border-secondary bg-gradient-to-br from-secondary/20 to-surface p-4">
                 <h3 className="flex items-center gap-1 text-sm font-extrabold">🌟 {specialLook.title}</h3>
-                <p className="mt-1 text-xs font-semibold text-ink/60">
-                  Ropa distinta, acorde a {av.name} y su etapa del Wasi — elige los 2 colores.
-                </p>
-                {!complete && (
-                  <p className="mt-1 text-xs font-bold text-ink/60">
-                    🔒 Eliges los colores al completar los 11 accesorios ({ownedCount}/11) — mientras tanto puedes ver la vista previa con los colores por defecto.
-                  </p>
-                )}
-                <ColorRow label="Color principal" value={special.colorA} locked={!complete} onPick={(c) => shop.setSpecialColor(av.id, "colorA", c)} />
-                <ColorRow label="Color secundario" value={special.colorB} locked={!complete} onPick={(c) => shop.setSpecialColor(av.id, "colorB", c)} />
+                <div className="mt-2 flex items-start gap-3">
+                  <img src={getAvatarThumbnail(av, "cuerpo", true)} alt="" className="h-24 w-16 shrink-0 object-contain" />
+                  <div>
+                    <p className="text-xs font-semibold text-ink/70">{specialLook.description}</p>
+                    {!complete && (
+                      <p className="mt-1 text-xs font-bold text-ink/60">
+                        🔒 Se desbloquea al completar los 11 accesorios de {av.name} ({ownedCount}/11) — mientras tanto puedes verla en vista previa.
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => shop.toggleSpecialSkin(av.id)}
@@ -330,27 +366,6 @@ export default function Avatares({ wasiStage }: AvataresProps) {
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function ColorRow({ label, value, onPick, locked }: { label: string; value: string; onPick: (color: string) => void; locked?: boolean }) {
-  return (
-    <div className="mt-2">
-      <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-ink/60">{label}</p>
-      <div className={`flex flex-wrap gap-1.5 ${locked ? "opacity-50" : ""}`}>
-        {SWATCHES.map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            aria-label={hex}
-            disabled={locked}
-            onClick={() => onPick(hex)}
-            style={{ background: hex }}
-            className={`h-6 w-6 rounded-full border-2 border-ink disabled:cursor-not-allowed ${value === hex ? "outline outline-2 outline-offset-2 outline-accent" : ""}`}
-          />
-        ))}
-      </div>
     </div>
   );
 }

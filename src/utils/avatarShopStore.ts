@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AVATAR_ACCESSORIES, GOLD, findAccessory, findAvatar, type Avatar } from "../data/avatarShop";
+import { AVATAR_ACCESSORIES, findAccessory, type Avatar } from "../data/avatarShop";
 
 // Estado persistente de la Tienda de Avatares: accesorios comprados, equipados,
-// y colores elegidos para cada Skin Especial. Mismo patrón que hydroStore.ts
+// y qué Skin Especial está puesta (su modelo _esp es fijo, sin colores a elegir). Mismo patrón que hydroStore.ts
 // (localStorage + evento custom) para que sobreviva a la navegación.
 const STORAGE_KEY = "morrowasi_avatares_v1";
 const EVENT_NAME = "morrowasi-avatares-actualizado";
 
+// Guardados viejos pueden traer colorA/colorB (cuando se elegían 2 colores):
+// se ignoran, sin migración — solo importa "active".
 interface SpecialSkinState {
   active: boolean;
-  colorA: string;
-  colorB: string;
 }
 
 interface ShopState {
@@ -94,29 +94,11 @@ export function useAvatarShop() {
 
   const setSelectedAvatar = useCallback((id: string) => update((prev) => ({ ...prev, selectedAvatarId: id })), [update]);
 
-  const specialSkinFor = useCallback(
-    (av: Avatar): SpecialSkinState => state.specialSkin[av.id] || { active: false, colorA: av.accent, colorB: GOLD },
-    [state.specialSkin],
-  );
-
-  const setSpecialColor = useCallback(
-    (avatarId: string, which: "colorA" | "colorB", color: string) => {
-      update((prev) => {
-        const av = findAvatar(avatarId)!;
-        const current = prev.specialSkin[avatarId] || { active: false, colorA: av.accent, colorB: GOLD };
-        return { ...prev, specialSkin: { ...prev.specialSkin, [avatarId]: { ...current, [which]: color } } };
-      });
-    },
-    [update],
-  );
+  const specialSkinFor = useCallback((av: Avatar): SpecialSkinState => ({ active: !!state.specialSkin[av.id]?.active }), [state.specialSkin]);
 
   const toggleSpecialSkin = useCallback(
     (avatarId: string) => {
-      update((prev) => {
-        const av = findAvatar(avatarId)!;
-        const current = prev.specialSkin[avatarId] || { active: false, colorA: av.accent, colorB: GOLD };
-        return { ...prev, specialSkin: { ...prev.specialSkin, [avatarId]: { ...current, active: !current.active } } };
-      });
+      update((prev) => ({ ...prev, specialSkin: { ...prev.specialSkin, [avatarId]: { active: !prev.specialSkin[avatarId]?.active } } }));
     },
     [update],
   );
@@ -133,9 +115,8 @@ export function useAvatarShop() {
       selectedAvatarId: state.selectedAvatarId,
       setSelectedAvatar,
       specialSkinFor,
-      setSpecialColor,
       toggleSpecialSkin,
     }),
-    [isOwned, allOwned, ownAccessory, toggleEquip, equippedIdFor, state.selectedAvatarId, setSelectedAvatar, specialSkinFor, setSpecialColor, toggleSpecialSkin],
+    [isOwned, allOwned, ownAccessory, toggleEquip, equippedIdFor, state.selectedAvatarId, setSelectedAvatar, specialSkinFor, toggleSpecialSkin],
   );
 }

@@ -2,6 +2,7 @@
 // Dibuja sobre el mapa UV real del formato de skin 64×64 de Minecraft (el mismo que
 // usa skinview3d), a resolución HD 256×256 con gradientes para que no se vea "plano".
 import { AVATAR_ACCESSORIES, DENIM, GOLD, SPECIAL_LOOKS, darken, type Accessory, type Avatar } from "../data/avatarShop";
+import { avatarThumbUrl } from "../data/models3d";
 
 export const SKIN_RES = 256;
 export const SKIN_SCALE = SKIN_RES / 64;
@@ -787,8 +788,15 @@ export function buildAvatarThumbnail(skinCanvas: HTMLCanvasElement): string {
 }
 
 const thumbnailCache = new Map<string, string>();
-/** Miniatura cacheada por avatar (look base, sin accesorios) — se computa una sola vez. */
-export function getAvatarThumbnail(av: Avatar): string {
+/**
+ * Miniatura del avatar (look base, sin accesorios). Primero la foto del modelo
+ * 3D (`pnpm modelos:miniaturas`, webp transparente): "cuerpo" para la tienda,
+ * "busto" para fotos de perfil chicas. Si ese avatar todavía no tiene foto,
+ * cae a la miniatura 2D recortada de la skin, cacheada — se computa una vez.
+ */
+export function getAvatarThumbnail(av: Avatar, encuadre: "cuerpo" | "busto" = "cuerpo", especial = false): string {
+  const photo = avatarThumbUrl(av.id, encuadre, especial) ?? (especial ? avatarThumbUrl(av.id, encuadre) : null);
+  if (photo) return photo;
   const cached = thumbnailCache.get(av.id);
   if (cached) return cached;
   const url = buildAvatarThumbnail(buildSkinCanvas(av, {}));

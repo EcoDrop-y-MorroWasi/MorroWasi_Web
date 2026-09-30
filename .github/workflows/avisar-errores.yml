@@ -1,0 +1,60 @@
+name: Aviso de errores del servidor
+
+# Cada hora pide a Supabase los errores técnicos que reportó la app y todavía
+# no se avisaron (tomar_errores_pendientes(), migración 0027). Si hay alguno,
+# abre un issue asignado a AVISAR_A (y lo menciona): GitHub manda el correo.
+# Es un usuario y no github.repository_owner porque el repo es de una
+# organización, y a una organización no se le puede asignar un issue.
+#
+# Requiere el secret SUPABASE_SERVICE_ROLE_KEY (Supabase → Project Settings →
+# API → service_role). La función solo la puede ejecutar service_role, porque
+# los mensajes de error pueden traer detalles internos.
+
+on:
+  schedule:
+    - cron: "15 * * * *" # cada hora, al minuto 15
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+env:
+  AVISAR_A: Claudio-SC247
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer errores pendientes
+        id: errores
+        env:
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -sf --retry 3 \
+            -X POST \
+            -H "apikey: $SERVICE_KEY" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            https://osuunexuupokrgeocsin.supabase.co/rest/v1/rpc/tomar_errores_pendientes \
+            -o errores.json
+          echo "cantidad=$(jq 'length' errores.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir issue
+        if: steps.errores.outputs.cantidad != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "@$AVISAR_A la app reportó errores técnicos del servidor en la última hora."
+            echo
+            echo "| Origen | Código | Mensaje | Veces | Usuarios | Primero (UTC) | Último (UTC) |"
+            echo "|---|---|---|---|---|---|---|"
+            jq -r '.[] | "| `\(.origen)` | \(.codigo // "-") | \(.mensaje | gsub("\\|"; "\\|") | gsub("\n"; " ")) | \(.veces) | \(.usuarios) | \(.primero[0:19]) | \(.ultimo[0:19]) |"' errores.json
+            echo
+            echo "Detalle completo (30 días) en la tabla \`errores_servidor\` de Supabase."
+          } > cuerpo.md
+          gh issue create \
+            --title "⚠️ Errores del servidor ($(date -u +'%Y-%m-%d %H:%M') UTC)" \
+            --body-file cuerpo.md \
+            --assignee "$AVISAR_A"

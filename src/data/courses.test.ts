@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coursesMock, isCourseUnlocked, unlockLabel } from "./courses.mock";
+import { courseAccess, coursesMock, unlockCost, unlockLabel } from "./courses.mock";
 
 describe("coursesMock", () => {
   it("tiene 30 cursos, exactamente 3 por cada una de las 10 etapas del Wasi", () => {
@@ -20,43 +20,38 @@ describe("coursesMock", () => {
   });
 });
 
-describe("isCourseUnlocked", () => {
-  it("jugando en el orden natural (A, B, C de cada etapa) nunca te quedás bloqueado", () => {
-    // Mismo criterio que CourseCard/Academia: se recorre etapa por etapa, curso
-    // por curso, sumando los HydroPuntos de cada uno apenas se completa —
-    // replica el simulacro que valida la economía de desbloqueo diseñada esta
-    // sesión (cada curso paga más de lo que pide el siguiente).
-    let wallet = 0;
-    const completados = new Set<string>();
+describe("courseAccess", () => {
+  const nada = new Set<string>();
 
-    for (let stage = 1; stage <= 10; stage++) {
-      const cursosDeEtapa = coursesMock.filter((c) => c.stage === stage);
-      expect(cursosDeEtapa).toHaveLength(3);
-      cursosDeEtapa.forEach((course) => {
-        expect(isCourseUnlocked(course, wallet, completados)).toBe(true);
-        wallet += course.xpReward;
-        completados.add(course.id);
-      });
-    }
+  it("completar un curso NO abre el siguiente solo: hay que pagarlo aunque sobren puntos", () => {
+    const segundo = coursesMock.find((c) => c.unlock.type === "requiresCourseAndHydroPoints" && c.unlock.courseId === "ciclo-agua-basico");
+    expect(segundo).toBeDefined();
+    if (!segundo) return;
+    const previo = new Set(["ciclo-agua-basico"]);
+    expect(courseAccess(segundo, 999_999, previo, nada)).toEqual({ estado: "comprable", costo: unlockCost(segundo.unlock) });
+    expect(courseAccess(segundo, 999_999, previo, new Set([segundo.id]))).toEqual({ estado: "abierto" });
   });
 
-  it("un curso con HydroPuntos + curso previo está bloqueado con 0 puntos, incluso con el previo ya completado", () => {
-    // Toda la economía es en cadena ahora: cada curso exige el anterior YA
-    // completado, no solo desbloqueado — ver el diseño en el comentario de
-    // arriba de courses.mock.ts. Ya no queda ningún curso con solo "hydroPoints".
-    expect(coursesMock.some((c) => c.unlock.type === "hydroPoints")).toBe(false);
+  it("sin el curso previo terminado no se puede pagar, aunque sobren HydroPuntos", () => {
+    coursesMock
+      .filter((c) => c.unlock.type === "requiresCourseAndHydroPoints")
+      .forEach((c) => expect(courseAccess(c, 999_999, nada, nada).estado).toBe("falta-curso"));
+  });
+
+  it("con el previo terminado pero sin puntos suficientes, indica cuántos faltan", () => {
     const conCosto = coursesMock.find((c) => c.unlock.type === "requiresCourseAndHydroPoints");
-    expect(conCosto).toBeDefined();
-    if (conCosto && conCosto.unlock.type === "requiresCourseAndHydroPoints") {
-      const previoCompletado = new Set([conCosto.unlock.courseId]);
-      expect(isCourseUnlocked(conCosto, 0, previoCompletado)).toBe(false);
-    }
+    if (!conCosto || conCosto.unlock.type !== "requiresCourseAndHydroPoints") throw new Error("sin curso con costo");
+    const costo = conCosto.unlock.value;
+    expect(courseAccess(conCosto, costo - 10, new Set([conCosto.unlock.courseId]), nada)).toEqual({ estado: "sin-hp", costo, faltan: 10 });
   });
 
-  it("un curso que exige terminar el anterior está bloqueado aunque sobren HydroPuntos, si no se completó ese curso", () => {
-    const requiereCurso = coursesMock.find((c) => c.unlock.type === "requiresCourse" || c.unlock.type === "requiresCourseAndHydroPoints");
-    expect(requiereCurso).toBeDefined();
-    if (requiereCurso) expect(isCourseUnlocked(requiereCurso, 999_999, new Set())).toBe(false);
+  it("el primer curso es libre y la cadena recorre los 30 cursos sin huecos", () => {
+    const libres = coursesMock.filter((c) => c.unlock.type === "free");
+    expect(libres).toHaveLength(1);
+    const ids = new Set(coursesMock.map((c) => c.id));
+    coursesMock.forEach((c) => {
+      if (c.unlock.type === "requiresCourseAndHydroPoints") expect(ids.has(c.unlock.courseId)).toBe(true);
+    });
   });
 
   it("unlockLabel siempre devuelve un texto no vacío para los 30 cursos", () => {

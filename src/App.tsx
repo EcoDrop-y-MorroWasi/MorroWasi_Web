@@ -26,6 +26,10 @@ initProgressTracking()
 // Lazy: arrastra skinview3d + three.js (motor 3D de los avatares) fuera del bundle
 // principal, igual que WasiViewer3D — no todos los usuarios abren esta pestaña.
 const Avatares = lazy(() => import('./pages/Avatares'))
+// Herramienta de calibración de modelos 3D — solo en `pnpm dev`: en el build de
+// producción import.meta.env.DEV es false y Vite descarta el import entero.
+const Calibrar3D = import.meta.env.DEV ? lazy(() => import('./pages/Calibrar3D')) : null
+const Miniatura3D = import.meta.env.DEV ? lazy(() => import('./pages/Miniatura3D')) : null
 
 const THEME_STORAGE_KEY = 'morrowasi_theme_v1'
 
@@ -51,6 +55,8 @@ export default function App() {
         <Route path="/" element={<InicioPublico />} />
         <Route path="/inicio-publico" element={<InicioPublico />} />
         <Route path="/login" element={<Login />} />
+        {Calibrar3D && <Route path="/dev/calibrar-3d" element={<Suspense fallback={null}><Calibrar3D /></Suspense>} />}
+        {Miniatura3D && <Route path="/dev/miniatura" element={<Suspense fallback={null}><Miniatura3D /></Suspense>} />}
         <Route path="*" element={<ProtectedRoutes />} />
       </Routes>
     </>

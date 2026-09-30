@@ -89,7 +89,7 @@ export default function WasiLevelUpModal({ stage, onClose }: WasiLevelUpModalPro
           <div className="relative">
             <Suspense
               fallback={
-                <div className="keyline-border mt-3 flex h-52 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50">
+                <div className="keyline-border mt-3 flex h-64 w-full animate-pulse items-center justify-center rounded-2xl bg-primary/15 font-body text-xs font-semibold text-ink/50">
                   Cargando Wasi en 3D…
                 </div>
               }
@@ -119,7 +119,7 @@ export default function WasiLevelUpModal({ stage, onClose }: WasiLevelUpModalPro
                   </div>
                   <div className="keyline-border flex flex-col items-center gap-1 rounded-xl bg-surface p-3 text-center">
                     {avatar ? (
-                      <img src={getAvatarThumbnail(avatar)} alt="" className="h-9 w-9 object-contain" />
+                      <img src={getAvatarThumbnail(avatar, "busto")} alt="" className="h-9 w-9 object-contain" />
                     ) : (
                       <span aria-hidden className="text-2xl">
                         🧑

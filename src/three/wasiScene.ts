@@ -629,9 +629,12 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
   // fondo del cuadro con mucho espacio vacío arriba.
   const target = new THREE.Vector3(2.5, 2.3, 2.5);
   const frameBox = new THREE.Box3();
-  // El terreno completo mide ~15x15 unidades (-4..11) — la distancia tiene que alcanzar
-  // para que ese lote entero flote adentro del cuadro, no solo la casa.
-  const BASE_RADIUS = 37;
+  // Encuadre por ajuste: la distancia es la mínima para que entren FIT_W unidades
+  // a lo ancho (terreno de ~15x15 visto en diagonal, con margen para girarlo) y
+  // FIT_H a lo alto (casa de la etapa 10). Antes era un radio fijo de 37 pensado
+  // para cajas anchas: en celular sobraba aire alrededor y el Wasi se veía chico.
+  const FIT_W = 23;
+  const FIT_H = 15;
   let az = -0.7;
   let pol = 0.95;
   const minPol = 0.35;
@@ -640,11 +643,11 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
   let lastX = 0;
   let lastY = 0;
   // Sin control de zoom: contenedores anchos y bajos (la franja del Dashboard) recortaban
-  // el techo si el usuario se acercaba. En vez de eso, la distancia se aleja sola cuanto
-  // más ancho-y-bajo es el contenedor, para que el Wasi entre completo sin encasillarse.
+  // el techo si el usuario se acercaba. La distancia sale del ajuste FIT_W/FIT_H.
   function currentRadius() {
     const aspect = camera.aspect || 1;
-    return aspect > 1.6 ? BASE_RADIUS * (1 + (aspect - 1.6) * 0.22) : BASE_RADIUS;
+    const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    return Math.max(FIT_H / 2 / t, FIT_W / 2 / (t * aspect));
   }
   function applyCamera() {
     const r = currentRadius();
@@ -775,7 +778,13 @@ export function createWasiScene(container: HTMLDivElement): WasiSceneController 
     // Relativo a riseGroup: playAscent() lo mueve en Y y eso no debe correr el encuadre.
     frameBox.setFromObject(riseGroup, true);
     if (!frameBox.isEmpty()) {
-      target.y = (frameBox.min.y + frameBox.max.y) / 2 - riseGroup.position.y;
+      // -1: vista desde arriba, la esquina delantera del terreno proyecta más
+      // abajo que el centro de la caja; bajar el punto de mira sube el modelo.
+      target.y = (frameBox.min.y + frameBox.max.y) / 2 - riseGroup.position.y - 1;
+      // Centrado también en X/Z: con el ajuste FIT_W al ancho, un centro corrido
+      // recortaba la esquina del terreno más cercana a la cámara.
+      target.x = (frameBox.min.x + frameBox.max.x) / 2;
+      target.z = (frameBox.min.z + frameBox.max.z) / 2;
       applyCamera();
     }
   }

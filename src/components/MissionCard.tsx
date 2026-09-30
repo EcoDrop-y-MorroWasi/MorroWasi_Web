@@ -16,29 +16,32 @@ type Props = {
 export default function MissionCard({ text, liters, xp, completed, emoji = "💧", onToggle, onDelete, disabled = false }: Props) {
   return (
     <li
-      className={`flex items-center justify-between gap-3 rounded-xl border-2 bg-surface px-3 py-3 shadow-[2px_2px_0_#1c1c11] ${completed ? "!bg-[#28a745]/20 !border-[#28a745]" : "border-ink"}`}
+      className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 bg-surface px-3 py-3 shadow-[2px_2px_0_#1c1c11] ${completed ? "!bg-[#28a745]/20 !border-[#28a745]" : "border-ink"}`}
       role="listitem"
       aria-label={`${text} ${liters} litros ${xp} XP ${completed ? "completada" : "pendiente"}`}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-[55%] flex-1 items-center gap-3">
         <span className="shrink-0 text-xl" aria-hidden>
           {emoji}
         </span>
+        {/* Texto en varias líneas, nunca cortado con "…": en celular el botón le
+            quitaba casi todo el ancho y ninguna misión se podía leer. Con min-w-[55%]
+            y flex-wrap, si los botones no entran al lado bajan a su propia fila. */}
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-bold leading-tight text-ink">{text}</p>
+          <p className="break-words text-[15px] font-bold leading-snug text-ink">{text}</p>
           <p className="text-xs font-bold text-[#E26D5C]">
             +{liters} L · +{xp} XP
           </p>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={onToggle}
           disabled={completed || disabled}
           aria-pressed={completed}
           aria-label={completed ? `${text} completada por hoy` : disabled ? `${text}: tope diario alcanzado` : `Completar ${text}`}
-          className={`min-h-12 min-w-[96px] rounded-lg border-2 border-ink px-4 py-2 text-sm font-extrabold shadow-[2px_2px_0_#1c1c11] transition-all ${
+          className={`min-h-12 min-w-[84px] rounded-lg border-2 border-ink px-3 py-2 text-sm sm:min-w-[96px] sm:px-4 font-extrabold shadow-[2px_2px_0_#1c1c11] transition-all ${
             completed
               ? "cursor-default bg-[#28a745] text-white"
               : disabled

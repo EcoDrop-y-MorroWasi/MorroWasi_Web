@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import Logo from '../components/Logo'
 import { signInAnonymously, useAuthSession } from '../utils/authStore'
 import { claimNewCode, restoreFromCode } from '../utils/progressSync'
+import { reiniciarTutorial } from '../utils/tutorial'
 
 type Modo = 'elegir' | 'nuevo' | 'existente'
 
@@ -32,6 +33,9 @@ export default function Login() {
     try {
       if (!session) await signInAnonymously()
       const code = await claimNewCode()
+      // "Visto" vive por dispositivo: si en este celular/PC ya se vio con otra
+      // cuenta, la nueva no lo mostraba. Cuenta nueva = tutorial sí o sí.
+      reiniciarTutorial()
       setCodigoGenerado(code)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear tu código. Intenta de nuevo.')

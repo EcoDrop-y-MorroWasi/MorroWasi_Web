@@ -98,6 +98,12 @@ export const Ranking = () => {
       setPidiendoConsentimiento(true)
       return
     }
+    // Cuenta recién creada: no hay nada que subir, mejor decirlo antes de ir al servidor.
+    const totales = totalsFromLedger()
+    if (totales.hydro === 0 && totales.exp === 0) {
+      setAviso('Aún no tienes puntaje para compartir. Completa una misión, un juego o un curso primero.')
+      return
+    }
     setEnviando(true)
     setAviso(null)
     try {

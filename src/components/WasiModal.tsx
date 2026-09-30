@@ -213,7 +213,7 @@ export default function WasiModal({ isOpen, onClose, currentStage, pew, progress
                           <div className="px-3 pb-3">
                             <Suspense
                               fallback={
-                                <div className="keyline-border flex h-44 w-full animate-pulse items-center justify-center rounded-2xl bg-bg-light/60 font-body text-xs font-semibold text-ink sm:h-52">
+                                <div className="keyline-border flex h-56 w-full animate-pulse items-center justify-center rounded-2xl bg-bg-light/60 font-body text-xs font-semibold text-ink sm:h-64">
                                   Cargando Wasi en 3D…
                                 </div>
                               }

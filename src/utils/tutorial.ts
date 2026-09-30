@@ -85,14 +85,14 @@ const PASOS: PasoTutorial[] = [
     ancla: "pagina-juegos",
     titulo: "🎮 Juegos — así ganas HydroPuntos",
     descripcion:
-      "15 mini-juegos de 60 a 240 segundos. Dan entre <b>30 y 100 HydroPuntos</b>, pero solo cuando <b>superas tu propio récord</b>: repetir una partida floja no suma.<br><br>Jugar cuenta como actividad para tu racha diaria.",
+      "Mini-juegos de 60 a 240 segundos. Cada partida ganada da entre <b>30 y 100 HydroPuntos</b>; tu récord queda guardado en la tarjeta del juego.<br><br>Jugar cuenta como actividad para tu racha diaria.",
   },
   {
     ruta: "/cursos",
     ancla: "pagina-cursos",
     titulo: "📚 Cursos — HydroPuntos por aprender",
     descripcion:
-      "Video-lecciones sobre SODIS, aguas grises, filtros caseros, riego y más. Al terminar todas las lecciones de un curso ganas sus HydroPuntos de golpe: entre 150 y 400.",
+      "Lecciones sobre SODIS, aguas grises, filtros caseros, riego y más. Al terminar todas las lecciones de un curso ganas sus HydroPuntos de golpe.<br><br>El primer curso es gratis. Para abrir el siguiente tienes que <b>terminar el anterior</b> y <b>gastar</b> los HydroPuntos que indica su tarjeta.",
   },
   {
     ruta: "/avatares",

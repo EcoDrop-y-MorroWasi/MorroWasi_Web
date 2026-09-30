@@ -1,10 +1,9 @@
 // Economía de desbloqueo (3 cursos por etapa del Wasi, A/B/C en el orden en que
-// aparecen abajo dentro de cada etapa):
-//  A (1º): libre. Salvo la etapa 1, además exige haber terminado el curso C de
-//          la etapa anterior (requiresCourse) — así cada etapa engancha con la
-//          siguiente en vez de quedar aislada.
-//  B (2º): cuesta 100×etapa HydroPuntos.
-//  C (3º): exige terminar el curso B de su misma etapa Y 100×etapa + 100 HydroPuntos.
+// aparecen abajo dentro de cada etapa). Los HydroPuntos de `value` se GASTAN al
+// desbloquear (courseAccess + utils/courseUnlockStore), no basta con tenerlos:
+//  - El primer curso de la etapa 1 es libre.
+//  - Todos los demás exigen haber terminado el curso anterior de la cadena (el
+//    último de la etapa previa, para el primero de cada etapa) y pagar `value`.
 export type CourseUnlock =
   | { type: "free" }
   | { type: "hydroPoints"; value: number }
@@ -1702,21 +1701,41 @@ export const coursesMock: WaterCourse[] = [
   },
 ];
 
-function courseTitleById(courseId: string): string {
+export function courseTitleById(courseId: string): string {
   return coursesMock.find((c) => c.id === courseId)?.title ?? courseId;
 }
 
-export function isCourseUnlocked(course: WaterCourse, hydroPoints: number, completedCourseIds: ReadonlySet<string>): boolean {
-  switch (course.unlock.type) {
-    case "free":
-      return true;
-    case "hydroPoints":
-      return hydroPoints >= course.unlock.value;
-    case "requiresCourse":
-      return completedCourseIds.has(course.unlock.courseId);
-    case "requiresCourseAndHydroPoints":
-      return completedCourseIds.has(course.unlock.courseId) && hydroPoints >= course.unlock.value;
+/** HydroPuntos que se GASTAN para abrir el curso (0 si no tiene costo). */
+export function unlockCost(unlock: CourseUnlock): number {
+  return unlock.type === "hydroPoints" || unlock.type === "requiresCourseAndHydroPoints" ? unlock.value : 0;
+}
+
+export type CourseAccess =
+  | { estado: "abierto" }
+  /** Curso previo listo y alcanzan los puntos: se puede pagar ya. */
+  | { estado: "comprable"; costo: number }
+  /** Curso previo listo, pero faltan HydroPuntos. */
+  | { estado: "sin-hp"; costo: number; faltan: number }
+  | { estado: "falta-curso"; courseId: string };
+
+/**
+ * Un curso con costo se abre recién cuando se paga (unlockedCourseIds). Pagar
+ * exige, además, haber terminado el curso previo si la regla lo pide.
+ */
+export function courseAccess(
+  course: WaterCourse,
+  hydroPoints: number,
+  completedCourseIds: ReadonlySet<string>,
+  unlockedCourseIds: ReadonlySet<string>,
+): CourseAccess {
+  const { unlock } = course;
+  if (unlock.type === "free" || unlockedCourseIds.has(course.id)) return { estado: "abierto" };
+  if ((unlock.type === "requiresCourse" || unlock.type === "requiresCourseAndHydroPoints") && !completedCourseIds.has(unlock.courseId)) {
+    return { estado: "falta-curso", courseId: unlock.courseId };
   }
+  const costo = unlockCost(unlock);
+  if (costo === 0) return { estado: "abierto" };
+  return hydroPoints >= costo ? { estado: "comprable", costo } : { estado: "sin-hp", costo, faltan: costo - hydroPoints };
 }
 
 export function unlockLabel(unlock: CourseUnlock): string {
@@ -1724,10 +1743,10 @@ export function unlockLabel(unlock: CourseUnlock): string {
     case "free":
       return "Disponible ahora";
     case "hydroPoints":
-      return `Requiere ${unlock.value} HydroPuntos`;
+      return `Cuesta ${unlock.value} HydroPuntos`;
     case "requiresCourse":
       return `Requiere terminar "${courseTitleById(unlock.courseId)}"`;
     case "requiresCourseAndHydroPoints":
-      return `Requiere terminar "${courseTitleById(unlock.courseId)}" y ${unlock.value} HydroPuntos`;
+      return `Requiere terminar "${courseTitleById(unlock.courseId)}" y cuesta ${unlock.value} HydroPuntos`;
   }
 }

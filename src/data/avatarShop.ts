@@ -88,7 +88,7 @@ const STAGE_PALETTE: StagePalette[] = [
 const AVATAR_SEED: AvatarSeed[] = [
   { id: "angie", name: "Angie", gender: "f", hair: "#241a14", skin: "#f6d3a8", hairStyle: "coleta", eye: "#8a5a2e", shirtStyle: "vneck" },
   { id: "britney", name: "Britney", gender: "f", hair: "#3b2417", skin: "#e0ad75", hairStyle: "chongo", eye: "#6b4a2b", shirtStyle: "collar" },
-  { id: "francheska", name: "Francheska", gender: "f", hair: "#241a14", skin: "#c48952", hairStyle: "corto", eye: "#5c3a22", shirtStyle: "vneck" },
+  { id: "francheska", name: "Fransheska", gender: "f", hair: "#241a14", skin: "#c48952", hairStyle: "corto", eye: "#5c3a22", shirtStyle: "vneck" },
   { id: "dayra", name: "Dayra", gender: "f", hair: "#6b3a1f", skin: "#c48952", hairStyle: "largo", eye: "#5a3d22", shirtStyle: "vneck" },
   { id: "felipe", name: "Felipe", gender: "m", hair: "#241a14", skin: "#8b5a34", hairStyle: "rapado", eye: "#4a2f1c", shirtStyle: "basic" },
   { id: "milagros", name: "Milagros", gender: "f", hair: "#241a14", skin: "#c48952", hairStyle: "afro", eye: "#8a5a2e", shirtStyle: "vneck" },
@@ -123,7 +123,7 @@ export const AVATARS: Avatar[] = AVATAR_SEED.map((a, i) => {
 
 AVATARS.push({
   id: "claudio",
-  name: "Claudio",
+  name: "Joe",
   gender: "m",
   model: "default",
   tierIndex: 10,
@@ -140,18 +140,66 @@ AVATARS.push({
   unlockLabel: "Guardián Dorado — logro secreto",
 });
 
-export const SPECIAL_LOOKS: Record<string, { title: string; type: string }> = {
-  angie: { title: "Poncho de la Primera Lluvia", type: "poncho" },
-  britney: { title: "Vestido Semilla en Flor", type: "gala" },
-  francheska: { title: "Traje Guardiana de Duna", type: "explorer" },
-  dayra: { title: "Manto Jardín de Duna", type: "garden" },
-  felipe: { title: "Chaqueta Oasis Temprano", type: "aqua" },
-  milagros: { title: "Túnica Refugio Verde", type: "ranger" },
-  jimmy: { title: "Uniforme del Chira", type: "ceremonial" },
-  genesis: { title: "Falda Bosque Seco", type: "ruffles" },
-  rihana: { title: "Capa Santuario Hídrico", type: "sanctuary" },
-  flordejesus: { title: "Vestido Oasis Sagrado", type: "royal" },
-  claudio: { title: "Manto del Guardián Dorado", type: "guardian" },
+// Skin Especial de cada avatar = su modelo 3D "_esp" (avatares 3d/<carpeta>/<subcarpeta>/*_esp_*.glb,
+// procesado a public/models/avatares/<id>-especial.*.glb). title/description
+// describen ESE modelo — si se regenera un _esp distinto, actualizar acá.
+// `type` solo lo usa la skin 2D de respaldo (avatarSkinPainter) si falta el .glb.
+export const SPECIAL_LOOKS: Record<string, { title: string; description: string; type: string }> = {
+  angie: {
+    title: "Casaca Rosa y Bufanda Tejida",
+    description: "Casaca rosada con bufanda tejida color crema, lentes, short de jean, medias negras, botas con hebillas y mochila.",
+    type: "poncho",
+  },
+  britney: {
+    title: "Blazer Formal de Corazones",
+    description: "Blazer oscuro sobre camisa blanca, correa negra y pantalón blanco ancho con corazones rosados. Lentes y ganchito en el pelo.",
+    type: "gala",
+  },
+  francheska: {
+    title: "Cárdigan Lila de Mariposa",
+    description: "Audífonos lilas, lentes, cárdigan blanco con flecos y ribete lila sobre un top con mariposa, y zapatillas lilas de plataforma.",
+    type: "explorer",
+  },
+  dayra: {
+    title: "Reina del Wasi con su Perrito",
+    description: "Vestido negro largo con abertura, corona y collar dorados, sandalias — y su perrito coronado siempre al lado.",
+    type: "garden",
+  },
+  felipe: {
+    title: "Blazer y Audífonos",
+    description: "Audífonos grises, blazer negro con camisa blanca y corbata, jean celeste y zapatillas.",
+    type: "aqua",
+  },
+  milagros: {
+    title: "Boina y Abrigo Café",
+    description: "Boina y abrigo largo color café sobre un vestido rosado de puntitos, lentes y botas marrones.",
+    type: "ranger",
+  },
+  jimmy: {
+    title: "Hoodie Negro Urbano",
+    description: "Hoodie negro con cordones, jean oscuro, lentes y zapatillas blancas.",
+    type: "ceremonial",
+  },
+  genesis: {
+    title: "Hombros Descubiertos y Jean Ancho",
+    description: "Top negro de hombros descubiertos, jean ancho hasta los pies, lentes rojos y zapatillas blancas.",
+    type: "ruffles",
+  },
+  rihana: {
+    title: "Top a Cuadros y Botas Tejidas",
+    description: "Top a cuadros blanco y negro, falda blanca, botas tejidas marrones con medias y cartera a cuadros.",
+    type: "sanctuary",
+  },
+  flordejesus: {
+    title: "Conjunto Rojo y Lentes Rojos",
+    description: "Conjunto rojo largo con saquito blanco tejido, lentes rojos, trenza y bolso cruzado marrón.",
+    type: "royal",
+  },
+  claudio: {
+    title: "Casaca Bomber Verde",
+    description: "Casaca bomber verde sobre polo blanco, cargo beige, lentes oscuros y zapatillas.",
+    type: "guardian",
+  },
 };
 
 // Tipos de skin especial cuya prenda es un manto/capa: además de repintar la
@@ -273,7 +321,7 @@ const ACCESSORY_NAMES: Record<string, string[]> = {
     "Botas de Cielo Despejado", "Ojotas de Árbol Radiante",
     "Balde del Oasis Sagrado",
   ],
-  // Claudio — secreto, Guardián Dorado
+  // Joe — secreto, Guardián Dorado
   claudio: [
     "Corona Dorada del Guardián", "Casco de Resplandor Dorado",
     "Antifaz Dorado del Guardián", "Lentes de Luz Dorada",

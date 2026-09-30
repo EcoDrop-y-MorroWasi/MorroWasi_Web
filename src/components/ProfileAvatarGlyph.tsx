@@ -12,13 +12,7 @@ export default function ProfileAvatarGlyph({ value, imgClassName }: ProfileAvata
   const shopAvatar = shopId ? findAvatar(shopId) : undefined;
   if (shopAvatar) {
     return (
-      <img
-        src={getAvatarThumbnail(shopAvatar)}
-        alt=""
-        aria-hidden="true"
-        className={imgClassName ?? "h-9 w-9 object-contain"}
-        style={{ imageRendering: "pixelated" }}
-      />
+      <img src={getAvatarThumbnail(shopAvatar, "busto")} alt="" aria-hidden="true" className={imgClassName ?? "h-9 w-9 object-contain"} />
     );
   }
   return <span aria-hidden="true">{value}</span>;

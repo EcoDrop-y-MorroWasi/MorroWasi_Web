@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { PROGRESS_STORAGE_KEYS } from "./progressKeys";
 import { getLastModified } from "./progressMeta";
 import { readAllProgress } from "./progressBackup";
+import { reportarSiEsTecnico } from "./serverErrors";
 
 const LINKED_CODE_KEY = "morrowasi_sync_code_v1";
 const CODE_LENGTH = 10;
@@ -93,6 +94,7 @@ function applyRemote(remote: RemoteProgressData): void {
 
 async function fetchRemote(code: string): Promise<{ data: RemoteProgressData; updatedAt: string } | null> {
   const { data, error } = await supabase.rpc("get_progress_sync", { p_code: code });
+  if (error) reportarSiEsTecnico("get_progress_sync", error);
   if (error) throw error;
   const row = data?.[0];
   if (!row) return null;
@@ -102,6 +104,7 @@ async function fetchRemote(code: string): Promise<{ data: RemoteProgressData; up
 /** Devuelve el updated_at que puso el propio Postgres al guardar (now() del servidor). */
 async function pushRemote(code: string, local: RemoteProgressData): Promise<string> {
   const { data, error } = await supabase.rpc("save_progress_sync", { p_code: code, p_data: local });
+  if (error) reportarSiEsTecnico("save_progress_sync", error);
   if (error) throw error;
   return data as string;
 }
@@ -120,6 +123,7 @@ export async function claimNewCode(): Promise<string> {
   const code = generateSyncCode();
   const local = readLocal();
   const { data, error } = await supabase.rpc("crear_codigo_nuevo", { p_code: code, p_data: local });
+  if (error) reportarSiEsTecnico("crear_codigo_nuevo", error);
   if (error) throw new Error(error.message);
   writeMarker(code, { serverUpdatedAt: data as string, localAtSync: local.lastModified });
   setLinkedCode(code);
@@ -142,6 +146,7 @@ export async function claimNewCode(): Promise<string> {
  */
 export async function restoreFromCode(code: string): Promise<void> {
   const { data, error } = await supabase.rpc("intentar_codigo_login", { p_code: code });
+  if (error) reportarSiEsTecnico("intentar_codigo_login", error);
   if (error) throw new Error(error.message);
   const row = data?.[0];
   if (!row) throw new Error("Código no encontrado. Revisa que esté bien escrito.");
@@ -153,6 +158,7 @@ export async function restoreFromCode(code: string): Promise<void> {
 /** Borra el respaldo del servidor de este código — parte de "Eliminar cuenta" en Perfil. */
 export async function deleteProgressSync(code: string): Promise<void> {
   const { error } = await supabase.rpc("delete_progress_sync", { p_code: code });
+  if (error) reportarSiEsTecnico("delete_progress_sync", error);
   if (error) throw error;
 }
 

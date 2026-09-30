@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { addHydroPoints, getHydroPoints } from "./hydroStore";
 import { addExp, getExp } from "./expStore";
+import { getUnlockedCourseIds, purchaseCourse } from "./courseUnlockStore";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -55,5 +56,24 @@ describe("expStore", () => {
     expect(getExp()).toBe(0);
     addExp(15);
     expect(getExp()).toBe(15);
+  });
+});
+
+describe("courseUnlockStore", () => {
+  it("pagar un curso descuenta los HydroPuntos una sola vez y lo deja abierto", () => {
+    addHydroPoints(300);
+    expect(purchaseCourse("ahorro-en-casa", 100)).toBe(true);
+    expect(getHydroPoints()).toBe(200);
+    expect(getUnlockedCourseIds()).toEqual(["ahorro-en-casa"]);
+    // Segundo pago del mismo curso: no cobra de nuevo.
+    expect(purchaseCourse("ahorro-en-casa", 100)).toBe(true);
+    expect(getHydroPoints()).toBe(200);
+  });
+
+  it("sin puntos suficientes no cobra ni desbloquea", () => {
+    addHydroPoints(50);
+    expect(purchaseCourse("sodis", 100)).toBe(false);
+    expect(getHydroPoints()).toBe(50);
+    expect(getUnlockedCourseIds()).toEqual([]);
   });
 });

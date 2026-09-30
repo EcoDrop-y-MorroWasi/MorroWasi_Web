@@ -12,6 +12,7 @@ export const PROGRESS_STORAGE_KEYS = [
   "morrowasi_stats_v1",
   "morrowasi_streak_v1",
   "morrowasi_ledger_v1",
+  "morrowasi_cursos_desbloqueados_v1",
 ] as const;
 
 export const PROGRESS_SCHEMA_VERSION = 1;

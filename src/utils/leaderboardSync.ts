@@ -3,6 +3,7 @@
 import { supabase } from "../lib/supabaseClient";
 import { getProfileId } from "./progressBackup";
 import { readLedger } from "./leaderboardLedger";
+import { reportarErrorServidor } from "./serverErrors";
 
 const SECRET_KEY = "morrowasi_leaderboard_secret_v1";
 const CONSENT_KEY = "morrowasi_leaderboard_consent_v1";
@@ -115,7 +116,7 @@ export async function submitScore(nombre: string, avatar: string): Promise<Submi
     p_eventos: readLedger(),
   });
 
-  if (error) throw new Error(traducirError(error.message));
+  if (error) throw new Error(traducirError(error, "submit_leaderboard_score"));
 
   const row = (data as Record<string, unknown>[] | null)?.[0];
   try {
@@ -140,7 +141,7 @@ export async function fetchLeaderboard(
     p_periodo: periodo,
     p_limite: limite,
   });
-  if (error) throw new Error(traducirError(error.message));
+  if (error) throw new Error(traducirError(error, "get_leaderboard"));
   return (data ?? []) as LeaderboardRow[];
 }
 
@@ -176,7 +177,7 @@ export async function fetchMyRank(periodo: LeaderboardPeriodo): Promise<MyRankRo
     p_secret: secret,
     p_periodo: periodo,
   });
-  if (error) throw new Error(traducirError(error.message));
+  if (error) throw new Error(traducirError(error, "get_my_rank"));
 
   const row = (data as Record<string, unknown>[] | null)?.[0];
   if (!row) return null;
@@ -212,8 +213,14 @@ export function subscribeLeaderboard(onChange: () => void): () => void {
 // Los mensajes de las funciones SQL ya vienen en español y pensados para el
 // usuario; los de PostgREST/Postgres no. Se traducen los casos que puede ver
 // alguien sin la migración aplicada o con la red caída.
-function traducirError(mensaje: string): string {
+function traducirError(error: { message: string; code?: string }, origen: string): string {
+  const mensaje = error.message;
+  // P0001 = `raise exception` de nuestras funciones SQL: ese texto ya está
+  // escrito para el usuario y se muestra tal cual.
+  if (error.code === "P0001") return mensaje;
   if (/does not exist|schema cache|404/i.test(mensaje)) {
+    // Función o tabla faltante también es falla del servidor (migración sin aplicar).
+    reportarErrorServidor(origen, error);
     return "La tabla de clasificación todavía no está disponible. Vuelve a intentarlo más tarde.";
   }
   if (/fetch|network|failed to/i.test(mensaje)) {
@@ -225,5 +232,9 @@ function traducirError(mensaje: string): string {
   if (/jwt|issued at|clock/i.test(mensaje)) {
     return "La fecha y hora de este dispositivo no coinciden con las del servidor. Ajústalas y vuelve a intentar.";
   }
-  return mensaje;
+  // Cualquier otro error es técnico (regex inválida, columna faltante, etc.):
+  // el texto crudo de Postgres no le sirve al usuario.
+  console.error("[leaderboard] error del servidor:", error);
+  reportarErrorServidor(origen, error);
+  return "La tabla de clasificación tuvo un problema en el servidor. Tu progreso sigue guardado en este dispositivo; intenta más tarde.";
 }

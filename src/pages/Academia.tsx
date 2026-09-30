@@ -1,9 +1,10 @@
 import { useState } from "react";
 import CourseCard from "../components/CourseCard";
 import VideoPlayerView from "../components/VideoPlayerView";
-import { coursesMock, isCourseUnlocked, type WaterCourse } from "../data/courses.mock";
+import { courseAccess, coursesMock, type WaterCourse } from "../data/courses.mock";
 import { WASI_STAGES } from "../data/mock";
 import { addHydroPoints } from "../utils/hydroStore";
+import { purchaseCourse, useUnlockedCourseIds } from "../utils/courseUnlockStore";
 import { useExp } from "../utils/expStore";
 import { calcCourseExp } from "../utils/gamification";
 import { recordLedgerEvent } from "../utils/leaderboardLedger";
@@ -21,6 +22,18 @@ const HARD_SHADOW = "shadow-[4px_4px_0_0_#1c1c11]";
 type LessonProgress = Record<string, string[]>;
 // Flujo por curso: detalle+malla → flashcards de lectura (sin timer) → quiz por lección → catálogo
 type CourseStage = "detail" | "flashcards" | "quiz";
+
+// Fisher-Yates: orden aleatorio de las opciones de cada quiz. Se calcula en el
+// dispositivo al abrir el curso (cero llamadas al servidor) y guarda índices
+// originales, así correctAnswer sigue apuntando a la opción correcta.
+function ordenAleatorio(n: number): number[] {
+  const orden = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [orden[i], orden[j]] = [orden[j], orden[i]];
+  }
+  return orden;
+}
 
 function loadProgress(): LessonProgress {
   if (typeof window === "undefined") return {};
@@ -46,8 +59,10 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
   const [flashcardIndex, setFlashcardIndex] = useState(0);
   const [lessonIndex, setLessonIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [ordenOpciones, setOrdenOpciones] = useState<Record<string, number[]>>({});
   const [progress, setProgress] = useState<LessonProgress>(() => loadProgress());
   const [, addExp] = useExp();
+  const purchasedCourseIds = useUnlockedCourseIds();
   const lesson = selected?.lessons[lessonIndex];
   const flashcardLesson = selected?.lessons[flashcardIndex];
 
@@ -78,6 +93,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
 
   const openCourse = (course: WaterCourse) => {
     setSelected(course);
+    setOrdenOpciones(Object.fromEntries(course.lessons.map((l) => [l.id, ordenAleatorio(l.quiz.options.length)])));
     setStage("detail");
     setFlashcardIndex(0);
     setLessonIndex(0);
@@ -89,9 +105,14 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
 
   const completedLessonsFor = (course: WaterCourse) => progress[course.id]?.length ?? 0;
   const isCourseComplete = (course: WaterCourse) => completedLessonsFor(course) === course.lessons.length;
-  // Set de ids de cursos ya terminados — lo usa isCourseUnlocked para la lógica
-  // "curso C exige haber terminado el curso B" / "curso A exige el C de la etapa anterior".
+  // Cursos ya terminados — courseAccess exige el previo completo antes de dejar pagar.
   const completedCourseIds = new Set(coursesMock.filter(isCourseComplete).map((c) => c.id));
+  // Pagados + los que ya tenían alguna lección hecha antes de que el desbloqueo
+  // costara puntos: a quien ya había empezado un curso no se le vuelve a cerrar.
+  const unlockedCourseIds = new Set([
+    ...purchasedCourseIds,
+    ...coursesMock.filter((c) => completedLessonsFor(c) > 0).map((c) => c.id),
+  ]);
 
   const startCourse = () => {
     setFlashcardIndex(0);
@@ -122,7 +143,7 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
           <h1 className="font-display text-2xl font-bold">{selected.title}</h1>
           <p className="mt-2">{selected.description}</p>
           <p className="mt-3 text-sm font-bold text-[#E26D5C]">
-            {selected.durationMinutes} min · {selected.lessons.length} lección{selected.lessons.length === 1 ? "" : "es"} · +{selected.xpReward} XP
+            {selected.durationMinutes} min · {selected.lessons.length} lección{selected.lessons.length === 1 ? "" : "es"} · +{selected.xpReward} HP
           </p>
         </section>
         <section className={`rounded-2xl border-2 border-ink bg-[#99B4D8]/30 p-5 ${HARD_SHADOW}`} aria-label="Malla curricular del curso">
@@ -229,7 +250,8 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
             {lesson.title}: {lesson.quiz.question}
           </h2>
           <div className="mt-3 grid gap-2">
-            {lesson.quiz.options.map((option, index) => {
+            {(ordenOpciones[lesson.id] ?? lesson.quiz.options.map((_, i) => i)).map((index) => {
+              const option = lesson.quiz.options[index];
               const respondida = answers[lesson.id] !== undefined;
               const esElegida = answers[lesson.id] === index;
               const esCorrecta = index === lesson.quiz.correctAnswer;
@@ -300,7 +322,8 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
         <h1 className="font-display text-3xl font-bold">Aprende, cuida y suma HydroPuntos</h1>
         <p className="mt-2">
           Cursos con lecciones en video y quiz al final de cada una. Completa todas las lecciones de un curso para
-          sumar sus HydroPuntos.
+          sumar sus HydroPuntos. Para abrir el siguiente curso necesitas terminar el anterior y gastar los
+          HydroPuntos que indica.
         </p>
         <p className="mt-3 text-sm font-bold">
           {hydroPoints} HydroPuntos · Wasi nivel {wasiLevel}
@@ -323,7 +346,8 @@ export default function Academia({ hydroPoints = 0, wasiLevel = 1 }: AcademiaPro
                 <CourseCard
                   key={course.id}
                   course={course}
-                  unlocked={isCourseUnlocked(course, hydroPoints, completedCourseIds)}
+                  access={courseAccess(course, hydroPoints, completedCourseIds, unlockedCourseIds)}
+                  onUnlock={(c, cost) => purchaseCourse(c.id, cost)}
                   completed={isCourseComplete(course)}
                   completedLessons={completedLessonsFor(course)}
                   onOpen={openCourse}

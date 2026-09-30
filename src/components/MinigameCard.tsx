@@ -68,7 +68,7 @@ export default function MinigameCard({ title, description, type, xpMaxReward, du
 
       <div className="flex flex-1 flex-col gap-3 p-4 bg-bg-light/50">
         <h3 className="text-[16px] font-extrabold text-ink leading-tight">{title}</h3>
-        <p className="text-sm text-ink/70 leading-snug line-clamp-3">{description}</p>
+        <p className="text-sm text-ink/70 leading-snug">{description}</p>
 
         {played && bestScore !== undefined && (
           <p className="text-xs font-bold text-[#1c6b34]">Mejor puntaje: {bestScore} pts</p>

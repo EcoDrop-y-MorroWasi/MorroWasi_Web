@@ -282,12 +282,7 @@ export default function Perfil() {
                       selected ? "bg-[#FFB793]" : "bg-bg-light"
                     }`}
                   >
-                    <img
-                      src={getAvatarThumbnail(avatar)}
-                      alt=""
-                      className="h-9 w-9 object-contain"
-                      style={{ imageRendering: "pixelated" }}
-                    />
+                    <img src={getAvatarThumbnail(avatar, "busto")} alt="" className="h-11 w-11 object-contain" />
                   </button>
                 );
               })}
