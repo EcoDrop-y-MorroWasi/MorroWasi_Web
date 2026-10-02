@@ -53,7 +53,7 @@ export function getStreakDays(): number {
 }
 
 /**
- * Marca actividad real de hoy (misión completada, minijuego con récord nuevo,
+ * Marca actividad real de hoy (misión completada, minijuego ganado,
  * lección de curso terminada, litros de ahorro registrados). Idempotente: no
  * suma dos veces el mismo día aunque se llame varias veces.
  */

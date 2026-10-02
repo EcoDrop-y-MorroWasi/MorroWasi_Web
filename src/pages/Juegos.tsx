@@ -83,7 +83,6 @@ export default function Juegos() {
   // partida ganada (earned > 0) paga, superes récord o no — el récord se
   // sigue guardando solo para mostrarlo en la tarjeta del juego.
   const handleFinish = (gameId: string, accuracy: number): MinigameResult => {
-    markActivityToday();
     const earned = calcMinigameScore(accuracy);
     const prevBest = bestScores[gameId] ?? 0;
     const isNewBest = earned > prevBest;
@@ -96,15 +95,16 @@ export default function Juegos() {
     }
 
     if (earned > 0) {
+      markActivityToday();
       addHydro(earned);
       const exp = calcGameExp(earned);
       addExp(exp);
       recordLedgerEvent("juego", gameId, { hydro: earned, exp });
-      pushToast(`+${earned} XP`, isNewBest ? `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!` : "¡Bien jugado!");
+      pushToast(`+${earned} HP`, isNewBest ? `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!` : "¡Ganaste!");
       fireConfetti();
       playChime();
     } else {
-      pushToast(`${earned} XP`, "Perdiste — inténtalo de nuevo");
+      pushToast("Sin HydroPuntos", "Perdiste — inténtalo de nuevo");
       playMiss();
     }
 
@@ -135,7 +135,7 @@ export default function Juegos() {
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-extrabold text-ink">🎮 Mini-juegos oficiales de Piura</h2>
-          <p className="text-sm text-ink/70">Partidas reales de 60–90 s — gana 30 a 100 HydroPuntos solo con récord nuevo.</p>
+          <p className="text-sm text-ink/70">Gana con al menos 50 % de desempeño y recibe 30 a 100 HydroPuntos.</p>
         </div>
         <div className="flex items-center gap-2">
           <motion.div
@@ -219,7 +219,7 @@ export default function Juegos() {
           <li>
             <b>Memorama del Agua</b>: progresivo — 4 cartas al empezar, sube de a 2 hasta 30 según avanzás, sin repetir posición. 90 s.
           </li>
-          <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Solo el nuevo récord suma puntos (anti-farmeo) y cuenta como actividad para tu racha diaria.</li>
+          <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Ganar con 50 % o más de desempeño entrega HydroPuntos, EXP y actividad de racha; perder o salir no entrega nada. El récord solo muestra tu mejor resultado.</li>
         </ul>
       </div>
 

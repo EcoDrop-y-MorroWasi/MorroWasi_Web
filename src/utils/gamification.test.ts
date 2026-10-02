@@ -23,10 +23,11 @@ describe("calcCustomXp", () => {
 describe("calcMinigameScore", () => {
   it("una derrota total (accuracy 0) no da nada — antes regalaba el piso de 30", () => {
     expect(calcMinigameScore(0)).toBe(0);
+    expect(calcMinigameScore(0.49)).toBe(0);
   });
 
   it("acota entre 30 y 100 para cualquier accuracy > 0", () => {
-    expect(calcMinigameScore(0.01)).toBeGreaterThanOrEqual(30);
+    expect(calcMinigameScore(0.5)).toBe(30);
     expect(calcMinigameScore(1)).toBe(100);
     expect(calcMinigameScore(2)).toBe(100); // clamp por si llega >1
   });
@@ -37,6 +38,7 @@ describe("calcCourseExp / calcGameExp", () => {
     expect(calcCourseExp(150)).toBe(30);
     expect(calcCourseExp(10)).toBe(5); // piso de calcCourseExp
     expect(calcGameExp(100)).toBe(20);
+    expect(calcGameExp(30)).toBe(6); // límite inferior del catálogo de juegos
     expect(calcGameExp(10)).toBe(3); // piso de calcGameExp
   });
 });

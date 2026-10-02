@@ -41,7 +41,7 @@ export default function MinigameCard({ title, description, type, xpMaxReward, du
       whileHover={{ y: -3 }}
       transition={{ duration: 0.18 }}
       className="flex flex-col overflow-hidden rounded-xl bg-surface border-[3px] border-ink shadow-[6px_6px_0_#1c1c11] hover:shadow-[6px_6px_0_#1c1c11]"
-      aria-label={`${title} ${xpMaxReward} XP, ${durationSeconds} segundos`}
+      aria-label={`${title} ${xpMaxReward} HydroPuntos, ${durationSeconds} segundos`}
     >
       {/* Portada del juego. Antes decía "▶ Video intro mock" con la ruta del .mp4
           a la vista; esos videos nunca existieron y la intro ahora son viñetas
@@ -59,7 +59,7 @@ export default function MinigameCard({ title, description, type, xpMaxReward, du
           {meta.label}
         </span>
         <span className="absolute top-2 right-2 rounded-full bg-[#E26D5C] text-white border-2 border-ink px-2 py-1 text-xs font-extrabold">
-          {xpMaxReward} XP
+          {xpMaxReward} HP
         </span>
         <span className="absolute bottom-2 right-2 rounded-full bg-surface border-2 border-ink px-2 py-1 text-[11px] font-extrabold">
           ⏱ {durationSeconds}s
@@ -84,7 +84,7 @@ export default function MinigameCard({ title, description, type, xpMaxReward, du
             {played ? "Jugar de nuevo" : "Jugar"}
           </motion.button>
           <span className="inline-flex items-center rounded-lg bg-surface border-2 border-ink px-3 text-xs font-bold">
-            30–100 XP
+            30–100 HP
           </span>
         </div>
       </div>

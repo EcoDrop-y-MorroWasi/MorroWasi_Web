@@ -15,7 +15,7 @@ export function calcCourseExp(hydroReward: number): number {
   return Math.max(5, Math.round(hydroReward / 5));
 }
 
-/** EXP que otorga un nuevo récord en un minijuego, además de sus HydroPuntos.
+/** EXP que otorga ganar un minijuego, además de sus HydroPuntos.
  * Antes los juegos solo daban HydroPuntos y no movían al Wasi — mismo ratio 1/5
  * que calcCourseExp, para que aporten sin opacar a las misiones (fuente principal de EXP). */
 export function calcGameExp(hydroReward: number): number {
@@ -27,14 +27,14 @@ export function addClamped(current: number, delta: number): number {
   return Math.max(0, current + delta);
 }
 
-/** RN-16: XP de minijuego = clamp(round(30 + accuracy × 70), 30, 100), pero SOLO si el
- * jugador de verdad logró algo (accuracy > 0) — antes el piso de 30 se aplicaba también a
- * un fracaso total (accuracy 0), o sea que perder igual regalaba EXP/HydroPuntos.
- * Cada motor entrega accuracy en [0,1]; Juegos.tsx solo acredita el XP si supera bestScore. */
+/** Una partida se gana desde 50 % de desempeño. La recompensa va de 30 a 100 HydroPuntos. */
+export const MIN_GAME_WIN_ACCURACY = 0.5;
+
 export function calcMinigameScore(accuracy: number): number {
   const safeAccuracy = Math.max(0, Math.min(1, accuracy));
-  if (safeAccuracy <= 0) return 0;
-  return Math.round(Math.max(30, Math.min(100, 30 + safeAccuracy * 70)));
+  if (safeAccuracy < MIN_GAME_WIN_ACCURACY) return 0;
+  const victoryProgress = (safeAccuracy - MIN_GAME_WIN_ACCURACY) / (1 - MIN_GAME_WIN_ACCURACY);
+  return Math.round(30 + victoryProgress * 70);
 }
 
 export type TaskCategory = "ducha" | "lavanderia" | "riego" | "cocina" | "fugas" | "otros";

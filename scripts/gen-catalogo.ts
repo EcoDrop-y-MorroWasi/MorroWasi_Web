@@ -17,6 +17,7 @@ import {
   MISIONES_SEMANALES_POOL,
   MISIONES_MENSUALES,
   calcCourseExp,
+  calcGameExp,
 } from "../src/utils/gamification.ts";
 import { coursesMock } from "../src/data/courses.mock.ts";
 
@@ -32,15 +33,15 @@ interface Fila {
 
 const filas: Fila[] = [];
 
-// Juegos: calcMinigameScore() acota siempre a [30, 100] HydroPuntos y no toca EXP.
+// Juegos: una victoria comienza en 50 % de desempeño y paga 30-100 HydroPuntos.
 // segundosMin es la duración real de la partida — el servidor la usa para detectar
 // partidas solapadas (12 juegos de 60 s no caben en 30 segundos).
 for (const juego of MINIGAMES) {
   filas.push({
     ref: juego.id,
     tipo: "juego",
-    expMin: 0,
-    expMax: 0,
+    expMin: calcGameExp(30),
+    expMax: calcGameExp(100),
     hydroMin: 30,
     hydroMax: 100,
     segundosMin: juego.durationSeconds,
@@ -116,7 +117,9 @@ on conflict (ref) do update
 `;
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const destino = join(aqui, "..", "supabase", "migrations", "0010_catalogo_recompensas.sql");
+// Las migraciones aplicadas son inmutables. Cada cambio del catálogo requiere
+// una migración nueva; este archivo generado permite auditar el catálogo actual.
+const destino = join(aqui, "..", "supabase", "catalogo_recompensas.generated.sql");
 writeFileSync(destino, sql, "utf8");
 
 console.log(`✅ ${filas.length} recompensas escritas en ${destino}`);

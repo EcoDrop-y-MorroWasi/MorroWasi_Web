@@ -243,7 +243,7 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
                 {result.isNewBest ? "🏆" : result.earned === 0 ? "😕" : "🎮"}
               </span>
               <p className="font-display text-2xl font-extrabold text-ink">
-                {result.earned === 0 ? "Perdiste" : `+${result.earned} XP`}
+                {result.earned === 0 ? "Perdiste" : `+${result.earned} HydroPuntos`}
               </p>
               <p className="text-sm font-bold text-ink/80">
                 {result.isNewBest

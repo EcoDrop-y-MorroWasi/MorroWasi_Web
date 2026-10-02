@@ -1,0 +1,44 @@
+name: Deploy Supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_migrations:
+        description: Apply pending database migrations
+        required: true
+        default: false
+        type: boolean
+      deploy_functions:
+        description: Deploy Edge Functions
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Manual Supabase deployment
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+      - name: Check required secrets
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+      - name: Check database password
+        if: ${{ inputs.apply_migrations }}
+        run: test -n "$SUPABASE_DB_PASSWORD"
+      - name: Apply database migrations
+        if: ${{ inputs.apply_migrations }}
+        run: supabase db push --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
+      - name: Deploy Edge Functions
+        if: ${{ inputs.deploy_functions }}
+        run: supabase functions deploy create-chat cleanup-orphaned-users --project-ref "$SUPABASE_PROJECT_REF"

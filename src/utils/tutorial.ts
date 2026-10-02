@@ -85,7 +85,7 @@ const PASOS: PasoTutorial[] = [
     ancla: "pagina-juegos",
     titulo: "🎮 Juegos — así ganas HydroPuntos",
     descripcion:
-      "Mini-juegos de 60 a 240 segundos. Cada partida ganada da entre <b>30 y 100 HydroPuntos</b>; tu récord queda guardado en la tarjeta del juego.<br><br>Jugar cuenta como actividad para tu racha diaria.",
+      "Mini-juegos de 60 a 240 segundos. Al ganar con al menos 50 % de desempeño recibes entre <b>30 y 100 HydroPuntos</b>; tu récord queda guardado en la tarjeta del juego.<br><br>Ganar cuenta como actividad para tu racha diaria; perder o salir no suma puntos.",
   },
   {
     ruta: "/cursos",

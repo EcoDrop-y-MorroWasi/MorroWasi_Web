@@ -143,6 +143,11 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      - name: Validate reward catalog is generated
+        run: |
+          pnpm gen:catalogo
+          git diff --exit-code -- supabase/catalogo_recompensas.generated.sql
+
       - name: Type-check (tsc)
         run: pnpm exec tsc -b
 
