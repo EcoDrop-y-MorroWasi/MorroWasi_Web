@@ -23,9 +23,9 @@ describe("avatarShop", () => {
     });
   });
 
-  it("todos los avatares tienen la misma escalera de precios: gratis y de 30 a 120 HP", () => {
+  it("todos los avatares tienen la misma escalera de precios: gratis y de 300 a 1200 HP", () => {
     AVATARS.forEach((av) => {
-      expect(AVATAR_ACCESSORIES[av.id].map((a) => a.price)).toEqual([0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);
+      expect(AVATAR_ACCESSORIES[av.id].map((a) => a.price)).toEqual([0, 300, 400, 500, 600, 700, 800, 900, 1_000, 1_100, 1_200]);
     });
   });
 

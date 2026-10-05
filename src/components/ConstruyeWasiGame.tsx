@@ -19,7 +19,7 @@ const TILE_W = 52;
 const TILE_H = 26;
 const ALTURA = 16; // cuánto "levanta" una pieza colocada
 
-export type PiezaId = "techo" | "canaleta" | "filtro" | "tanque" | "biohuerto" | "ducha";
+export type PiezaId = "techo" | "canaleta" | "filtro" | "tanque" | "biohuerto" | "ducha" | "roca";
 
 interface PiezaMeta {
   emoji: string;
@@ -39,6 +39,9 @@ const PIEZAS: Record<PiezaId, PiezaMeta> = {
   tanque: { emoji: "🛢️", nombre: "Tanque", color: "#7fa3c9", sombra: "#54708c", conduce: true },
   biohuerto: { emoji: "🌱", nombre: "Biohuerto", color: "#8fcf9f", sombra: "#5d9670", conduce: false },
   ducha: { emoji: "🚿", nombre: "Ducha", color: "#bcd3ea", sombra: "#7f96ad", conduce: false },
+  // Obstáculo fijo: bloquea el paso y no se puede mover ni quitar. Solo sale
+  // en fijas, nunca en el presupuesto ni en la paleta.
+  roca: { emoji: "⛰️", nombre: "Roca", color: "#b8b2a5", sombra: "#7d776b", conduce: false },
 };
 
 interface Destino {
@@ -55,6 +58,8 @@ interface Ronda {
   fijas: { col: number; row: number; pieza: PiezaId }[];
   presupuesto: Partial<Record<PiezaId, number>>;
   destinos: Destino[];
+  /** Piezas propias para resolverla sin sobrar: si lo logras con ≤ par, la ronda da ⭐ eficiente y medio punto extra. */
+  par: number;
 }
 
 const RONDAS: Ronda[] = [
@@ -68,6 +73,7 @@ const RONDAS: Ronda[] = [
     ],
     presupuesto: { canaleta: 12 },
     destinos: [{ col: 4, row: 4, requiereFiltro: false }],
+    par: 7,
   },
   {
     titulo: "Ronda 2 — Agua segura para la ducha",
@@ -79,6 +85,7 @@ const RONDAS: Ronda[] = [
     ],
     presupuesto: { canaleta: 10, filtro: 1, tanque: 1 },
     destinos: [{ col: 6, row: 3, requiereFiltro: true }],
+    par: 5,
   },
   {
     titulo: "Ronda 3 — Todo el Wasi",
@@ -94,6 +101,7 @@ const RONDAS: Ronda[] = [
       { col: 0, row: 6, requiereFiltro: false },
       { col: 6, row: 6, requiereFiltro: true },
     ],
+    par: 11,
   },
   {
     titulo: "Ronda 4 — Dos techos, una sola casa",
@@ -110,6 +118,63 @@ const RONDAS: Ronda[] = [
       { col: 3, row: 6, requiereFiltro: true },
       { col: 0, row: 3, requiereFiltro: false },
     ],
+    par: 14,
+  },
+  {
+    titulo: "Ronda 5 — El tanque manda",
+    objetivo: "Pasa por el tanque y lleva agua filtrada a la ducha.",
+    pista: "El tanque también conduce: la cadena puede cruzar por él.",
+    fijas: [
+      { col: 0, row: 6, pieza: "techo" },
+      { col: 3, row: 3, pieza: "tanque" },
+      { col: 6, row: 0, pieza: "ducha" },
+    ],
+    presupuesto: { canaleta: 12, filtro: 1, tanque: 1 },
+    destinos: [{ col: 6, row: 0, requiereFiltro: true }],
+    par: 10,
+  },
+  {
+    titulo: "Ronda 6 — Roca en el camino",
+    objetivo: "Rodea las rocas y abastece la ducha con agua filtrada.",
+    pista: "La roca no conduce ni se mueve: el camino largo también vale.",
+    fijas: [
+      { col: 0, row: 0, pieza: "techo" },
+      { col: 6, row: 6, pieza: "ducha" },
+      { col: 2, row: 2, pieza: "roca" },
+      { col: 3, row: 3, pieza: "roca" },
+      { col: 4, row: 4, pieza: "roca" },
+    ],
+    presupuesto: { canaleta: 15, filtro: 1, tanque: 1 },
+    destinos: [{ col: 6, row: 6, requiereFiltro: true }],
+    par: 12,
+  },
+  {
+    titulo: "Ronda 7 — Doble ducha",
+    objetivo: "Un solo filtro para dos duchas: filtra el tronco común.",
+    pista: "Filtra antes de abrir las dos ramas; después del filtro todo vale para beber.",
+    fijas: [
+      { col: 3, row: 0, pieza: "techo" },
+      { col: 0, row: 6, pieza: "ducha" },
+      { col: 6, row: 6, pieza: "ducha" },
+    ],
+    presupuesto: { canaleta: 12, filtro: 1, tanque: 1 },
+    destinos: [
+      { col: 0, row: 6, requiereFiltro: true },
+      { col: 6, row: 6, requiereFiltro: true },
+    ],
+    par: 10,
+  },
+  {
+    titulo: "Ronda 8 — Presupuesto justo",
+    objetivo: "Cruza todo el terreno sin que sobre ni una canaleta.",
+    pista: "Cada pieza cuenta: planea la diagonal más corta.",
+    fijas: [
+      { col: 6, row: 0, pieza: "techo" },
+      { col: 0, row: 6, pieza: "biohuerto" },
+    ],
+    presupuesto: { canaleta: 11 },
+    destinos: [{ col: 0, row: 6, requiereFiltro: false }],
+    par: 11,
   },
 ];
 
@@ -191,12 +256,14 @@ export default function ConstruyeWasiGame({
   const [tablero, setTablero] = useState(() => tableroInicial(RONDAS[0]));
   const [seleccion, setSeleccion] = useState<PiezaId>("canaleta");
   const [rondasResueltas, setRondasResueltas] = useState(0);
+  const [eficientes, setEficientes] = useState(0);
   const [piezasUsadas, setPiezasUsadas] = useState(0);
   const [timeLeft, setTimeLeft] = useState(duration);
 
   // Ref para que el cronómetro no necesite depender del contador de rondas: si
   // dependiera, cada ronda resuelta reiniciaría el intervalo y regalaría tiempo.
   const resueltasRef = useRef(0);
+  const eficientesRef = useRef(0);
   const terminadoRef = useRef(false);
 
   useEffect(() => {
@@ -204,10 +271,18 @@ export default function ConstruyeWasiGame({
   }, [rondasResueltas]);
 
   useEffect(() => {
+    eficientesRef.current = eficientes;
+  }, [eficientes]);
+
+  // Cada ronda eficiente (resuelta con ≤ par piezas) suma medio punto.
+  const puntaje = (resueltas: number, efi: number) =>
+    Math.min(1, (resueltas + 0.5 * efi) / RONDAS.length);
+
+  useEffect(() => {
     if (timeLeft <= 0) {
       if (!terminadoRef.current) {
         terminadoRef.current = true;
-        onComplete(resueltasRef.current / RONDAS.length);
+        onComplete(puntaje(resueltasRef.current, eficientesRef.current));
       }
       return;
     }
@@ -215,10 +290,10 @@ export default function ConstruyeWasiGame({
     return () => clearTimeout(t);
   }, [timeLeft, onComplete]);
 
-  const finalizar = (resueltas: number) => {
+  const finalizar = (resueltas: number, efi: number) => {
     if (terminadoRef.current) return;
     terminadoRef.current = true;
-    onComplete(resueltas / RONDAS.length);
+    onComplete(puntaje(resueltas, efi));
   };
 
   const ronda = RONDAS[rondaIndex];
@@ -257,11 +332,16 @@ export default function ConstruyeWasiGame({
 
   const siguienteRonda = () => {
     const resueltas = rondasResueltas + 1;
+    // Eficiencia: piezas propias en el tablero (sin fijas) contra el par.
+    const usadasEnRonda = tablero.size - fijas.size;
+    const fueEficiente = usadasEnRonda <= ronda.par;
+    const efi = eficientes + (fueEficiente ? 1 : 0);
+    if (fueEficiente) setEficientes(efi);
     setRondasResueltas(resueltas);
     if (rondaIndex + 1 >= RONDAS.length) {
-      // Resolver las 3 rondas ya vale la puntuación máxima; gastar menos piezas
-      // no da más puntos, para no castigar al que explora antes de acertar.
-      finalizar(resueltas);
+      // Resolver todas las rondas ya vale la puntuación máxima; gastar menos
+      // piezas no da más puntos, para no castigar al que explora antes de acertar.
+      finalizar(resueltas, efi);
       return;
     }
     const siguiente = RONDAS[rondaIndex + 1];
@@ -270,7 +350,7 @@ export default function ConstruyeWasiGame({
     setSeleccion("canaleta");
   };
 
-  const rendirse = () => finalizar(rondasResueltas);
+  const rendirse = () => finalizar(rondasResueltas, eficientes);
 
   const reiniciar = () => setTablero(tableroInicial(ronda));
 
@@ -301,7 +381,7 @@ export default function ConstruyeWasiGame({
           ⏱ {timeLeft}s
         </span>
         <span className="rounded-full border-2 border-ink bg-[#FFB793] px-3 py-1 text-xs font-black">
-          🏗️ {rondasResueltas}/{RONDAS.length} rondas
+          🏗️ {rondasResueltas}/{RONDAS.length} rondas · ⭐ {eficientes}
         </span>
       </div>
 
@@ -314,7 +394,7 @@ export default function ConstruyeWasiGame({
       <p className="rounded-2xl border-[3px] border-ink bg-[#FFB793] p-3 font-display text-sm font-extrabold leading-snug shadow-[4px_4px_0_#1c1c11]">
         🎯 {ronda.objetivo}
       </p>
-      <p className="mt-1 font-body text-[11px] font-semibold text-ink/70">💡 {ronda.pista}</p>
+      <p className="mt-1 font-body text-[11px] font-semibold text-ink/70">💡 {ronda.pista} ⭐ Par: {ronda.par} piezas o menos.</p>
 
       {/* Estado de cada destino, en vivo mientras construye */}
       <div className="mt-2 flex flex-wrap gap-2">

@@ -236,9 +236,6 @@ export default function Perfil() {
             <div className="min-w-0">
               <p className="font-body text-sm font-semibold text-[#1c1c11]/70">Tu perfil</p>
               <h1 className="font-display text-2xl font-extrabold leading-tight">{profile.name}</h1>
-              <span className="mt-1 inline-flex items-center gap-1 rounded-full border-2 border-ink bg-[#FFB793] px-3 py-1 text-xs font-black">
-                🏅 Guardián del Agua · {wasiStage.name}
-              </span>
             </div>
           </div>
           {/* Único punto de salida de la app: el header ya no lo muestra en ningún
@@ -252,6 +249,11 @@ export default function Perfil() {
             Salir
           </button>
         </div>
+        {/* Insignia a fila completa en una sola línea: dentro de la columna no
+            cabía y se partía en tres renglones. */}
+        <span className="mt-3 inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full border-2 border-ink bg-[#FFB793] px-3 py-1 text-[11px] font-black">
+          🏅 Guardián del Agua · {wasiStage.name}
+        </span>
       </section>
 
       <section className={`rounded-2xl border-2 border-ink bg-surface p-5 ${HARD_SHADOW}`}>

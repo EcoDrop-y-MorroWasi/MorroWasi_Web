@@ -23,6 +23,14 @@ describe("coursesMock", () => {
 describe("courseAccess", () => {
   const nada = new Set<string>();
 
+  it("usa 250 HP para el segundo curso y aumenta 50 HP por curso", () => {
+    const costs = coursesMock
+      .flatMap((course) => (course.unlock.type === "requiresCourseAndHydroPoints" ? [course.unlock.value] : []))
+      .sort((a, b) => a - b);
+    expect(costs).toEqual(Array.from({ length: 29 }, (_, index) => 250 + index * 50));
+    expect(costs.reduce((total, cost) => total + cost, 0)).toBe(27_550);
+  });
+
   it("completar un curso NO abre el siguiente solo: hay que pagarlo aunque sobren puntos", () => {
     const segundo = coursesMock.find((c) => c.unlock.type === "requiresCourseAndHydroPoints" && c.unlock.courseId === "ciclo-agua-basico");
     expect(segundo).toBeDefined();

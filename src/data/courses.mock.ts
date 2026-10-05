@@ -125,7 +125,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Aprende a usar la luz del sol para mejorar la seguridad del agua.",
     durationMinutes: 18,
     xpReward: 150,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "higiene-agua-segura", value: 45 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "higiene-agua-segura", value: 350 },
     thumbnailUrl: "/media/courses/sodis/cover.jpg",
     curriculum: [
       "Qué es la desinfección solar y por qué funciona con luz UV",
@@ -187,7 +187,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Da una segunda vida al agua doméstica para usos seguros.",
     durationMinutes: 22,
     xpReward: 200,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "deteccion-fugas", value: 135 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "deteccion-fugas", value: 650 },
     thumbnailUrl: "/media/courses/aguas-grises/cover.jpg",
     curriculum: [
       "Qué son las aguas grises y de dónde vienen (lavadora, ducha, lavamanos)",
@@ -249,7 +249,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Construye un filtro educativo con materiales accesibles.",
     durationMinutes: 28,
     xpReward: 250,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "enfermedades-agua-contaminada", value: 90 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "enfermedades-agua-contaminada", value: 500 },
     thumbnailUrl: "/media/courses/filtros-caseros/cover.jpg",
     curriculum: [
       "Materiales necesarios: grava, arena gruesa, arena fina, carbón activado y algodón",
@@ -311,7 +311,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Reduce pérdidas de agua al regar plantas y cultivos.",
     durationMinutes: 20,
     xpReward: 180,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "aguas-grises", value: 150 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "aguas-grises", value: 700 },
     thumbnailUrl: "/media/courses/riego-goteo/cover.jpg",
     curriculum: [
       "Por qué el riego por goteo ahorra agua frente a la manguera",
@@ -373,7 +373,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Aprovecha la lluvia para almacenar agua de uso no potable.",
     durationMinutes: 30,
     xpReward: 300,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "mulch-suelo", value: 180 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "mulch-suelo", value: 800 },
     thumbnailUrl: "/media/courses/cosecha-lluvia/cover.jpg",
     curriculum: [
       "Elementos del sistema: techo, canaletas, bajante y tanque",
@@ -435,7 +435,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Explora cómo la naturaleza ayuda a tratar el agua.",
     durationMinutes: 35,
     xpReward: 400,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "biodiversidad-bosque-seco", value: 360 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "biodiversidad-bosque-seco", value: 1_400 },
     thumbnailUrl: "/media/courses/humedales/cover.jpg",
     curriculum: [
       "Qué es un humedal artificial y cómo imita a la naturaleza",
@@ -556,7 +556,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Los hábitos que más litros ahorran, sin gastar dinero.",
     durationMinutes: 12,
     xpReward: 120,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "ciclo-agua-basico", value: 15 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "ciclo-agua-basico", value: 250 },
     thumbnailUrl: "/media/courses/ahorro-en-casa/cover.jpg",
     curriculum: [
       "Qué gasta más agua en un hogar típico: inodoro y ducha",
@@ -606,7 +606,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Los dos hábitos que más enfermedades previenen.",
     durationMinutes: 10,
     xpReward: 120,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "ahorro-en-casa", value: 30 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "ahorro-en-casa", value: 300 },
     thumbnailUrl: "/media/courses/higiene-agua-segura/cover.jpg",
     curriculum: [
       "Por qué lavarse las manos con agua y jabón corta la vía de contagio",
@@ -656,7 +656,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Desinfecta agua para beber con lejía sin perfume.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "sodis", value: 60 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "sodis", value: 400 },
     thumbnailUrl: "/media/courses/cloracion-casera/cover.jpg",
     curriculum: [
       "Qué lejía sirve y cuál es tóxica para consumo",
@@ -706,7 +706,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Por qué el agua segura salva más vidas de lo que parece.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cloracion-casera", value: 75 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cloracion-casera", value: 450 },
     thumbnailUrl: "/media/courses/enfermedades-agua-contaminada/cover.jpg",
     curriculum: [
       "Las enfermedades diarreicas: la principal enfermedad transmitida por agua",
@@ -756,7 +756,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Qué significa que el agua esté 'turbia' y por qué importa.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "filtros-caseros", value: 105 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "filtros-caseros", value: 550 },
     thumbnailUrl: "/media/courses/turbidez-calidad-agua/cover.jpg",
     curriculum: [
       "Qué mide exactamente la turbidez",
@@ -806,7 +806,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Encuentra el agua que se pierde sin que la veas.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "turbidez-calidad-agua", value: 120 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "turbidez-calidad-agua", value: 600 },
     thumbnailUrl: "/media/courses/deteccion-fugas/cover.jpg",
     curriculum: [
       "La prueba del medidor: cómo detectar una fuga oculta",
@@ -856,7 +856,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Una manta de hojas secas que ahorra riego de verdad.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "riego-goteo", value: 165 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "riego-goteo", value: 750 },
     thumbnailUrl: "/media/courses/mulch-suelo/cover.jpg",
     curriculum: [
       "Qué es el mulch y de qué materiales se hace",
@@ -906,7 +906,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Cómo mantener tu reserva de agua en buen estado.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "consumo-domestico", value: 225 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "consumo-domestico", value: 950 },
     thumbnailUrl: "/media/courses/cisternas-tanques/cover.jpg",
     curriculum: [
       "Por qué el tanque debe estar siempre tapado",
@@ -956,7 +956,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Por qué se descartan los primeros litros que caen del techo.",
     durationMinutes: 8,
     xpReward: 120,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cosecha-lluvia", value: 195 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cosecha-lluvia", value: 850 },
     thumbnailUrl: "/media/courses/primeras-aguas-lluvia/cover.jpg",
     curriculum: [
       "Qué es el 'first flush' o primer lavado",
@@ -1006,7 +1006,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Comparaciones reales: qué gasta más y qué gasta menos.",
     durationMinutes: 10,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "primeras-aguas-lluvia", value: 210 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "primeras-aguas-lluvia", value: 900 },
     thumbnailUrl: "/media/courses/consumo-domestico/cover.jpg",
     curriculum: [
       "Manguera vs. balde para lavar el carro",
@@ -1056,7 +1056,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Un accesorio barato que reduce el gasto sin que se note.",
     durationMinutes: 8,
     xpReward: 120,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cisternas-tanques", value: 240 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "cisternas-tanques", value: 1_000 },
     thumbnailUrl: "/media/courses/aireadores-griferia/cover.jpg",
     curriculum: [
       "Qué es un aireador y cómo funciona",
@@ -1106,7 +1106,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Lavar ropa gastando menos agua y jabón.",
     durationMinutes: 8,
     xpReward: 120,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "aireadores-griferia", value: 255 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "aireadores-griferia", value: 1_050 },
     thumbnailUrl: "/media/courses/lavanderia-eficiente/cover.jpg",
     curriculum: [
       "Por qué juntar la ropa en una sola tanda ahorra tanto",
@@ -1156,7 +1156,7 @@ export const coursesMock: WaterCourse[] = [
     description: "De la sierra de Huancabamba hasta el mar: una sola cuenca.",
     durationMinutes: 10,
     xpReward: 140,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "lavanderia-eficiente", value: 270 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "lavanderia-eficiente", value: 1_100 },
     thumbnailUrl: "/media/courses/rio-piura-cuenca/cover.jpg",
     curriculum: [
       "Qué es una cuenca hidrográfica",
@@ -1206,7 +1206,7 @@ export const coursesMock: WaterCourse[] = [
     description: "De la sequía a la inundación en pocas semanas.",
     durationMinutes: 10,
     xpReward: 140,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "rio-piura-cuenca", value: 285 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "rio-piura-cuenca", value: 1_150 },
     thumbnailUrl: "/media/courses/el-nino-crecidas/cover.jpg",
     curriculum: [
       "Qué es el Fenómeno de El Niño y cómo afecta a Piura",
@@ -1256,7 +1256,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El daño invisible de la basura en el agua.",
     durationMinutes: 8,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "gestion-comunitaria-agua", value: 315 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "gestion-comunitaria-agua", value: 1_250 },
     thumbnailUrl: "/media/courses/contaminacion-rios-plasticos/cover.jpg",
     curriculum: [
       "Cómo la basura agrava las inundaciones",
@@ -1306,7 +1306,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El árbol que sobrevive años sin lluvia.",
     durationMinutes: 8,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "contaminacion-rios-plasticos", value: 330 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "contaminacion-rios-plasticos", value: 1_300 },
     thumbnailUrl: "/media/courses/algarrobo-bosque-seco/cover.jpg",
     curriculum: [
       "Cómo el algarrobo llega al acuífero con sus raíces",
@@ -1356,7 +1356,7 @@ export const coursesMock: WaterCourse[] = [
     description: "La vida silvestre que depende del algarrobo y del agua subterránea.",
     durationMinutes: 8,
     xpReward: 130,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "algarrobo-bosque-seco", value: 345 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "algarrobo-bosque-seco", value: 1_350 },
     thumbnailUrl: "/media/courses/biodiversidad-bosque-seco/cover.jpg",
     curriculum: [
       "Por qué el bosque seco es un ecosistema frágil, no un terreno vacío",
@@ -1406,7 +1406,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Cómo se pierde el suelo fértil, y cómo se protege.",
     durationMinutes: 8,
     xpReward: 140,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "humedales", value: 375 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "humedales", value: 1_450 },
     thumbnailUrl: "/media/courses/erosion-suelo/cover.jpg",
     curriculum: [
       "Qué es la erosión y cómo la acelera el agua sin control",
@@ -1456,7 +1456,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El vivero natural que protege la costa.",
     durationMinutes: 8,
     xpReward: 140,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "erosion-suelo", value: 390 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "erosion-suelo", value: 1_500 },
     thumbnailUrl: "/media/courses/manglares-piura/cover.jpg",
     curriculum: [
       "Por qué los manglares son criaderos de especies marinas",
@@ -1506,7 +1506,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El agua que no se ve, pero sostiene a todo un valle.",
     durationMinutes: 8,
     xpReward: 150,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "manglares-piura", value: 405 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "manglares-piura", value: 1_550 },
     thumbnailUrl: "/media/courses/acuiferos-subterraneas/cover.jpg",
     curriculum: [
       "Qué es un acuífero y cómo se forma",
@@ -1556,7 +1556,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El agua invisible detrás de la comida y la ropa.",
     durationMinutes: 8,
     xpReward: 150,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "acuiferos-subterraneas", value: 420 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "acuiferos-subterraneas", value: 1_600 },
     thumbnailUrl: "/media/courses/huella-hidrica-alimentos/cover.jpg",
     curriculum: [
       "Qué es el agua virtual y por qué no la vemos",
@@ -1606,7 +1606,7 @@ export const coursesMock: WaterCourse[] = [
     description: "Cómo el clima más extremo cambia las reglas del agua.",
     durationMinutes: 8,
     xpReward: 150,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "huella-hidrica-alimentos", value: 435 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "huella-hidrica-alimentos", value: 1_650 },
     thumbnailUrl: "/media/courses/cambio-climatico-agua/cover.jpg",
     curriculum: [
       "Por qué el cambio climático hace más extremos El Niño y las sequías",
@@ -1656,7 +1656,7 @@ export const coursesMock: WaterCourse[] = [
     description: "El agua se cuida mejor cuando se cuida en comunidad.",
     durationMinutes: 8,
     xpReward: 150,
-    unlock: { type: "requiresCourseAndHydroPoints", courseId: "el-nino-crecidas", value: 300 },
+    unlock: { type: "requiresCourseAndHydroPoints", courseId: "el-nino-crecidas", value: 1_200 },
     thumbnailUrl: "/media/courses/gestion-comunitaria-agua/cover.jpg",
     curriculum: [
       "Qué son las juntas de usuarios de agua",

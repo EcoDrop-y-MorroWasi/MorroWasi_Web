@@ -67,7 +67,7 @@ describe("Avatares — Skin Especial", () => {
   it(`con el set completo se compra por ${SPECIAL_SKIN_PRICE} HP y queda puesta`, () => {
     seed({ complete: true, hp: SPECIAL_SKIN_PRICE + 100 });
     render(<Avatares wasiStage={10} />);
-    click(new RegExp(`Desbloquear.*${SPECIAL_SKIN_PRICE}`));
+    click(new RegExp(`Desbloquear.*${SPECIAL_SKIN_PRICE.toLocaleString("es-PE")}`));
 
     expect(getHydroPoints()).toBe(100);
     expect(read().ownedSpecialSkins).toEqual(["angie"]);

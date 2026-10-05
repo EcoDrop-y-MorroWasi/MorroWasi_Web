@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useBadges } from "../utils/badges";
+import RiverAlbumPanel from "./RiverAlbumPanel";
 
 // Álbum de insignias (Morrowasi_web.md:186-192) — estilo pegatina: borde blanco grueso + trazo negro 2px neo.
 // Datos reales donde existen (cursos vía localStorage compartido, Wasi vía fórmula oficial); contadores de
@@ -49,6 +50,10 @@ export default function Album() {
         Ojo de Halcón, Guardián Nocturno y Ducha Relámpago cuentan repeticiones totales guardadas
         en este dispositivo, no rachas de días consecutivos reales.
       </p>
+
+      <div className="my-8 h-1 rounded-full bg-ink/10" />
+
+      <RiverAlbumPanel />
     </div>
   );
 }

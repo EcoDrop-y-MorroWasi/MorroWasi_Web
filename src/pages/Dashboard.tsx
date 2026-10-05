@@ -55,10 +55,10 @@ export default function Dashboard() {
         <button
           type="button"
           onClick={() => startTutorial(navigate)}
-          className="keyline-border flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-secondary/40 px-4 font-display text-sm font-bold shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="keyline-border flex min-h-12 items-center justify-between gap-2 rounded-2xl bg-secondary/40 px-4 font-display text-[13px] font-bold shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
         >
-          <span>🧭 ¿Cómo funciona MorroWasi?</span>
-          <span className="font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
+          <span className="whitespace-nowrap">🧭 ¿Cómo funciona MorroWasi?</span>
+          <span className="whitespace-nowrap font-body text-xs font-semibold text-ink/70">Ver recorrido →</span>
         </button>
 
         {/* Modelo 3D del Wasi en la etapa actual — más arriba, lo primero que se ve tras el recorrido guiado */}
@@ -77,7 +77,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-3" data-tour="metricas">
         <MetricCard label="Litros hoy" value={`${mockFamily.litersToday} L`} />
         <MetricCard label="HydroPuntos" value={String(hydroPoints)} highlight />
-        <MetricCard label="Racha" value={`${streakDays} días`} sub="🔥 días consecutivos" />
+        <MetricCard label="Racha" value={String(streakDays)} sub={`🔥 ${streakDays === 1 ? "día consecutivo" : "días consecutivos"}`} />
       </div>
 
       {/* Tarjeta viva Wasi — clickable abre modal 10 etapas */}

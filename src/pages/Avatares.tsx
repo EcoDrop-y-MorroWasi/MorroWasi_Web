@@ -266,12 +266,13 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                   height={288}
                   autoRotate
                   interactive
+                  className="mx-auto"
                   onError={(url) => {
                     if (url === modelContent.avatarUrl) setFailedModelUrl(url);
                   }}
                 />
               ) : (
-                <AvatarSkinViewer skin={skinCanvas} cape={capeCanvas} model={av.model} width={220} height={288} zoom={0.8} autoRotate interactive />
+                <AvatarSkinViewer skin={skinCanvas} cape={capeCanvas} model={av.model} width={220} height={288} zoom={0.8} autoRotate interactive className="mx-auto" />
               )}
             </div>
             <p className="mt-2 text-[11px] font-bold text-ink/50">Arrastra para girar (horizontal)</p>

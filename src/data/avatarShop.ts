@@ -351,11 +351,11 @@ export const ACCESSORY_ICONS: Record<string, string[]> = {
 
 // HydroPuntos de cada accesorio según su posición (el #0 siempre gratis). Igual
 // para los 11 avatares: antes subía +10 % por etapa (Joe ×2.2) y completar un
-// avatar costaba 5 520–12 140 HP; ahora 750 HP, unas 8–25 partidas ganadas.
-const PRICE_STEPS = [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+// avatar costaba 5 520–12 140 HP; ahora 7 500 HP + skin 1 000 HP.
+const PRICE_STEPS = [0, 300, 400, 500, 600, 700, 800, 900, 1_000, 1_100, 1_200];
 
 /** HydroPuntos para desbloquear la Skin Especial, además de tener los 11 accesorios del avatar. */
-export const SPECIAL_SKIN_PRICE = 200;
+export const SPECIAL_SKIN_PRICE = 1_000;
 
 function buildAccessories(av: Avatar): Accessory[] {
   return SLOT_ORDER.map((slot, i) => {

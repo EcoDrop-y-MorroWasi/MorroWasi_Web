@@ -151,7 +151,17 @@ export const ACCESSORY_MODEL_FILES: Record<string, string> = {
   "angie-acc6": "angie-acc6.59b5e2b8.glb",
   "angie-acc7": "angie-acc7.95592cd6.glb",
   "angie-acc8": "angie-acc8.f5c957c2.glb",
-  "angie-acc9": "angie-acc9.b2e07d89.glb"
+  "angie-acc9": "angie-acc9.b2e07d89.glb",
+  "britney-acc0": "britney-acc0.2dde5889.glb",
+  "britney-acc1": "britney-acc1.02b9ba77.glb",
+  "britney-acc2": "britney-acc2.3f2e060e.glb",
+  "britney-acc3": "britney-acc3.0268dac1.glb",
+  "britney-acc4": "britney-acc4.2036dab5.glb",
+  "britney-acc5": "britney-acc5.85315317.glb",
+  "britney-acc6": "britney-acc6.278372c7.glb",
+  "britney-acc7": "britney-acc7.139282ad.glb",
+  "britney-acc8": "britney-acc8.08ba61b5.glb",
+  "britney-acc9": "britney-acc9.2a75f959.glb"
 };
 
 /** Accesorios que vinieron armados sobre el avatar: van en esta posición (m), no en un socket. */
@@ -210,6 +220,21 @@ export const ACCESSORY_POSED_AT: Record<string, [number, number, number]> = {
     -0.11,
     0.153,
     0
+  ],
+  "britney-acc7": [
+    -0.19,
+    1.137,
+    -0.125
+  ],
+  "britney-acc8": [
+    -0.126,
+    0.186,
+    0.041
+  ],
+  "britney-acc9": [
+    -0.126,
+    0.144,
+    0.04
   ]
 };
 
@@ -225,5 +250,15 @@ export const ACCESSORY_THUMB_FILES: Record<string, string> = {
   "angie-acc6": "angie-acc6.100bf19f.webp",
   "angie-acc7": "angie-acc7.260231a8.webp",
   "angie-acc8": "angie-acc8.b8b0d847.webp",
-  "angie-acc9": "angie-acc9.a779d7e2.webp"
+  "angie-acc9": "angie-acc9.a779d7e2.webp",
+  "britney-acc0": "britney-acc0.2209e4ae.webp",
+  "britney-acc1": "britney-acc1.c22f0e03.webp",
+  "britney-acc2": "britney-acc2.0ecf1b88.webp",
+  "britney-acc3": "britney-acc3.566bc429.webp",
+  "britney-acc4": "britney-acc4.303f83e2.webp",
+  "britney-acc5": "britney-acc5.70fd350e.webp",
+  "britney-acc6": "britney-acc6.dcb1fc9a.webp",
+  "britney-acc7": "britney-acc7.d2f93655.webp",
+  "britney-acc8": "britney-acc8.6f944dad.webp",
+  "britney-acc9": "britney-acc9.791949a3.webp"
 };

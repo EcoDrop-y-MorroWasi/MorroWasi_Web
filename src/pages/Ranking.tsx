@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RankingTable } from '../components/RankingTable'
 import { mockFamily } from '../data/mock'
 import { getProfileId } from '../utils/progressBackup'
+import { getLinkedCode } from '../utils/progressSync'
 import { totalsToday, totalsFromLedger } from '../utils/leaderboardLedger'
 import {
   PERIODOS,
@@ -17,7 +19,8 @@ import {
   type MyRankRow,
 } from '../utils/leaderboardSync'
 
-const TOP = 10
+const TAMANO_PAGINA = 10
+const TOPE_MAXIMO = 50
 
 function leerPerfil() {
   try {
@@ -42,8 +45,10 @@ export const Ranking = () => {
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [pidiendoConsentimiento, setPidiendoConsentimiento] = useState(false)
+  const [limite, setLimite] = useState(TAMANO_PAGINA)
+  const [faltaSync, setFaltaSync] = useState(false)
   // Privado (fetchMyRank exige tu secret real) — se pide aparte del top porque
-  // solo tiene sentido mostrarlo cuando quedaste fuera de esas primeras 10 filas.
+  // solo tiene sentido mostrarlo cuando quedaste fuera de las filas visibles.
   const [miRango, setMiRango] = useState<MyRankRow | null>(null)
 
   const miProfileId = getProfileId()
@@ -58,10 +63,11 @@ export const Ranking = () => {
   // monta una sola vez: sin esto el callback recargaría siempre el periodo que
   // estaba activo cuando se suscribió.
   const periodoRef = useRef(periodo)
+  const limiteRef = useRef(limite)
 
-  const cargar = useCallback(async (p: LeaderboardPeriodo) => {
+  const cargar = useCallback(async (p: LeaderboardPeriodo, lim: number) => {
     try {
-      setResultado({ periodo: p, rows: await fetchLeaderboard(p, TOP), error: null })
+      setResultado({ periodo: p, rows: await fetchLeaderboard(p, lim), error: null })
     } catch (e) {
       setResultado({
         periodo: p,
@@ -81,23 +87,37 @@ export const Ranking = () => {
 
   useEffect(() => {
     periodoRef.current = periodo
+    limiteRef.current = limite
     // set-state-in-effect: falso positivo. cargar() solo escribe estado cuando la
     // respuesta del servidor llegó — el estado no es derivable del render porque
     // depende de una petición de red.
     // eslint-disable-next-line react/set-state-in-effect
-    void cargar(periodo)
-  }, [periodo, cargar])
+    void cargar(periodo, limite)
+  }, [periodo, limite, cargar])
 
   // Tiempo real: cada puntaje que comparte cualquier familia inserta eventos, y
   // eso vuelve a pedir el ranking del periodo que el usuario está mirando. La
   // tabla se reemplaza debajo sin volver al esqueleto, porque el periodo no cambió.
-  useEffect(() => subscribeLeaderboard(() => void cargar(periodoRef.current)), [cargar])
+  useEffect(() => subscribeLeaderboard(() => void cargar(periodoRef.current, limiteRef.current)), [cargar])
+
+  const verMas = () => {
+    setLimite((l) => Math.min(TOPE_MAXIMO, l + TAMANO_PAGINA))
+  }
 
   const compartir = async () => {
     if (!tieneConsentimiento()) {
       setPidiendoConsentimiento(true)
       return
     }
+    // Antitrampa: sin progreso sincronizado no se comparte. Vincular el código
+    // ata el puntaje a una identidad con respaldo, así no vale crear perfiles
+    // desechables para inflar la tabla.
+    if (!getLinkedCode()) {
+      setFaltaSync(true)
+      setAviso('Para compartir tu puntaje primero sincroniza tu progreso: así tu cuenta queda respaldada y evitamos trampas.')
+      return
+    }
+    setFaltaSync(false)
     // Cuenta recién creada: no hay nada que subir, mejor decirlo antes de ir al servidor.
     const totales = totalsFromLedger()
     if (totales.hydro === 0 && totales.exp === 0) {
@@ -117,7 +137,7 @@ export const Ranking = () => {
       if (res.nombreAplicado !== perfil.name) {
         setAviso(`Tu puntaje se compartió como "${res.nombreAplicado}".`)
       }
-      await cargar(periodo)
+      await cargar(periodo, limiteRef.current)
     } catch (e) {
       setAviso(e instanceof Error ? e.message : 'No se pudo compartir tu puntaje.')
     } finally {
@@ -136,7 +156,7 @@ export const Ranking = () => {
       <section data-tour="tarjeta-ranking" className="keyline-border rounded-2xl bg-primary/25 p-5 shadow-[4px_4px_0_var(--color-ink)]">
         <h1 className="font-display text-xl font-extrabold">🏆 Tabla de clasificación</h1>
         <p className="mt-1 font-body text-sm font-semibold text-ink/75">
-          Top {TOP} de personas que más HydroPuntos acumulan. El conteo del día arranca a las
+          Top {TOPE_MAXIMO} de personas que más HydroPuntos acumulan. El conteo del día arranca a las
           00:00 y cierra a las 23:59, hora de Perú.
         </p>
 
@@ -182,6 +202,16 @@ export const Ranking = () => {
               {aviso}
             </motion.p>
           )}
+          {faltaSync && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Link
+                to="/perfil"
+                className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-primary px-5 font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                🔗 Ir a sincronizar mi progreso
+              </Link>
+            </motion.div>
+          )}
         </AnimatePresence>
       </section>
 
@@ -193,7 +223,10 @@ export const Ranking = () => {
             type="button"
             role="tab"
             aria-selected={periodo === p.id}
-            onClick={() => setPeriodo(p.id)}
+            onClick={() => {
+              setPeriodo(p.id)
+              setLimite(TAMANO_PAGINA)
+            }}
             className={`min-h-12 shrink-0 rounded-xl border-2 border-ink px-4 font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
               periodo === p.id ? 'bg-accent text-white' : 'bg-bg-light text-ink/80'
             }`}
@@ -220,6 +253,15 @@ export const Ranking = () => {
         ) : (
           <>
             <RankingTable entries={entries} miProfileId={miProfileId} periodoLabel={periodoActual.label} />
+            {entries.length >= limite && limite < TOPE_MAXIMO && (
+              <button
+                type="button"
+                onClick={verMas}
+                className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-bg-light font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Ver más (top {Math.min(TOPE_MAXIMO, limite + TAMANO_PAGINA)})
+              </button>
+            )}
             {/* Solo si quedaste fuera del top — si ya estás en la tabla de arriba,
                 mostrarlo de nuevo acá sería redundante. Privado: nadie más ve esto,
                 solo lo pide quien tiene tu secret real (ver fetchMyRank). */}

@@ -14,7 +14,7 @@ interface Vineta {
 
 const TONOS = ["bg-[#99B4D8]", "bg-[#FFB793]", "bg-[#E26D5C]"] as const;
 
-const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
+const VINETAS: Record<MinigameType, Vineta[]> = {
   FUGAS_DETECT: [
     { emoji: "💧", titulo: "Aparecen fugas", texto: "Grifos, inodoros y mangueras empiezan a botar agua por toda la casa." },
     { emoji: "🔧", titulo: "Arrastra la herramienta", texto: "Llave, teflón o válvula: cada fuga necesita la suya. Elige bien." },
@@ -59,6 +59,7 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "🎵", titulo: "Suena la canción", texto: "Una ducha de 4 minutos marcada al ritmo de la música." },
     { emoji: "🧼", titulo: "Enjabónate", texto: "En los compases marcados toca cerrar la llave mientras te enjabonas." },
     { emoji: "🚿", titulo: "No dejes correr", texto: "Cada segundo con el agua abierta de más te pinta la barra en rojo." },
+    { emoji: "⚠️", titulo: "Ojo con trampas", texto: "Botones falsos tipo Abrir a full: NO los toques. Solo Cerrar en rojo." },
   ],
   CORTE_AGUA: [
     { emoji: "🛢️", titulo: "1000 litros", texto: "Es todo lo que tiene tu hogar para aguantar 3 días de corte." },
@@ -71,8 +72,9 @@ const VINETAS: Record<MinigameType, [Vineta, Vineta, Vineta]> = {
     { emoji: "💧", titulo: "Recoge acuíferos", texto: "Cada bolsa de agua subterránea suma. 3 rondas cada vez más hondas." },
   ],
   CLORACION_SEGURA: [
-    { emoji: "🏺", titulo: "Jarras y bidones", texto: "Cada recipiente necesita su dosis exacta de cloro para ser seguro." },
-    { emoji: "💧", titulo: "2 gotas por litro", texto: "Mantén presionado el gotero y suelta en el número exacto." },
+    { emoji: "🪣", titulo: "1 L, 5 L o 20 L", texto: "Jarra, balde o bidón: cada capacidad necesita su dosis exacta." },
+    { emoji: "🚰", titulo: "El agua decide", texto: "La de red pide 2 gotas por litro, la de pozo 5. El agua embotellada no se clora." },
+    { emoji: "🧺", titulo: "Turbia primero", texto: "Si el agua sale turbia, filtra antes: sin filtrar las gotas no alcanzan." },
     { emoji: "⚠️", titulo: "Ni más ni menos", texto: "Pasarte no desinfecta mejor: arruina el agua igual que quedarse corto." },
   ],
   QUIZ_AGUA: [
@@ -111,7 +113,7 @@ export default function GameIntroVinetas({
           ⏱ {game.durationSeconds}s
         </span>
         <span className="rounded-full border-2 border-ink bg-[#FFB793] px-3 py-1 text-[11px] font-black">
-          Solo suma si superas tu récord
+          Ganar siempre suma
         </span>
       </div>
 
@@ -123,8 +125,8 @@ export default function GameIntroVinetas({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.12 }}
-            className={`relative flex items-center gap-3 overflow-hidden rounded-2xl border-[3px] border-ink p-3 shadow-[4px_4px_0_#1c1c11] sm:flex-col sm:items-start sm:gap-2 sm:p-4 ${TONOS[i]} ${
-              i === 2 ? "text-white" : "text-[#1c1c11]"
+            className={`relative flex items-center gap-3 overflow-hidden rounded-2xl border-[3px] border-ink p-3 shadow-[4px_4px_0_#1c1c11] sm:flex-col sm:items-start sm:gap-2 sm:p-4 ${TONOS[i % TONOS.length]} ${
+              i % TONOS.length === 2 ? "text-white" : "text-[#1c1c11]"
             }`}
           >
             {/* Textura diagonal sutil, igual que el hero de Inicio */}
@@ -148,7 +150,7 @@ export default function GameIntroVinetas({
               </p>
               <p
                 className={`mt-0.5 font-body text-[12px] font-semibold leading-snug ${
-                  i === 2 ? "text-white/90" : "text-[#1c1c11]/75"
+                  i % TONOS.length === 2 ? "text-white/90" : "text-[#1c1c11]/75"
                 }`}
               >
                 {v.texto}
@@ -162,7 +164,7 @@ export default function GameIntroVinetas({
         type="button"
         onClick={onStart}
         whileTap={{ scale: 0.98, x: 2, y: 2 }}
-        className="min-h-12 rounded-xl border-2 border-ink bg-[#E26D5C] font-display font-bold text-white shadow-[4px_4px_0_#1c1c11] active:shadow-none"
+        className="sticky bottom-0 min-h-12 rounded-xl border-2 border-ink bg-[#E26D5C] font-display font-bold text-white shadow-[4px_4px_0_#1c1c11] active:shadow-none"
       >
         ▶ Comenzar (empieza el cronómetro)
       </motion.button>

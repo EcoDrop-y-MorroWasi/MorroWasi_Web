@@ -11,6 +11,7 @@ import {
 } from "./gamification";
 import { calcCourseExp } from "./gamification";
 import { calcGameExp } from "./gamification";
+import { calcGameLiters } from "./gamification";
 
 describe("calcCustomXp", () => {
   it("acota entre 5 y 40, redondeando litros/3", () => {
@@ -40,6 +41,14 @@ describe("calcCourseExp / calcGameExp", () => {
     expect(calcGameExp(100)).toBe(20);
     expect(calcGameExp(30)).toBe(6); // límite inferior del catálogo de juegos
     expect(calcGameExp(10)).toBe(3); // piso de calcGameExp
+  });
+});
+
+describe("calcGameLiters", () => {
+  it("mantiene cinco litros por cada punto de EXP", () => {
+    expect(calcGameLiters(6)).toBe(30);
+    expect(calcGameLiters(20)).toBe(100);
+    expect(calcGameLiters(-1)).toBe(0);
   });
 });
 

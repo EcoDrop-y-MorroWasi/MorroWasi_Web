@@ -1,15 +1,47 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { Minigame, MinigameType } from "../utils/gamification";
+import { MIN_GAME_WIN_ACCURACY } from "../utils/gamification";
 import { bumpStat } from "../utils/stats";
 import TutorialCard from "../components/TutorialCard";
 import GameIntroVinetas from "../components/GameIntroVinetas";
 import ConstruyeWasiGame from "../components/ConstruyeWasiGame";
 import { sortearPreguntas, barajar, TEMAS_QUIZ, type PreguntaQuiz } from "../data/quiz";
+import {
+  phaseAt,
+  pickLaneX,
+  pickSpecies,
+  RIVER_PHASES,
+  RIVER_SPECIES,
+  SPECIES_BY_ID,
+  TOTAL_SPECIES,
+} from "../data/guardianRio";
+import { recordDiscovery, useAlbum } from "../utils/riverAlbumStore";
+import {
+  phaseAt as cloracionPhaseAt,
+  sortearCaso,
+  primerCaso,
+  gotasRequeridas,
+  evaluarDosis,
+  dosisApta,
+  gotasDeRitmo,
+  dropIntervalMs,
+  timeoutMs as cloracionTimeoutMs,
+  WATER_COLOR,
+  RITMOS,
+  comboMultiplier,
+  calcCloracionScore,
+  CLORACION_PHASES,
+  type CasoCloracion,
+  type DosisVeredicto,
+  type RitmoId,
+} from "../data/cloracion";
 import { playDuranteJuego, playVictoria, playDerrota, detenerAudio, desbloquearAudio } from "../utils/gameAudio";
+import { playChime, playMiss } from "../utils/sound";
 
 export interface MinigameResult {
   earned: number;
+  liters: number;
   isNewBest: boolean;
   bestScore: number;
 }
@@ -25,7 +57,7 @@ type Phase = "intro" | "tutorial" | "playing" | "result";
 const HARD_SHADOW = "shadow-[4px_4px_0_#1c1c11]";
 
 // Minitutorial por tipo de juego — sin timer, ejemplo simple antes de arrancar el cronómetro real.
-const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: string; label: string }> = {
+const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: string; label: string; turbidez?: string }> = {
   FUGAS_DETECT: {
     instructions: "Arrastra la herramienta correcta hacia cada fuga antes de que se pierda el agua.",
     from: "🔧",
@@ -51,10 +83,10 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
     label: "Ej.: es mediodía → elige esperar a la noche",
   },
   FILTROS_LAB: {
-    instructions: "Arrastra cada material a su capa correcta, de abajo hacia arriba.",
+    instructions: "Arrastra cada material a su capa correcta, de abajo hacia arriba: grava, arena gruesa, arena fina, carbón activado y algodón.",
     from: "🌑",
-    to: "🧪",
-    label: "Ej.: grava → capa inferior de la botella",
+    to: "💧",
+    label: "Orden: 🌑 grava → 🔶 arena gruesa → 🔸 arena fina → ⚫ carbón → 🧶 algodón",
   },
   RUTAS_AGUAS: {
     instructions: "Toca cada tubería para rotarla y conectar la ruta de agua.",
@@ -68,17 +100,18 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
     to: "🧴",
     label: "Ej.: espejo → botella con bacterias",
   },
-  GUARDIAN_RIO: {
-    instructions: "Desliza la basura hacia la derecha y deja pasar la fauna hacia la izquierda.",
+GUARDIAN_RIO: {
+    instructions:
+      "Desliza la basura hacia la derecha y deja pasar la fauna y los mangles hacia la izquierda. El río cambia de fase: mañana, crecida y sequía.",
     from: "🥤",
     to: "➡️",
-    label: "Ej.: botella de plástico → deslízala a la derecha",
+    label: "Ej.: botella PET → a la derecha · flamenco 🦩 → a la izquierda",
   },
   DUCHA_MUSICAL: {
-    instructions: "Cierra la llave justo en el compás activo mientras te enjabonas.",
+    instructions: "Cierra la llave justo en el compás rojo. Ignora los botones falsos: tocarlos desperdicia +8L.",
     from: "🧼",
     to: "🚿",
-    label: "Ej.: compás activo → toca Cerrar llave",
+    label: "Ej.: compás rojo → Cerrar llave. Botón Abrir a full → no tocar",
   },
   CORTE_AGUA: {
     instructions: "Elige la opción que gasta menos agua sin perder higiene en casa.",
@@ -93,10 +126,11 @@ const TUTORIALS: Record<MinigameType, { instructions: string; from: string; to: 
     label: "Ej.: esquiva la roca, recoge la bolsa de agua subterránea",
   },
   CLORACION_SEGURA: {
-    instructions: "Mantén presionado el gotero y suelta justo en el número exacto de gotas.",
-    from: "💧",
+    instructions:
+      "El juego nunca te dice cuántas gotas van: lo calculas. Dosis = litros × gotas por litro. Agua de red 2/L, de pozo 5/L, embotellada NO se clora (hierve o SODIS). Si está turbia, filtra primero: sin filtrar la dosis se duplica.",
+    from: "🧴",
     to: "🏺",
-    label: "Ej.: 2 gotas exactas para la jarra de 1 L",
+    label: "Ej.: bidón 20 L + agua de red → 40 gotas; turbia sin filtrar → 80",
   },
   QUIZ_AGUA: {
     instructions: "Toca la respuesta correcta antes de que se acabe el tiempo. Mientras más rápido, más puntos.",
@@ -165,7 +199,9 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
   const playAgain = () => {
     detenerAudio();
     setResult(null);
-    setPhase("intro");
+    // Rejugar directo: volver a "playing" remonta el motor con tiempo y
+    // estado frescos, sin pasar por intro/tutorial otra vez.
+    setPhase("playing");
   };
 
   return (
@@ -187,7 +223,7 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
         exit={{ y: 16, opacity: 0 }}
         className={`max-h-[96vh] w-full max-w-xl overflow-y-auto rounded-3xl border-2 border-ink bg-bg-light p-4 ${HARD_SHADOW}`}
       >
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="sticky top-0 z-10 -mx-1 mb-3 flex items-center justify-between gap-2 bg-bg-light px-1 pb-2 pt-1">
           <h2 className="font-display text-lg font-extrabold text-ink">{game.title}</h2>
           <button
             type="button"
@@ -219,7 +255,8 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
                 instructions={TUTORIALS[game.type].instructions}
                 exampleFrom={TUTORIALS[game.type].from}
                 exampleTo={TUTORIALS[game.type].to}
-                exampleLabel={TUTORIALS[game.type].label}
+exampleLabel={TUTORIALS[game.type].label}
+                turbidez={TUTORIALS[game.type].turbidez}
                 onStart={() => setPhase("playing")}
               />
             </motion.div>
@@ -245,6 +282,7 @@ export default function MinigamePlay({ game, onFinish, onClose }: MinigamePlayPr
               <p className="font-display text-2xl font-extrabold text-ink">
                 {result.earned === 0 ? "Perdiste" : `+${result.earned} HydroPuntos`}
               </p>
+              {result.liters > 0 && <p className="text-sm font-black text-ink/80">+{result.liters} L ahorrados · proporcional a tu EXP</p>}
               <p className="text-sm font-bold text-ink/80">
                 {result.isNewBest
                   ? "¡Nuevo récord! HydroPuntos y EXP otorgados."
@@ -849,28 +887,36 @@ function siguienteClima(actual: Clima): Clima {
   return Math.random() < 0.5 ? "sol" : "limpia";
 }
 
+/** Puntúa solo contra la lluvia limpia que realmente hubo en la partida.
+ * El sol y las primeras aguas no son oportunidades de recolección, por lo que
+ * no deben convertir una buena partida en derrota. */
+export function calcAtrapaLluviasAccuracy(cleanLiters: number, cleanOpportunityLiters: number, contamination: number): number {
+  if (cleanOpportunityLiters <= 0) return 0;
+  const safeLiters = Math.max(0, cleanLiters - contamination * LITROS_POR_CANALETA_SEG);
+  return Math.min(1, safeLiters / cleanOpportunityLiters);
+}
+
 function AtrapaLluviasGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
   const [open, setOpen] = useState<boolean[]>(Array(CANALETAS).fill(false));
   const [cleanLiters, setCleanLiters] = useState(0);
+  const [cleanOpportunityLiters, setCleanOpportunityLiters] = useState(0);
   const [contamination, setContamination] = useState(0);
   const [clima, setClima] = useState<Clima>("sucia");
   const [, setClimaSegundosLeft] = useState(CLIMA_MIN_SEGUNDOS);
   const finishedRef = useRef(false);
 
-  const theoreticalMax = CANALETAS * duration * LITROS_POR_CANALETA_SEG;
-
   useEffect(() => {
     if (timeLeft <= 0) {
       if (!finishedRef.current) {
         finishedRef.current = true;
-        const net = cleanLiters - contamination * 15;
-        onComplete(theoreticalMax > 0 ? Math.min(1, Math.max(0, net / theoreticalMax)) : 0);
+        onComplete(calcAtrapaLluviasAccuracy(cleanLiters, cleanOpportunityLiters, contamination));
       }
       return;
     }
     const t = setTimeout(() => {
       setOpen((currentOpen) => {
+        if (clima === "limpia") setCleanOpportunityLiters((l) => l + CANALETAS * LITROS_POR_CANALETA_SEG);
         currentOpen.forEach((isOpen) => {
           if (!isOpen) return;
           if (clima === "sucia") setContamination((c) => c + 1);
@@ -927,44 +973,43 @@ function AtrapaLluviasGame({ duration, onComplete }: { duration: number; onCompl
 // decide cómo cuidar el biohuerto sin perder 80% por evaporación.
 // ======================================================================
 
-type DayPhase = "Mañana" | "Mediodía" | "Noche";
-const DAY_PHASES: DayPhase[] = ["Mañana", "Mediodía", "Noche"];
+type DayPhase = "Madrugada" | "Mañana" | "Mediodía" | "Tarde" | "Atardecer" | "Noche";
 const TICK_SECONDS = 10;
-const PHASE_ICON: Record<DayPhase, string> = { Mañana: "🌅", Mediodía: "☀️", Noche: "🌙" };
+const PHASE_ICON: Record<DayPhase, string> = { Madrugada: "🌌", Mañana: "🌅", Mediodía: "☀️", Tarde: "💨", Atardecer: "🌇", Noche: "🌙" };
 
-interface RiegoOption {
+export interface RiegoOption {
   label: string;
   emoji: string;
   good: boolean;
 }
 
-/** Cada fase del día tiene su propio dilema — antes solo Mediodía pedía elegir y
- * Mañana/Noche eran puro relleno pasivo, siempre igual. Ahora las 3 fases varían. */
-const PHASE_CHOICES: Record<DayPhase, { prompt: string; options: RiegoOption[] }> = {
-  Mañana: {
-    prompt: "Antes de que caliente, ¿qué haces con el sistema de riego?",
-    options: [
-      { label: "Revisar fugas en la manguera", emoji: "🔍", good: true },
-      { label: "Dejarlo como está y salir", emoji: "🚶", good: false },
-    ],
-  },
-  Mediodía: {
-    prompt: "El sol de Piura pega fuerte — regar con manguera ahora pierde 80% del agua por evaporación.",
-    options: [
-      { label: "Manguera", emoji: "💦", good: false },
-      { label: "Goteo reciclado", emoji: "🥤", good: true },
-      { label: "Mulch", emoji: "🍂", good: true },
-      { label: "Espera la noche", emoji: "⏳", good: true },
-    ],
-  },
-  Noche: {
-    prompt: "Poca evaporación de noche — es el mejor momento para regar fuerte.",
-    options: [
-      { label: "Regar fuerte ahora", emoji: "🌊", good: true },
-      { label: "Dejarlo para mañana", emoji: "😴", good: false },
-    ],
-  },
-};
+export interface RiegoScenario {
+  id: string;
+  phase: DayPhase;
+  prompt: string;
+  options: RiegoOption[];
+}
+
+/** Situaciones cortas, locales y variadas. Se sortean sin repetir la misma
+ * escena seguida, de modo que la partida no se reduce a tres preguntas fijas. */
+export const RIEGO_SCENARIOS: RiegoScenario[] = [
+  { id: "madrugada-reserva", phase: "Madrugada", prompt: "La tierra sigue fresca y tienes agua de lluvia almacenada.", options: [{ label: "Riego por goteo suave", emoji: "💧", good: true }, { label: "Abrir la manguera al máximo", emoji: "💦", good: false }, { label: "Revisar humedad primero", emoji: "🌱", good: true }] },
+  { id: "manana-fuga", phase: "Mañana", prompt: "Antes de que caliente, una manguera tiene un goteo constante.", options: [{ label: "Reparar la fuga", emoji: "🔧", good: true }, { label: "Taparla con tierra", emoji: "🟤", good: false }, { label: "Dejarla corriendo", emoji: "🚶", good: false }] },
+  { id: "manana-mulch", phase: "Mañana", prompt: "El suelo del biohuerto se seca rápido después de regar.", options: [{ label: "Cubrir con mulch", emoji: "🍂", good: true }, { label: "Regar otra vez sin parar", emoji: "🌊", good: false }, { label: "Usar goteo", emoji: "🥤", good: true }] },
+  { id: "mediodia-sol", phase: "Mediodía", prompt: "El sol de Piura pega fuerte: la manguera pierde mucha agua por evaporación.", options: [{ label: "Esperar la noche", emoji: "⏳", good: true }, { label: "Regar con manguera", emoji: "💦", good: false }, { label: "Poner mulch", emoji: "🍂", good: true }, { label: "Usar goteo medido", emoji: "💧", good: true }] },
+  { id: "mediodia-agua-gris", phase: "Mediodía", prompt: "Terminaste de lavar ropa con jabón biodegradable. El agua es apta solo para plantas ornamentales.", options: [{ label: "Reusar en plantas", emoji: "♻️", good: true }, { label: "Usarla para beber", emoji: "🥤", good: false }, { label: "Echarla al biohuerto comestible", emoji: "🥬", good: false }] },
+  { id: "tarde-viento", phase: "Tarde", prompt: "Hay viento fuerte y las gotas de la manguera salen volando.", options: [{ label: "Acercar el goteo al suelo", emoji: "🌱", good: true }, { label: "Apuntar más alto", emoji: "⬆️", good: false }, { label: "Esperar que calme", emoji: "⏳", good: true }] },
+  { id: "tarde-tanque", phase: "Tarde", prompt: "El tanque de lluvia está casi vacío y mañana no habrá agua.", options: [{ label: "Regar solo raíces", emoji: "🎯", good: true }, { label: "Lavar el patio", emoji: "🧹", good: false }, { label: "Programar goteo", emoji: "⏲️", good: true }] },
+  { id: "atardecer-canaletas", phase: "Atardecer", prompt: "Se anuncian lluvias. Las canaletas tienen hojas acumuladas.", options: [{ label: "Limpiar canaletas", emoji: "🍃", good: true }, { label: "Ignorarlas", emoji: "🙈", good: false }, { label: "Cerrar el tanque", emoji: "🚫", good: false }] },
+  { id: "atardecer-medidor", phase: "Atardecer", prompt: "El medidor sigue girando con todas las llaves cerradas.", options: [{ label: "Buscar fuga oculta", emoji: "🔎", good: true }, { label: "Regar para aprovechar", emoji: "💦", good: false }, { label: "Anotar y avisar", emoji: "📝", good: true }] },
+  { id: "noche-riego", phase: "Noche", prompt: "Poca evaporación: es un buen momento para hidratar el huerto.", options: [{ label: "Regar las raíces", emoji: "🌊", good: true }, { label: "Regar las hojas", emoji: "🍃", good: false }, { label: "Usar goteo nocturno", emoji: "💧", good: true }] },
+  { id: "noche-exceso", phase: "Noche", prompt: "El suelo ya está húmedo por la lluvia de la tarde.", options: [{ label: "Medir humedad y esperar", emoji: "📏", good: true }, { label: "Regar por costumbre", emoji: "💦", good: false }, { label: "Cubrir el suelo", emoji: "🍂", good: true }] },
+];
+
+export function pickRiegoScenario(previousId?: string, random = Math.random): RiegoScenario {
+  const candidates = RIEGO_SCENARIOS.filter((scenario) => scenario.id !== previousId);
+  return candidates[Math.floor(random() * candidates.length)] ?? RIEGO_SCENARIOS[0];
+}
 
 function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const totalTicks = Math.max(3, Math.round(duration / TICK_SECONDS));
@@ -974,11 +1019,10 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
   const [decisions, setDecisions] = useState(0);
   const [correctDecisions, setCorrectDecisions] = useState(0);
   const [feedback, setFeedback] = useState<"ok" | "bad" | null>(null);
+  const [scenario, setScenario] = useState<RiegoScenario>(() => pickRiegoScenario());
   const answeredRef = useRef(false);
   const finishedRef = useRef(false);
-
-  const phase = DAY_PHASES[tick % 3];
-  const choices = PHASE_CHOICES[phase];
+  const scenarioIdRef = useRef(scenario.id);
 
   const finalize = () => {
     if (finishedRef.current) return;
@@ -993,6 +1037,9 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
       return;
     }
     setTick((t) => t + 1);
+    const nextScenario = pickRiegoScenario(scenarioIdRef.current);
+    scenarioIdRef.current = nextScenario.id;
+    setScenario(nextScenario);
     setSecondsLeft(TICK_SECONDS);
     setFeedback(null);
     answeredRef.current = false;
@@ -1036,12 +1083,12 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
       <GameHUD timeLabel={`${secondsLeft}s · fase ${tick + 1}/${totalTicks}`} scoreLabel={`🌿 salud ${health}%`} />
       <div className="rounded-2xl border-2 border-ink bg-[#FFB793]/40 p-5 text-center">
         <span className="text-5xl" aria-hidden="true">
-          {PHASE_ICON[phase]}
+          {PHASE_ICON[scenario.phase]}
         </span>
-        <p className="mt-1 font-display text-lg font-extrabold">{phase}</p>
-        <p className="mt-1 text-sm font-semibold text-ink/80">{choices.prompt}</p>
-        <div className={`mt-3 grid grid-cols-2 gap-2 ${choices.options.length > 2 ? "sm:grid-cols-4" : ""}`}>
-          {choices.options.map((option) => (
+        <p className="mt-1 font-display text-lg font-extrabold">{scenario.phase}</p>
+        <p className="mt-1 text-sm font-semibold text-ink/80">{scenario.prompt}</p>
+        <div className={`mt-3 grid grid-cols-2 gap-2 ${scenario.options.length > 2 ? "sm:grid-cols-4" : ""}`}>
+          {scenario.options.map((option) => (
             <button
               key={option.label}
               type="button"
@@ -1235,9 +1282,6 @@ function FiltrosLabGame({ duration, onComplete }: { duration: number; onComplete
           {pouring === "crystal" ? "💎 ¡Agua cristalina! Orden perfecto." : "🌫️ Agua turbia — el orden no filtró bien."}
         </p>
       )}
-      <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        De abajo hacia arriba: grava, arena gruesa, arena fina, carbón activado, algodón.
-      </p>
     </div>
   );
 }
@@ -1274,15 +1318,24 @@ function opensFor(shape: PipeShape, rotation: number): Dir[] {
 const GRID_ROWS = 3;
 const GRID_COLS = 3;
 const SOURCE = { r: 2, c: 0 };
-const TARGET_INODORO = { r: 0, c: 2 };
-const TARGET_BIOHUERTO = { r: 2, c: 2 };
+interface RouteTarget {
+  id: "inodoro" | "biohuerto";
+  r: number;
+  c: number;
+  emoji: string;
+  label: string;
+}
+const ROUTE_TARGETS: RouteTarget[] = [
+  { id: "inodoro", r: 0, c: 2, emoji: "🚽", label: "Inodoro" },
+  { id: "biohuerto", r: 0, c: 2, emoji: "🌳", label: "Biohuerto" },
+];
 const HAZARD = { r: 1, c: 1 };
-const PIPE_POSITIONS = [
-  { r: 0, c: 0 },
-  { r: 0, c: 1 },
-  { r: 1, c: 0 },
-  { r: 1, c: 2 },
-  { r: 2, c: 1 },
+/** Ruta segura única: lavadora → tres tuberías → destino. Las piezas de
+ * alrededor son terreno, así que no puede nacer una solución al azar. */
+const ROUTE_PIPES: { r: number; c: number; shape: PipeShape; solvedRotation: number }[] = [
+  { r: 1, c: 0, shape: "recta", solvedRotation: 0 },
+  { r: 0, c: 0, shape: "codo", solvedRotation: 1 },
+  { r: 0, c: 1, shape: "recta", solvedRotation: 1 },
 ];
 
 function cellKey(r: number, c: number) {
@@ -1293,11 +1346,10 @@ function isSameCell(a: { r: number; c: number }, r: number, c: number) {
   return a.r === r && a.c === c;
 }
 
-function computeConnectivity(pipes: Record<string, PipeCell>) {
+export function computeConnectivity(pipes: Record<string, PipeCell>, target: Pick<RouteTarget, "r" | "c">) {
   const opensAt = (r: number, c: number): Dir[] => {
-    if (isSameCell(SOURCE, r, c)) return [0, 1];
-    if (isSameCell(TARGET_INODORO, r, c)) return [2, 3];
-    if (isSameCell(TARGET_BIOHUERTO, r, c)) return [0, 3];
+    if (isSameCell(SOURCE, r, c)) return [0];
+    if (isSameCell(target, r, c)) return [3];
     if (isSameCell(HAZARD, r, c)) return [];
     const cell = pipes[cellKey(r, c)];
     return cell ? opensFor(cell.shape, cell.rotation) : [];
@@ -1318,26 +1370,33 @@ function computeConnectivity(pipes: Record<string, PipeCell>) {
       if (visited.has(k)) continue;
       visited.add(k);
       queue.push([nr, nc]);
-      if (isSameCell(TARGET_INODORO, nr, nc) || isSameCell(TARGET_BIOHUERTO, nr, nc)) connected = true;
+      if (isSameCell(target, nr, nc)) connected = true;
     }
   }
   return { connected, reachedCount: visited.size - 1 };
 }
 
-function initialPipes(): Record<string, PipeCell> {
+export function initialRutasPipes(random = Math.random): Record<string, PipeCell> {
   const init: Record<string, PipeCell> = {};
-  PIPE_POSITIONS.forEach(({ r, c }) => {
-    init[cellKey(r, c)] = { shape: Math.random() < 0.5 ? "recta" : "codo", rotation: Math.floor(Math.random() * 4) };
+  ROUTE_PIPES.forEach(({ r, c, shape, solvedRotation }) => {
+    // Cada pieza inicia rotada al menos 90°, por lo que nunca hay un tablero
+    // resuelto al abrirlo; aun así siempre existe una ruta clara al destino.
+    // A horizontal first pipe blocks the source, guaranteeing no route exists
+    // until the player rotates a piece. Other pieces remain randomized.
+    const rotation = r === 1 && c === 0 ? 1 : (solvedRotation + 1 + Math.floor(random() * 3)) % 4;
+    init[cellKey(r, c)] = { shape, rotation };
   });
   return init;
 }
 
 function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [pipes, setPipes] = useState<Record<string, PipeCell>>(initialPipes);
+  const [target] = useState<RouteTarget>(() => ROUTE_TARGETS[Math.floor(Math.random() * ROUTE_TARGETS.length)]);
+  const [pipes, setPipes] = useState<Record<string, PipeCell>>(initialRutasPipes);
+  const [moves, setMoves] = useState(0);
   const finishedRef = useRef(false);
 
-  const { connected, reachedCount } = computeConnectivity(pipes);
+  const { connected, reachedCount } = computeConnectivity(pipes, target);
 
   // Solo cuenta si de verdad conecta con inodoro o biohuerto — el tiempo agotado
   // sin conectar es una pérdida real, sin crédito parcial por tramos alcanzados.
@@ -1348,7 +1407,7 @@ function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete
   };
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected || moves === 0) return;
     const t = setTimeout(() => finalize(true), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1366,6 +1425,7 @@ function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete
 
   const rotate = (r: number, c: number) => {
     if (connected) return;
+    setMoves((count) => count + 1);
     setPipes((p) => {
       const k = cellKey(r, c);
       const cur = p[k];
@@ -1387,16 +1447,10 @@ function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete
                   🧺
                 </div>
               );
-            if (isSameCell(TARGET_INODORO, r, c))
+            if (isSameCell(target, r, c))
               return (
-                <div key={k} className="grid h-14 w-14 place-items-center rounded-lg border-2 border-ink bg-surface text-2xl" aria-label="Inodoro, destino válido">
-                  🚽
-                </div>
-              );
-            if (isSameCell(TARGET_BIOHUERTO, r, c))
-              return (
-                <div key={k} className="grid h-14 w-14 place-items-center rounded-lg border-2 border-ink bg-surface text-2xl" aria-label="Biohuerto, destino válido">
-                  🌳
+                <div key={k} className="grid h-14 w-14 place-items-center rounded-lg border-2 border-ink bg-surface text-2xl" aria-label={`${target.label}, destino válido`}>
+                  {target.emoji}
                 </div>
               );
             if (isSameCell(HAZARD, r, c))
@@ -1410,6 +1464,8 @@ function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete
                 </div>
               );
             const pipe = pipes[k];
+            if (!pipe)
+              return <div key={k} className="grid h-14 w-14 place-items-center rounded-lg border-2 border-dashed border-ink/30 bg-[#B9C992]/30 text-lg" aria-label="Terreno sin tubería">🌱</div>;
             return (
               <button
                 key={k}
@@ -1426,7 +1482,7 @@ function RutasAguasGame({ duration, onComplete }: { duration: number; onComplete
         )}
       </div>
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        Toca cada tubería para girarla y conectar 🧺 Lavadora con 🚽 Inodoro o 🌳 Biohuerto — evita ☠️ aguas negras.
+        Toca las tuberías para girarlas y conectar 🧺 Lavadora con {target.emoji} {target.label} — evita ☠️ aguas negras.
       </p>
     </div>
   );
@@ -1570,14 +1626,20 @@ function SodisUvGame({ duration, onComplete }: { duration: number; onComplete: (
 
 interface RiverItem {
   id: number;
+  speciesId: string;
   kind: "trash" | "fauna";
   emoji: string;
+  nombre: string;
   x: number;
+  /** Milisegundos que le quedan de vida; el cauce baja más rápido en la crecida. */
+  lifespanMs: number;
 }
 
-const TRASH_EMOJI = ["🥤", "🛍️", "🥫", "🧴"];
-const FAUNA_EMOJI = ["🐟", "🦆", "🍃", "🌿"];
-const RIVER_ITEM_LIFESPAN = 4000;
+/** Fracción final de la accuracy: eficiencia por lo clasificado bien × vida restante. */
+export function calcGuardianRioAccuracy(correct: number, attempts: number, life: number): number {
+  const efficiency = attempts > 0 ? correct / attempts : 0.5;
+  return Math.min(1, Math.max(0, efficiency * (life / 100)));
+}
 
 function GuardianRioGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -1586,8 +1648,16 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [feedback, setFeedback] = useState<"ok" | "bad" | null>(null);
+  const [dato, setDato] = useState<{ nombre: string; texto: string } | null>(null);
   const resolvedIds = useRef(new Set<number>());
   const finishedRef = useRef(false);
+  const datoTimer = useRef<number | null>(null);
+  const album = useAlbum();
+
+  const elapsed = duration - timeLeft;
+  const phase = phaseAt(elapsed, duration);
+  const phaseIdRef = useRef(phase.id);
+  phaseIdRef.current = phase.id;
 
   useEffect(() => {
     if (timeLeft <= 0 || life <= 0) {
@@ -1603,17 +1673,33 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, life]);
 
-  const resolveItem = (id: number, kind: "trash" | "fauna", swiped: "left" | "right" | null) => {
+/** Al acertar una especie se muestra su dato educativo una sola vez por partida. */
+  const showDato = useCallback((speciesId: string) => {
+    const species = SPECIES_BY_ID[speciesId];
+    if (!species) return;
+    setDato({ nombre: species.nombre, texto: species.dato });
+    if (datoTimer.current) window.clearTimeout(datoTimer.current);
+    datoTimer.current = window.setTimeout(() => setDato(null), 2000);
+  }, []);
+
+  useEffect(() => () => {
+    if (datoTimer.current) window.clearTimeout(datoTimer.current);
+  }, []);
+
+  const resolveItem = (id: number, kind: "trash" | "fauna", speciesId: string, swiped: "left" | "right" | null) => {
     if (resolvedIds.current.has(id)) return;
     resolvedIds.current.add(id);
     setItems((its) => its.filter((it) => it.id !== id));
     if (swiped === null) {
+      // Se llegó al final del cauce sin decidir: la basura contamina (resta),
+      // la fauna y el manglar se salvaron igual (suma) y pasa al álbum.
       if (kind === "trash") {
         setAttempts((a) => a + 1);
         setLife((l) => Math.max(0, l - 8));
       } else {
         setAttempts((a) => a + 1);
         setCorrect((c) => c + 1);
+        recordDiscovery(speciesId);
       }
       return;
     }
@@ -1623,37 +1709,66 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
       setCorrect((c) => c + 1);
       setLife((l) => Math.min(100, l + 2));
       setFeedback("ok");
+      recordDiscovery(speciesId);
+      showDato(speciesId);
+      playChime();
     } else {
       setLife((l) => Math.max(0, l - 15));
       setFeedback("bad");
+      playMiss();
     }
     setTimeout(() => setFeedback(null), 700);
   };
 
+  // El spawn se rearma cuando cambia de fase: cada una tiene su propio ritmo,
+  // vida de objeto y mezcla basura/fauna.
   useEffect(() => {
     if (timeLeft <= 0) return;
     const spawn = setInterval(() => {
+      const current = phaseIdRef.current;
+      const conf = RIVER_PHASES.find((p) => p.id === current) ?? RIVER_PHASES[0];
+      const species = pickSpecies(conf);
       const id = Date.now() + Math.random();
-      const isTrash = Math.random() < 0.55;
-      const pool = isTrash ? TRASH_EMOJI : FAUNA_EMOJI;
-      const emoji = pool[Math.floor(Math.random() * pool.length)];
-      const kind: "trash" | "fauna" = isTrash ? "trash" : "fauna";
-      setItems((its) => [...its, { id, kind, emoji, x: Math.random() * 70 + 15 }]);
-      setTimeout(() => resolveItem(id, kind, null), RIVER_ITEM_LIFESPAN);
-    }, 1100);
+      setItems((its) => [
+        ...its,
+        {
+          id,
+          speciesId: species.id,
+          kind: species.kind,
+          emoji: species.emoji,
+          nombre: species.nombre,
+          x: pickLaneX(),
+          lifespanMs: conf.lifespanMs,
+        },
+      ]);
+      setTimeout(() => resolveItem(id, species.kind, species.id, null), conf.lifespanMs);
+    }, phase.spawnMs);
     return () => clearInterval(spawn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft <= 0]);
+  }, [phase.id, timeLeft <= 0]);
 
   const handleSwipe = (item: RiverItem, info: PanInfo) => {
     if (Math.abs(info.offset.x) < 60) return;
-    resolveItem(item.id, item.kind, info.offset.x > 0 ? "right" : "left");
+    resolveItem(item.id, item.kind, item.speciesId, info.offset.x > 0 ? "right" : "left");
   };
+
+  const found = RIVER_SPECIES.filter((s) => (album[s.id] ?? 0) > 0).length;
 
   return (
     <div>
       <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`❤️ ${life} · ✅ ${correct}/${attempts}`} />
-      <div className="relative h-64 overflow-hidden rounded-2xl border-2 border-ink bg-gradient-to-b from-[#99B4D8]/40 to-[#99B4D8]/10">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="rounded-full border-2 border-ink bg-surface px-2.5 py-1 text-[11px] font-black">
+          {phase.nombre} · {phase.descripcion}
+        </span>
+        <span
+          className="rounded-full border-2 border-ink bg-surface px-2.5 py-1 text-[11px] font-black"
+          title={`${found} de ${TOTAL_SPECIES} especies en tu álbum`}
+        >
+          📖 {found}/{TOTAL_SPECIES}
+        </span>
+      </div>
+      <div className={`relative h-64 overflow-hidden rounded-2xl border-2 border-ink bg-gradient-to-b ${phase.waterHue}`}>
         <div className="pointer-events-none absolute inset-x-0 top-1 flex justify-between px-3 text-[10px] font-black text-ink/50">
           <span>⬅️ Dejar pasar</span>
           <span>Reciclar ➡️</span>
@@ -1667,6 +1782,15 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
             {feedback === "ok" ? "✓" : "✗"}
           </span>
         )}
+        {dato && (
+          <div
+            role="status"
+            className="pointer-events-none absolute inset-x-2 bottom-2 z-10 rounded-xl border-2 border-ink bg-surface/95 px-3 py-1.5 text-center shadow-[2px_2px_0_#1c1c11]"
+          >
+            <span className="block text-[11px] font-black text-ink">{dato.nombre}</span>
+            <span className="block text-[10px] font-semibold text-ink/70">{dato.texto}</span>
+          </div>
+        )}
         <AnimatePresence>
           {items.map((item) => (
             <motion.div
@@ -1679,10 +1803,10 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
               initial={{ top: "0%", scale: 0 }}
               animate={{ top: "88%", scale: 1 }}
               exit={{ scale: 0 }}
-              transition={{ top: { duration: RIVER_ITEM_LIFESPAN / 1000, ease: "linear" }, scale: { duration: 0.2 } }}
+              transition={{ top: { duration: item.lifespanMs / 1000, ease: "linear" }, scale: { duration: 0.2 } }}
               style={{ left: `${item.x}%` }}
               className="absolute grid h-12 w-12 -translate-x-1/2 touch-none cursor-grab place-items-center rounded-full border-2 border-ink bg-surface text-2xl shadow-[2px_2px_0_#1c1c11] active:cursor-grabbing"
-              aria-label={item.kind === "trash" ? "Basura, desliza a la derecha para reciclar" : "Fauna o naturaleza, desliza a la izquierda para dejar pasar"}
+              aria-label={item.kind === "trash" ? `${item.nombre}, basura: desliza a la derecha para reciclar` : `${item.nombre}: desliza a la izquierda para dejar pasar`}
             >
               {item.emoji}
             </motion.div>
@@ -1690,7 +1814,12 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
         </AnimatePresence>
       </div>
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        Desliza ➡️ la basura (botellas, bolsas, latas) hacia la red de reciclaje. Desliza ⬅️ o deja pasar peces, patos y hojas.
+        Desliza ➡️ la basura hacia el reciclaje y ⬅️ la fauna y los mangles. El río cambia de fase: lee el cartel de
+        arriba.
+      </p>
+      <p className="mt-2 text-center text-xs font-bold text-ink">
+        Cada especie que clasificas bien se desbloquea en tu álbum 🏅. Ya llevas {found}/{TOTAL_SPECIES} — míralas
+        todas en la sección <span className="text-[#1c6b34]">Álbum</span> de la plataforma.
       </p>
     </div>
   );
@@ -1703,20 +1832,43 @@ function GuardianRioGame({ duration, onComplete }: { duration: number; onComplet
 
 const RHYTHM_BEATS = [22, 25, 28, 31, 34, 37];
 const RHYTHM_WINDOW = 2;
+// Señuelos en huecos sin beat real (beats ocupan 22-23,25-26,28-29,31-32,34-35,37-38)
+// + 1 trampa final en Enjuagarse. Si el usuario la toca, pierde; si la ignora, se salva.
+const TRAP_BEATS = [24, 30, 36, 50];
+const TRAP_WINDOW = 2;
+const TRAP_LABELS = ["🧴 Más champú", "🚿 Abrir a full", "💦 Subir presión", "🫧 Dejar correr"];
+const TRAP_PENALTY_LITERS = 8;
+const MASH_PENALTY_LITERS = 2;
+
+type TrapState = "pending" | "active" | "saved" | "failed";
 
 function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
   const elapsed = duration - timeLeft;
   const [beatStates, setBeatStates] = useState<("pending" | "active" | "hit" | "miss")[]>(RHYTHM_BEATS.map(() => "pending"));
+  const [trapStates, setTrapStates] = useState<TrapState[]>(TRAP_BEATS.map(() => "pending"));
   const [litersLost, setLitersLost] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const beatStatesRef = useRef(beatStates);
+  const trapStatesRef = useRef(trapStates);
   const finishedRef = useRef(false);
 
   useEffect(() => {
     beatStatesRef.current = beatStates;
   }, [beatStates]);
+  useEffect(() => {
+    trapStatesRef.current = trapStates;
+  }, [trapStates]);
+
+  const bumpCombo = () => {
+    setCombo((c) => {
+      const next = c + 1;
+      setBestCombo((b) => Math.max(b, next));
+      return next;
+    });
+  };
 
   const phase: "Mojarse" | "Enjabonarse" | "Enjuagarse" = elapsed < 8 ? "Mojarse" : elapsed < 42 ? "Enjabonarse" : "Enjuagarse";
 
@@ -1725,7 +1877,8 @@ function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComple
       if (!finishedRef.current) {
         finishedRef.current = true;
         const hits = beatStatesRef.current.filter((s) => s === "hit").length;
-        onComplete(Math.min(1, hits / RHYTHM_BEATS.length));
+        const saves = trapStatesRef.current.filter((s) => s === "saved").length;
+        onComplete(Math.min(1, (hits + saves) / (RHYTHM_BEATS.length + TRAP_BEATS.length)));
       }
       return;
     }
@@ -1742,7 +1895,20 @@ function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComple
         if (state === "active" && elapsed >= beatTime + RHYTHM_WINDOW) {
           setLitersLost((l) => l + 5);
           setCombo(0);
+          setFeedback("Se te pasó el compás: +5L perdidos.");
           return "miss";
+        }
+        return state;
+      }),
+    );
+    setTrapStates((states) =>
+      states.map((state, i) => {
+        const trapTime = TRAP_BEATS[i];
+        if (state === "pending" && elapsed >= trapTime) return "active";
+        if (state === "active" && elapsed >= trapTime + TRAP_WINDOW) {
+          bumpCombo();
+          setFeedback("🛡️ ¡Te salvaste! Ignoraste la trampa.");
+          return "saved";
         }
         return state;
       }),
@@ -1752,20 +1918,35 @@ function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComple
 
   const tapCerrar = () => {
     const idx = beatStates.findIndex((s) => s === "active");
-    if (idx === -1) return;
+    if (idx === -1) {
+      // Anti-mash: tocar sin compás activo también desperdicia agua.
+      setLitersLost((l) => l + MASH_PENALTY_LITERS);
+      setCombo(0);
+      setFeedback("¡Sin ritmo! Espera el botón rojo. +2L.");
+      playMiss();
+      return;
+    }
     setBeatStates((states) => states.map((s, i) => (i === idx ? "hit" : s)));
-    setCombo((c) => {
-      const next = c + 1;
-      setBestCombo((b) => Math.max(b, next));
-      return next;
-    });
+    bumpCombo();
+    setFeedback(null);
+    playChime();
+  };
+
+  const tapTrap = (trapIdx: number) => {
+    setTrapStates((states) => states.map((s, i) => (i === trapIdx && s === "active" ? "failed" : s)));
+    setLitersLost((l) => l + TRAP_PENALTY_LITERS);
+    setCombo(0);
+    setFeedback("🕳️ ¡Caíste! Era trampa: +8L perdidos.");
+    playMiss();
   };
 
   const activeBeat = beatStates.some((s) => s === "active");
+  const activeTrapIdx = trapStates.findIndex((s) => s === "active");
+  const saves = trapStates.filter((s) => s === "saved").length;
 
   return (
     <div>
-      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`🔥 combo ${combo} · 🚱 ${litersLost}L`} />
+      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`🔥 combo ${combo} · 🛡️ ${saves}/${TRAP_BEATS.length} · 🚱 ${litersLost}L`} />
       <div className="rounded-2xl border-2 border-ink bg-[#99B4D8]/30 p-5 text-center">
         <p className="font-display text-lg font-extrabold">{phase}</p>
         <span className="text-5xl" aria-hidden="true">
@@ -1774,23 +1955,67 @@ function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComple
         {phase === "Enjabonarse" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-ink/80">
-              {activeBeat ? "¡Cierra la llave al ritmo!" : "Prepárate para el siguiente compás…"}
+              {activeTrapIdx !== -1
+                ? "⚠️ ¡Ojo! Hay trampa: solo toca CERRAR en rojo."
+                : activeBeat
+                  ? "¡Cierra la llave al ritmo!"
+                  : "Prepárate para el siguiente compás…"}
             </p>
-            <motion.button
-              type="button"
-              onClick={tapCerrar}
-              animate={activeBeat ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-              transition={{ repeat: activeBeat ? Infinity : 0, duration: 0.5 }}
-              className={`mt-3 min-h-12 rounded-xl border-2 border-ink px-6 font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                activeBeat ? "bg-[#E26D5C] text-white" : "bg-surface"
-              }`}
-            >
-              🚿 Cerrar llave
-            </motion.button>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <motion.button
+                type="button"
+                onClick={tapCerrar}
+                animate={activeBeat ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={{ repeat: activeBeat ? Infinity : 0, duration: 0.5 }}
+                className={`min-h-12 rounded-xl border-2 border-ink px-6 font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                  activeBeat ? "bg-[#E26D5C] text-white" : "bg-surface"
+                }`}
+              >
+                🚿 Cerrar llave
+              </motion.button>
+              {activeTrapIdx !== -1 && (
+                <motion.button
+                  key={activeTrapIdx}
+                  type="button"
+                  initial={{ scale: 0, rotate: -3 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  onClick={() => tapTrap(activeTrapIdx)}
+                  className="min-h-12 rounded-xl border-2 border-dashed border-ink/60 bg-surface/70 px-4 font-black text-ink/70 shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  aria-label={`Trampa: ${TRAP_LABELS[activeTrapIdx % TRAP_LABELS.length]}. No tocar.`}
+                >
+                  {TRAP_LABELS[activeTrapIdx % TRAP_LABELS.length]}
+                </motion.button>
+              )}
+            </div>
+          </>
+        ) : phase === "Enjuagarse" ? (
+          <>
+            <p className="mt-2 text-sm font-semibold text-ink/70">
+              {activeTrapIdx !== -1 ? "⚠️ Trampa final: ¡NO toques Dejar correr!" : "Enjuaga y listo — ¡ducha flash completada!"}
+            </p>
+            {activeTrapIdx !== -1 && (
+              <motion.button
+                key={activeTrapIdx}
+                type="button"
+                initial={{ scale: 0 }}
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ repeat: Infinity, duration: 0.6 }}
+                onClick={() => tapTrap(activeTrapIdx)}
+                className="mt-3 min-h-12 rounded-xl border-2 border-dashed border-ink/60 bg-surface/70 px-4 font-black text-ink/70 shadow-[2px_2px_0_#1c1c11]"
+                aria-label="Trampa final: no tocar."
+              >
+                {TRAP_LABELS[activeTrapIdx % TRAP_LABELS.length]}
+              </motion.button>
+            )}
           </>
         ) : (
           <p className="mt-2 text-sm font-semibold text-ink/70">
-            {phase === "Mojarse" ? "Mójate rápido, el reto empieza al enjabonarte." : "Enjuaga y listo — ¡ducha flash completada!"}
+            Mójate rápido, el reto empieza al enjabonarte. Habrá botones falsos.
+          </p>
+        )}
+        {feedback && (
+          <p role="status" className="mt-2 text-xs font-bold text-ink/80">
+            {feedback}
           </p>
         )}
         <div className="mt-3 flex justify-center gap-1" aria-label={`${RHYTHM_BEATS.length} compases de la canción`}>
@@ -1799,6 +2024,17 @@ function DuchaMusicalGame({ duration, onComplete }: { duration: number; onComple
               key={i}
               className={`h-2 w-6 rounded-full ${
                 s === "hit" ? "bg-[#28a745]" : s === "miss" ? "bg-[#E26D5C]" : s === "active" ? "bg-[#FFB793]" : "border border-ink/30 bg-surface"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="mt-1.5 flex justify-center gap-1" aria-label={`${TRAP_BEATS.length} trampas`}>
+          {trapStates.map((s, i) => (
+            <span
+              key={i}
+              title={`Trampa ${i + 1}: ${s}`}
+              className={`h-2 w-6 rounded-full border ${
+                s === "saved" ? "bg-[#28a745]" : s === "failed" ? "bg-[#E26D5C]" : s === "active" ? "animate-pulse bg-[#FFD23F]" : "border-ink/30 bg-surface"
               }`}
             />
           ))}
@@ -1832,30 +2068,74 @@ interface DecisionCard {
 const NO_CHOICE_PENALTY = { liters: 120, hygiene: -15 };
 
 function buildDecisionCards(): DecisionCard[] {
-  const templates: Omit<DecisionCard, "id" | "day">[] = [
-    {
-      title: "Cocinar el almuerzo",
-      emoji: "🍳",
-      optionA: { label: "Cocinar en casa", liters: 40, hygiene: 0 },
-      optionB: { label: "Pedir comida fuera", liters: 5, hygiene: 0 },
-    },
-    {
-      title: "Lavar la ropa",
-      emoji: "👕",
-      optionA: { label: "Lavadora llena hoy", liters: 40, hygiene: 5 },
-      optionB: { label: "Posponer el lavado", liters: 0, hygiene: -10 },
-    },
-    {
-      title: "Regar el jardín",
-      emoji: "🌱",
-      optionA: { label: "Agua potable directa", liters: 30, hygiene: 0 },
-      optionB: { label: "Agua gris de enjuague", liters: 5, hygiene: 0 },
-    },
+  // 9 dilemas únicos (3 por día, dificultad creciente): ya no se repite el
+  // mismo trío 3 veces. Día 1 rutina, día 2 presión, día 3 corte aprieta.
+  const byDay: Omit<DecisionCard, "id" | "day">[][] = [
+    [
+      {
+        title: "Cocinar el almuerzo",
+        emoji: "🍳",
+        optionA: { label: "Cocinar en casa", liters: 40, hygiene: 0 },
+        optionB: { label: "Pedir comida fuera", liters: 5, hygiene: 0 },
+      },
+      {
+        title: "Bañarse hoy",
+        emoji: "🚿",
+        optionA: { label: "Balde + ducha de 5 min", liters: 25, hygiene: 5 },
+        optionB: { label: "Ducha larga con chorro", liters: 80, hygiene: 5 },
+      },
+      {
+        title: "Lavar los platos",
+        emoji: "🍽️",
+        optionA: { label: "Tina y reuso a plantas", liters: 15, hygiene: 0 },
+        optionB: { label: "Chorro abierto", liters: 45, hygiene: 0 },
+      },
+    ],
+    [
+      {
+        title: "Lavar la ropa",
+        emoji: "👕",
+        optionA: { label: "Lavadora llena hoy", liters: 40, hygiene: 5 },
+        optionB: { label: "Posponer el lavado", liters: 0, hygiene: -10 },
+      },
+      {
+        title: "Usar el inodoro",
+        emoji: "🚽",
+        optionA: { label: "Descarga solo necesaria + botella", liters: 10, hygiene: 0 },
+        optionB: { label: "Descargar siempre", liters: 40, hygiene: 0 },
+      },
+      {
+        title: "Lavarse las manos",
+        emoji: "🧼",
+        optionA: { label: "Caño corto + jabón", liters: 5, hygiene: 10 },
+        optionB: { label: "Saltárselo", liters: 0, hygiene: -15 },
+      },
+    ],
+    [
+      {
+        title: "Regar el jardín",
+        emoji: "🌱",
+        optionA: { label: "Agua potable directa", liters: 30, hygiene: 0 },
+        optionB: { label: "Agua gris de enjuague", liters: 5, hygiene: 0 },
+      },
+      {
+        title: "Limpiar el piso",
+        emoji: "🧹",
+        optionA: { label: "Trapo + balde", liters: 10, hygiene: 0 },
+        optionB: { label: "Manguera", liters: 60, hygiene: 0 },
+      },
+      {
+        title: "Fuga del vecino",
+        emoji: "🚰",
+        optionA: { label: "Reportar y ajustar la llave", liters: 0, hygiene: 5 },
+        optionB: { label: "Ignorarla", liters: 30, hygiene: -5 },
+      },
+    ],
   ];
   const cards: DecisionCard[] = [];
-  for (let day = 1; day <= 3; day++) {
-    templates.forEach((t, i) => cards.push({ id: `d${day}-${i}`, day, ...t }));
-  }
+  byDay.forEach((dayTemplates, d) => {
+    dayTemplates.forEach((t, i) => cards.push({ id: `d${d + 1}-${i}`, day: d + 1, ...t }));
+  });
   return cards;
 }
 
@@ -2106,12 +2386,12 @@ function AcuiferoAlgarroboGame({ duration, onComplete }: { duration: number; onC
         </motion.div>
       </div>
 
-      <div className="mt-3 flex justify-center gap-4">
+      <div className="mt-4 flex items-center justify-between px-6 sm:justify-center sm:gap-12">
         <button
           type="button"
           onClick={() => setLane((l) => Math.max(0, l - 1))}
           aria-label="Guiar raíz a la izquierda"
-          className="grid h-14 w-14 place-items-center rounded-full border-2 border-ink bg-surface text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="grid h-16 w-16 place-items-center rounded-full border-2 border-ink bg-surface text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
         >
           ⬅️
         </button>
@@ -2119,7 +2399,7 @@ function AcuiferoAlgarroboGame({ duration, onComplete }: { duration: number; onC
           type="button"
           onClick={() => setLane((l) => Math.min(AQUIFER_LANES - 1, l + 1))}
           aria-label="Guiar raíz a la derecha"
-          className="grid h-14 w-14 place-items-center rounded-full border-2 border-ink bg-surface text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="grid h-16 w-16 place-items-center rounded-full border-2 border-ink bg-surface text-2xl shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
         >
           ➡️
         </button>
@@ -2136,35 +2416,50 @@ function AcuiferoAlgarroboGame({ duration, onComplete }: { duration: number; onC
 // mantén presionado el gotero y suelta en el número exacto de gotas.
 // ======================================================================
 
-type ContainerKind = "jarra" | "balde" | "bidon";
+type CloracionEtapa = "elegir" | "gotero" | "resultado";
 
-const CLORACION_CONTAINERS: Record<ContainerKind, { label: string; emoji: string; requiredDrops: number; litersLabel: string }> = {
-  jarra: { label: "Jarra", emoji: "🏺", requiredDrops: 2, litersLabel: "1 L" },
-  balde: { label: "Balde", emoji: "🥣", requiredDrops: 10, litersLabel: "5 L" },
-  bidon: { label: "Bidón azul", emoji: "🛢️", requiredDrops: 40, litersLabel: "20 L (1 tapita)" },
-};
-const CLORACION_ORDER: ContainerKind[] = ["jarra", "balde", "bidon"];
-const DROP_INTERVAL_MS = 150;
-const CONTAINER_TIMEOUT_MS = 9000;
+interface CloracionFeedback {
+  text: string;
+  ok: boolean;
+  veredicto: DosisVeredicto | "timeout";
+}
+
+function sortearNuevoCaso(phaseId: string): CasoCloracion {
+  const phase = CLORACION_PHASES.find((p) => p.id === phaseId) ?? CLORACION_PHASES[0];
+  return sortearCaso(phase);
+}
 
 function CloracionSeguraGame({ duration, onComplete }: { duration: number; onComplete: (accuracy: number) => void }) {
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [containerIdx, setContainerIdx] = useState(0);
+  const [caso, setCaso] = useState<CasoCloracion>(() => primerCaso(0));
+  const [etapa, setEtapa] = useState<CloracionEtapa>("elegir");
+  const [filtrada, setFiltrada] = useState(false);
+  const [ritmo, setRitmo] = useState<RitmoId | null>(null);
   const [drops, setDrops] = useState(0);
   const [holding, setHolding] = useState(false);
   const [perfectCount, setPerfectCount] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
-  const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
+  const [feedback, setFeedback] = useState<CloracionFeedback | null>(null);
   const dropsRef = useRef(0);
   const resolvingRef = useRef(false);
   const finishedRef = useRef(false);
   const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const containerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const kind = CLORACION_ORDER[containerIdx % CLORACION_ORDER.length];
-  const container = CLORACION_CONTAINERS[kind];
+  const elapsed = duration - timeLeft;
+  const phase = cloracionPhaseAt(elapsed, duration);
+  const phaseRef = useRef(phase.id);
+  phaseRef.current = phase.id;
+  const caseIndexRef = useRef(0);
+
+  // Gotas que la dosis elegida exige. `null` mientras el jugador no elige ritmo.
+  const gotasPorLitro = ritmo ? gotasDeRitmo(ritmo) : null;
+  const objetivo =
+    gotasPorLitro === null || gotasPorLitro === undefined || ritmo === null
+      ? null
+      : gotasRequeridas(caso.container.liters, gotasPorLitro, caso.turbia, filtrada);
 
   useEffect(() => {
     dropsRef.current = drops;
@@ -2174,7 +2469,7 @@ function CloracionSeguraGame({ duration, onComplete }: { duration: number; onCom
     if (timeLeft <= 0) {
       if (!finishedRef.current) {
         finishedRef.current = true;
-        onComplete(attempts > 0 ? Math.min(1, perfectCount / attempts) : 0);
+        onComplete(calcCloracionScore(perfectCount, attempts, bestCombo));
       }
       return;
     }
@@ -2183,47 +2478,76 @@ function CloracionSeguraGame({ duration, onComplete }: { duration: number; onCom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  const nextContainer = () => {
+  const siguienteCaso = () => {
+    caseIndexRef.current += 1;
+    const i = caseIndexRef.current;
+    // Los tres primeros casos recorren 1 L, 5 L y 20 L en ciclo fijo; de ahí en
+    // adelante manda el sorteo de la fase que toque.
+    setCaso(i < 3 ? primerCaso(i) : sortearNuevoCaso(phaseRef.current));
+    setEtapa("elegir");
+    setFiltrada(false);
+    setRitmo(null);
     setDrops(0);
-    setContainerIdx((i) => i + 1);
+    dropsRef.current = 0;
+    setFeedback(null);
     resolvingRef.current = false;
   };
 
-  const resolveContainer = (finalDrops: number, timedOut: boolean) => {
-    if (resolvingRef.current) return;
+  const resolveCaso = (gotasFinales: number, timedOut: boolean) => {
+    if (resolvingRef.current || objetivo === null) return;
     resolvingRef.current = true;
     if (containerTimeoutRef.current) clearTimeout(containerTimeoutRef.current);
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    setHolding(false);
+    setEtapa("resultado");
     setAttempts((a) => a + 1);
-    const diff = finalDrops - container.requiredDrops;
-    if (!timedOut && diff === 0) {
+
+    // Si el ritmo no aplica a la fuente (clorar agua embotellada), el conteo
+    // de gotas no puede salir "perfecto" por más que cuadre.
+    const veredicto: DosisVeredicto = timedOut
+      ? "subdosis"
+      : !dosisApta(caso.source, ritmo as RitmoId)
+        ? "sobredosis"
+        : evaluarDosis(gotasFinales, objetivo);
+    const ok = !timedOut && veredicto === "perfecta";
+    if (ok) {
       setPerfectCount((c) => c + 1);
       setCombo((c) => {
         const next = c + 1;
         setBestCombo((b) => Math.max(b, next));
         return next;
       });
-      setFeedback({ text: "💎 Dosis perfecta — ¡Desinfección Perfecta!", ok: true });
     } else {
       setCombo(0);
-      if (timedOut) setFeedback({ text: "⏱️ Sin dosificar a tiempo", ok: false });
-      else if (diff > 0) setFeedback({ text: "🤢 Sobredosificado", ok: false });
-      else setFeedback({ text: "🦠 Subdosificado", ok: false });
     }
-    setTimeout(() => {
-      setFeedback(null);
-      nextContainer();
-    }, 700);
+
+    const texto = timedOut
+      ? "⏱️ Se acabó el tiempo: el agua quedó sin tratar"
+      : veredicto === "perfecta"
+          ? "💎 Dosis perfecta — agua segura"
+          : veredicto === "sobredosis"
+            ? "🤢 Sobredosis: agua amarilla y con sabor a cloro"
+            : "🦠 Subdosis: el agua sigue sin desinfectar";
+
+    setFeedback({ text: texto, ok, veredicto: timedOut ? "timeout" : veredicto });
+    if (ok) playChime();
+    else playMiss();
+    setTimeout(() => siguienteCaso(), 1500);
   };
 
-  // Si nunca se presiona el gotero, el contenedor expira solo
+  // Una vez elegido el ritmo arranca la ventana para dosificar. El timeout
+  // depende de la dosis: 1 gota y 40 gotas no pueden tener la misma paciencia.
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    containerTimeoutRef.current = setTimeout(() => resolveContainer(dropsRef.current, true), CONTAINER_TIMEOUT_MS);
+    if (timeLeft <= 0 || etapa !== "gotero" || objetivo === null) return;
+    containerTimeoutRef.current = setTimeout(() => resolveCaso(dropsRef.current, true), cloracionTimeoutMs(objetivo));
     return () => {
       if (containerTimeoutRef.current) clearTimeout(containerTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerIdx]);
+  }, [etapa, caso, ritmo, filtrada]);
 
   useEffect(
     () => () => {
@@ -2232,26 +2556,51 @@ function CloracionSeguraGame({ duration, onComplete }: { duration: number; onCom
     [],
   );
 
+  const confirmarRitmo = (r: RitmoId) => {
+    if (etapa !== "elegir" || ritmo !== null) return;
+    setRitmo(r);
+    const gpl = gotasDeRitmo(r);
+    if (gpl === null) {
+      // "No clorar" también es una respuesta válida: se resuelve al instante.
+      const veredicto = caso.source.gotasPorLitro === null ? "perfecta" : "subdosis";
+      setEtapa("resultado");
+      setAttempts((a) => a + 1);
+      const ok = veredicto === "perfecta";
+      if (ok) {
+        setPerfectCount((c) => c + 1);
+        setCombo((c) => {
+          const next = c + 1;
+          setBestCombo((b) => Math.max(b, next));
+          return next;
+        });
+      } else {
+        setCombo(0);
+      }
+      setFeedback({
+        text: ok ? "💎 Correcto: el agua embotellada no se clora" : "🦠 Subdosis: ese agua sí necesitaba cloro",
+        ok,
+        veredicto,
+      });
+      if (ok) playChime();
+      else playMiss();
+      setTimeout(() => siguienteCaso(), 1500);
+      return;
+    }
+    setEtapa("gotero");
+  };
+
   const startHold = () => {
-    if (resolvingRef.current || timeLeft <= 0) return;
+    if (etapa !== "gotero" || resolvingRef.current || objetivo === null || timeLeft <= 0) return;
     setHolding(true);
     holdIntervalRef.current = setInterval(() => {
       setDrops((d) => {
         const next = d + 1;
-        // Pasarse del número exacto ya es un error — corta el goteo solo en vez
-        // de dejar que el dedo quede pegado al botón para siempre y avanza al
-        // próximo envase, igual que si hubiera soltado tarde.
-        if (next > container.requiredDrops) {
-          if (holdIntervalRef.current) {
-            clearInterval(holdIntervalRef.current);
-            holdIntervalRef.current = null;
-          }
-          setHolding(false);
-          resolveContainer(next, false);
-        }
+        // Pasarse de la dosis ya es un error: corta el goteo solo en vez de
+        // dejar el dedo pegado al botón para siempre.
+        if (next > objetivo) resolveCaso(next, false);
         return next;
       });
-    }, DROP_INTERVAL_MS);
+    }, dropIntervalMs(objetivo));
   };
 
   const endHold = () => {
@@ -2259,38 +2608,145 @@ function CloracionSeguraGame({ duration, onComplete }: { duration: number; onCom
       clearInterval(holdIntervalRef.current);
       holdIntervalRef.current = null;
     }
-    setHolding(false);
-    resolveContainer(dropsRef.current, false);
+    if (etapa === "gotero") resolveCaso(dropsRef.current, false);
+    else setHolding(false);
   };
+
+  const agua = WATER_COLOR[feedback && feedback.veredicto !== "timeout" ? feedback.veredicto : "subdosis"];
+  const seVeAgua = feedback !== null && feedback.veredicto !== "timeout";
 
   return (
     <div>
-      <GameHUD timeLabel={`${timeLeft}s`} scoreLabel={`💎 ${perfectCount}/${attempts} · combo ${combo}`} />
-      <div className="rounded-2xl border-2 border-ink bg-surface p-5 text-center">
-        <span className="text-5xl" aria-hidden="true">
-          {container.emoji}
+      <GameHUD
+        timeLabel={`${timeLeft}s`}
+        scoreLabel={`💎 ${perfectCount}/${attempts} · 🔥 ${combo} (x${comboMultiplier(combo)})`}
+      />
+      <div className="mb-2">
+        <span className="inline-block max-w-full rounded-full border-2 border-ink bg-surface px-2.5 py-1 text-[11px] leading-tight font-black">
+          {phase.nombre} · {phase.descripcion}
         </span>
-        <p className="mt-1 font-display text-lg font-extrabold">
-          {container.label} · {container.litersLabel}
-        </p>
-        <p className="text-xs font-semibold text-ink/60">Necesita {container.requiredDrops} gotas exactas</p>
-        <p className="mt-3 font-display text-3xl font-black text-ink">{drops} 💧</p>
-        <button
-          type="button"
-          onPointerDown={startHold}
-          onPointerUp={endHold}
-          onPointerLeave={() => holding && endHold()}
-          className={`mt-3 min-h-14 w-full touch-none rounded-xl border-2 border-ink font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-            holding ? "bg-[#E26D5C] text-white" : "bg-[#FFB793]"
-          }`}
-          aria-label="Gotero, mantén presionado para dejar caer gotas y suelta en el conteo exacto"
-        >
-          {holding ? "Soltando gotas…" : "Mantén presionado el gotero"}
-        </button>
-        {feedback && <p className={`mt-2 text-sm font-bold ${feedback.ok ? "text-[#1c6b34]" : "text-[#E26D5C]"}`}>{feedback.text}</p>}
       </div>
+
+      <div className="rounded-2xl border-2 border-ink bg-surface p-4 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-4xl" aria-hidden="true">
+            {caso.container.emoji}
+          </span>
+          <span
+            className="h-10 w-10 rounded-full border-2 border-ink transition-colors"
+            style={{ background: seVeAgua ? agua.fondo : caso.turbia ? "#A79367" : "#BFE3F0" }}
+            aria-label={caso.turbia ? "Agua turbia" : "Agua clara"}
+          />
+          <span className="text-4xl" aria-hidden="true">
+            {caso.source.emoji}
+          </span>
+        </div>
+        <p className="mt-1.5 font-display text-lg font-extrabold">
+          {caso.container.label} · {caso.container.liters} L
+        </p>
+        <p className="text-xs font-semibold text-ink/70">
+          {caso.source.nombre}
+          {caso.turbia ? " · 🌫️ turbia" : ""}
+        </p>
+
+        {etapa === "elegir" ? (
+          <div className="mt-3">
+            {caso.turbia && (
+              <div className="mb-3 rounded-xl border-2 border-ink bg-[#FFB793]/40 p-2">
+                <p className="mb-1.5 text-xs font-black">🌫️ El agua está turbia. ¿Qué haces primero?</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFiltrada(true)}
+                    disabled={caso.source.gotasPorLitro === null}
+                    className={`min-h-11 flex-1 rounded-lg border-2 border-ink text-xs font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 ${
+                      filtrada ? "bg-[#28a745] text-white" : "bg-surface"
+                    }`}
+                  >
+                    La filtro primero
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFiltrada(false)}
+                    disabled={caso.source.gotasPorLitro === null}
+                    className={`min-h-11 flex-1 rounded-lg border-2 border-ink text-xs font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 ${
+                      !filtrada ? "bg-[#E26D5C] text-white" : "bg-surface"
+                    }`}
+                  >
+                    Le echo cloro extra
+                  </button>
+                </div>
+                {caso.source.gotasPorLitro === null && (
+                  <p className="mt-1 text-[10px] font-semibold text-ink/60">
+                    El agua embotellada no necesita filtrado: se trata con calor o sol.
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="mb-1.5 text-xs font-black">¿A qué ritmo cloras?</p>
+            <div className="flex flex-wrap gap-2">
+              {RITMOS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => confirmarRitmo(r.id)}
+                  className="min-h-11 flex-1 rounded-lg border-2 border-ink bg-surface px-2 text-xs font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  {r.etiqueta}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] font-semibold text-ink/60">
+              {caso.source.gotasPorLitro === null
+                ? caso.source.nota
+                : `${caso.source.nota} El agua turbia gasta cloro antes de desinfectar.`}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="mt-3 font-display text-3xl font-black text-ink">{drops} 💧</p>
+            {etapa === "gotero" ? (
+              <>
+                <button
+                  type="button"
+                  onPointerDown={startHold}
+                  onPointerUp={endHold}
+                  onPointerLeave={() => holding && endHold()}
+                  className={`mt-3 min-h-14 w-full touch-none rounded-xl border-2 border-ink font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                    holding ? "bg-[#E26D5C] text-white" : "bg-[#FFB793]"
+                  }`}
+                  aria-label="Gotero, mantén presionado para gotear y suelta en la dosis exacta"
+                >
+                  {holding ? "Goteando…" : "Mantén presionado el gotero"}
+                </button>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full border-2 border-ink bg-surface">
+                  <div
+                    className="h-full bg-[#99B4D8] transition-[width] duration-100"
+                    style={{ width: `${Math.min(100, objetivo ? (drops / objetivo) * 100 : 0)}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 min-h-14 text-sm font-black" aria-live="polite">
+                {feedback?.ok ? "💎" : seVeAgua ? agua.etiqueta : ""}
+              </p>
+            )}
+          </div>
+        )}
+
+        {feedback && (
+          <p
+            className={`mt-2 text-sm font-bold ${feedback.ok ? "text-[#1c6b34]" : "text-[#E26D5C]"}`}
+            aria-live="polite"
+          >
+            {feedback.text}
+          </p>
+        )}
+      </div>
+
       <p className="mt-2 text-center text-xs font-semibold text-ink/70">
-        Regla de oro: 2 gotas por litro. Suelta el gotero justo en el número exacto. Mejor combo: {bestCombo}
+        Calcula la dosis: litros × gotas por litro. Si el agua está turbia y no la filtras, el cloro se gasta antes de
+        desinfectar. Mejor combo: {bestCombo}
       </p>
     </div>
   );
@@ -2376,6 +2832,8 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
   const finishedRef = useRef(false);
   const nivelRef = useRef(0);
   const aciertosNivelRef = useRef(0);
+  // Parejas encontradas en toda la partida: si es 0, no jugó nada y pierde sin premios.
+  const aciertosTotalRef = useRef(0);
 
   const totalPares = MEMORAMA_NIVELES[nivel] / 2;
   const ultimoNivel = nivel === MEMORAMA_NIVELES.length - 1;
@@ -2384,9 +2842,15 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
   const finalizar = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    // Sin ni una pareja no hay juego: accuracy 0 = "Perdiste" sin EXP ni HP.
+    if (aciertosTotalRef.current === 0) {
+      onComplete(0);
+      return;
+    }
     // Progreso real: nivel ya despejado + fracción del nivel actual, sobre el total de niveles.
+    // Se mapea a [umbral..1] para que cualquier etapa jugada pague proporcional (30 HP base → 100 HP lleno).
     const progreso = (nivelRef.current + aciertosNivelRef.current / totalPares) / MEMORAMA_NIVELES.length;
-    onComplete(Math.min(1, progreso));
+    onComplete(Math.min(1, MIN_GAME_WIN_ACCURACY + progreso * (1 - MIN_GAME_WIN_ACCURACY)));
   };
 
   const siguienteNivel = () => {
@@ -2450,6 +2914,7 @@ function MemoramaAguaGame({ duration, onComplete }: { duration: number; onComple
           setAciertosNivel((a) => {
             const next = a + 1;
             aciertosNivelRef.current = next;
+            aciertosTotalRef.current += 1;
             return next;
           });
           setCombo((c) => {

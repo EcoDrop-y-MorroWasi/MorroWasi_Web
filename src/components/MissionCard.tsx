@@ -16,17 +16,18 @@ type Props = {
 export default function MissionCard({ text, liters, xp, completed, emoji = "💧", onToggle, onDelete, disabled = false }: Props) {
   return (
     <li
-      className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 bg-surface px-3 py-3 shadow-[2px_2px_0_#1c1c11] ${completed ? "!bg-[#28a745]/20 !border-[#28a745]" : "border-ink"}`}
+      className={`flex flex-col gap-2 rounded-xl border-2 bg-surface px-3 py-3 shadow-[2px_2px_0_#1c1c11] sm:flex-row sm:items-center sm:justify-between sm:gap-3 ${completed ? "!bg-[#28a745]/20 !border-[#28a745]" : "border-ink"}`}
       role="listitem"
       aria-label={`${text} ${liters} litros ${xp} XP ${completed ? "completada" : "pendiente"}`}
     >
-      <div className="flex min-w-[55%] flex-1 items-center gap-3">
+      {/* Texto a ancho completo en móvil para leerse normal; en desktop vuelve al lado del botón. */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <span className="shrink-0 text-xl" aria-hidden>
           {emoji}
         </span>
         {/* Texto en varias líneas, nunca cortado con "…": en celular el botón le
-            quitaba casi todo el ancho y ninguna misión se podía leer. Con min-w-[55%]
-            y flex-wrap, si los botones no entran al lado bajan a su propia fila. */}
+            quitaba casi todo el ancho y ninguna misión se podía leer. Ahora el
+            texto va primero a todo el ancho y el botón queda al costado abajo. */}
         <div className="min-w-0">
           <p className="break-words text-[15px] font-bold leading-snug text-ink">{text}</p>
           <p className="text-xs font-bold text-[#E26D5C]">
@@ -34,7 +35,7 @@ export default function MissionCard({ text, liters, xp, completed, emoji = "💧
           </p>
         </div>
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center justify-end gap-2">
         <button
           type="button"
           onClick={onToggle}

@@ -22,6 +22,11 @@ export function calcGameExp(hydroReward: number): number {
   return Math.max(3, Math.round(hydroReward / 5));
 }
 
+/** Cada punto de EXP de juego representa cinco litros simbólicos ahorrados. */
+export function calcGameLiters(expReward: number): number {
+  return Math.max(0, Math.round(expReward)) * 5;
+}
+
 /** Suma con clamp >=0, para revertir sin bajar de 0 */
 export function addClamped(current: number, delta: number): number {
   return Math.max(0, current + delta);
@@ -338,9 +343,9 @@ export const MINIGAMES: Minigame[] = [
   },
   {
     id: "jg-8",
-    title: "Guardián del Río Piura y Manglares",
+title: "Guardián del Río Piura y Manglares",
     description:
-      "El río baja con basura y fauna: desliza a la derecha los plásticos y latas hacia el reciclaje, y deja pasar libres a peces, patos y hojas.",
+      "El río cambia de fase —mañana, crecida y sequía— y trae fauna real del Chira y del manglar: recicla la basura a la derecha y deja pasar peces, patos y mangles a la izquierda. Completa el álbum de 22 especies.",
     type: "GUARDIAN_RIO",
     xpMaxReward: 100,
     durationSeconds: 60,
@@ -349,7 +354,7 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-9",
     title: "La Ducha Musical de 4 Minutos",
     description:
-      "Sigue el ritmo de la canción: cierra la llave a tiempo mientras te enjabonas para no desperdiciar agua en rojo.",
+      "Sigue el ritmo de la canción: cierra la llave a tiempo mientras te enjabonas e ignora los botones trampa para no desperdiciar agua.",
     type: "DUCHA_MUSICAL",
     xpMaxReward: 100,
     durationSeconds: 60,
@@ -376,7 +381,7 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-12",
     title: "El Gotero Preciso: Cloración Segura",
     description:
-      "Mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro — para desinfectar jarras, baldes y bidones sin sobredosificar.",
+      "El juego nunca te dice cuántas gotas van: lo calculas tú. Agua de red, de pozo o embotellada, en taza, jarra, balde o bidón. Si el agua está turbia y no la filtras, el cloro se gasta antes de desinfectar y la dosis se duplica.",
     type: "CLORACION_SEGURA",
     xpMaxReward: 100,
     durationSeconds: 60,
@@ -394,10 +399,10 @@ export const MINIGAMES: Minigame[] = [
     id: "jg-14",
     title: "Construye tu Wasi",
     description:
-      "Arma la instalación de agua de tu casa en 3D isométrico: conecta el techo con el tanque, el filtro y el biohuerto para que el agua llegue a todas partes. 3 rondas.",
+      "Arma la instalación de agua de tu casa en 3D isométrico: conecta el techo con el tanque, el filtro y el biohuerto para que el agua llegue a todas partes. 8 rondas.",
     type: "CONSTRUYE_WASI",
     xpMaxReward: 100,
-    durationSeconds: 240,
+    durationSeconds: 300,
   },
   {
     id: "jg-15",

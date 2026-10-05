@@ -4,12 +4,14 @@ interface TutorialCardProps {
   exampleFrom: string;
   exampleTo: string;
   exampleLabel: string;
+  /** Párrafo extra para juegos con una segunda regla (ej.: agua turbia). */
+  turbidez?: string;
   onStart: () => void;
 }
 
 // Minitutorial sin timer entre las viñetas de intro y la partida real — explica la
 // mecánica con un ejemplo sencillo antes de arrancar el reloj. Lo usan los 13 mini-juegos.
-export default function TutorialCard({ title, instructions, exampleFrom, exampleTo, exampleLabel, onStart }: TutorialCardProps) {
+export default function TutorialCard({ title, instructions, exampleFrom, exampleTo, exampleLabel, turbidez, onStart }: TutorialCardProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded-2xl border-2 border-ink bg-[#99B4D8]/30 p-5">
@@ -21,11 +23,17 @@ export default function TutorialCard({ title, instructions, exampleFrom, example
           <span className="text-4xl">{exampleTo}</span>
         </div>
         <p className="mt-2 text-center text-xs font-bold text-ink/70">{exampleLabel}</p>
+        {turbidez && (
+          <div className="mt-3 rounded-xl border-2 border-ink bg-surface p-3">
+            <p className="text-xs font-black text-ink">🌫️ Y si el agua está turbia…</p>
+            <p className="mt-1 text-xs font-semibold text-ink/80">{turbidez}</p>
+          </div>
+        )}
       </div>
       <button
         type="button"
         onClick={onStart}
-        className="min-h-12 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white shadow-[4px_4px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        className="sticky bottom-0 min-h-12 rounded-xl border-2 border-ink bg-[#E26D5C] font-bold text-white shadow-[4px_4px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
       >
         Comenzar ▶ (empieza el cronómetro)
       </button>

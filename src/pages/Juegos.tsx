@@ -1,17 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Link } from "react-router-dom";
 import MinigameCard from "../components/MinigameCard";
 import MinigamePlay, { type MinigameResult } from "./MinigamePlay";
-import { MINIGAMES, calcMinigameScore, calcGameExp } from "../utils/gamification";
+import { MINIGAMES, calcMinigameScore, calcGameExp, calcGameLiters } from "../utils/gamification";
 import { useHydroPoints } from "../utils/hydroStore";
 import { useExp } from "../utils/expStore";
+import { addLiters } from "../utils/litersStore";
 import { markActivityToday } from "../utils/streakStore";
 import { recordLedgerEvent } from "../utils/leaderboardLedger";
 import { playChime, playMiss } from "../utils/sound";
 
 const GAMES_STORAGE_KEY = "morrowasi_games_v1";
+
+// Fichas de "Sobre los juegos" que muestra el botón ? junto al título.
+const JUEGOS_INFO: { emoji: string; titulo: string; texto: string }[] = [
+  { emoji: "🔧", titulo: "Caza-Fugas Exprés", texto: "Arrastra llave, teflón o válvula a cada fuga de la casa antes de que se pierda el agua. 60 s." },
+  { emoji: "⚖️", titulo: "El Peso Invisible del Agua", texto: "Cara a cara — toca el producto que esconde más agua virtual y encadena combos. 60 s." },
+  { emoji: "🌧️", titulo: "Atrapa-Lluvias Piurano", texto: "Desvía las primeras aguas sucias al desagüe, luego abre las canaletas al tanque. 90 s." },
+  { emoji: "🌱", titulo: "Maestro del Riego", texto: "Elige goteo, mulch o riego nocturno — evita la manguera al mediodía (80% se evapora). 90 s." },
+  { emoji: "🧪", titulo: "Laboratorio de Filtros", texto: "Ordena grava, arenas, carbón y algodón de abajo hacia arriba antes de que caiga el agua turbia. 60 s, 3 rondas." },
+  { emoji: "🔀", titulo: "Rutas de Aguas Grises", texto: "Gira las tuberías para conectar la lavadora con el biohuerto o el inodoro sin tocar las aguas negras. 90 s." },
+  { emoji: "☀️", titulo: "Desafío SODIS", texto: "Refleja el sol con el espejo hacia las botellas PET antes de que las bacterias se multipliquen. 60 s." },
+  { emoji: "🏞️", titulo: "Guardián del Río", texto: "Desliza ➡️ la basura al reciclaje y deja pasar ⬅️ la fauna y naturaleza del río Piura. 60 s." },
+  { emoji: "🚿", titulo: "Ducha Musical", texto: "Cierra la llave al ritmo mientras te enjabonas e ignora los botones trampa, sin dejar correr el agua. 60 s." },
+  { emoji: "🛢️", titulo: "Corte de Agua", texto: "Administra 1000 L en 3 días de corte con tarjetas de decisión, sin sacrificar la higiene. 90 s." },
+  { emoji: "🌳", titulo: "Acuífero del Algarrobo", texto: "Guía la raíz con ⬅️➡️ esquivando rocas y filtraciones, recoge bolsas de acuífero. 60 s, 3 rondas." },
+  { emoji: "💧", titulo: "Cloración Segura", texto: "Mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro. 60 s." },
+  { emoji: "❓", titulo: "Sabios del Agua", texto: "10 preguntas al azar sobre agua, Piura y los temas de la Academia. Responde rápido para sumar más. 90 s." },
+  { emoji: "🏠", titulo: "Construye tu Wasi", texto: "Arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 8 rondas, 300 s." },
+  { emoji: "🃏", titulo: "Memorama del Agua", texto: "Progresivo — 4 cartas al empezar, sube de a 2 hasta 30 según avanzás, sin repetir posición. 90 s." },
+];
+
+const JUEGOS_NOTA =
+  "Todos otorgan 30–100 HydroPuntos y arrancan con viñetas que explican cómo se juega. Ganar con 50 % o más de desempeño entrega HydroPuntos, EXP y actividad de racha; perder o salir no entrega nada. El récord solo muestra tu mejor resultado.";
 
 function loadBestScores(): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -48,6 +71,8 @@ export default function Juegos() {
   const [, addExp] = useExp();
   const [bestScores, setBestScores] = useState<Record<string, number>>(() => loadBestScores());
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
+  const [lastGameId, setLastGameId] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; text: string; sub?: string }[]>([]);
 
   const fireConfetti = () => {
@@ -78,6 +103,21 @@ export default function Juegos() {
 
   const activeGame = MINIGAMES.find((g) => g.id === activeGameId) ?? null;
 
+  const closeGame = () => {
+    setLastGameId(activeGameId);
+    setActiveGameId(null);
+  };
+
+  // Al cerrar el modal, volver al punto donde estaba: la tarjeta del juego
+  // recién jugado, no al tope de la página.
+  useEffect(() => {
+    if (activeGameId !== null || lastGameId === null) return;
+    const t = setTimeout(() => {
+      document.getElementById(`juego-${lastGameId}`)?.scrollIntoView({ block: "center" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [activeGameId, lastGameId]);
+
   // Se llama al terminar una partida real (accuracy 0-1). Antes solo otorgaba
   // HydroPuntos/EXP si superabas tu récord guardado (anti-farmeo); ahora toda
   // partida ganada (earned > 0) paga, superes récord o no — el récord se
@@ -98,7 +138,9 @@ export default function Juegos() {
       markActivityToday();
       addHydro(earned);
       const exp = calcGameExp(earned);
+      const liters = calcGameLiters(exp);
       addExp(exp);
+      addLiters(liters);
       recordLedgerEvent("juego", gameId, { hydro: earned, exp });
       pushToast(`+${earned} HP`, isNewBest ? `¡Nuevo récord en ${MINIGAMES.find((g) => g.id === gameId)?.title}!` : "¡Ganaste!");
       fireConfetti();
@@ -108,7 +150,7 @@ export default function Juegos() {
       playMiss();
     }
 
-    return { earned, isNewBest, bestScore: nextBest };
+    return { earned, liters: earned > 0 ? calcGameLiters(calcGameExp(earned)) : 0, isNewBest, bestScore: nextBest };
   };
 
   return (
@@ -134,7 +176,17 @@ export default function Juegos() {
 
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-extrabold text-ink">🎮 Mini-juegos oficiales de Piura</h2>
+          <h2 className="flex items-center gap-2 text-xl font-extrabold text-ink">
+            🎮 Minijuegos
+            <button
+              type="button"
+              onClick={() => setShowInfo(true)}
+              aria-label="Ver información sobre los juegos"
+              className="grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-surface text-base font-black shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            >
+              ?
+            </button>
+          </h2>
           <p className="text-sm text-ink/70">Gana con al menos 50 % de desempeño y recibe 30 a 100 HydroPuntos.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -157,8 +209,8 @@ export default function Juegos() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {MINIGAMES.map((g) => (
+          <div key={g.id} id={`juego-${g.id}`} className="scroll-mt-24 min-w-0">
           <MinigameCard
-            key={g.id}
             title={g.title}
             description={g.description}
             type={g.type}
@@ -168,59 +220,8 @@ export default function Juegos() {
             played={bestScores[g.id] !== undefined}
             onPlay={() => setActiveGameId(g.id)}
           />
+          </div>
         ))}
-      </div>
-
-      <div className="mt-6 rounded-xl bg-[#FFB793] border-[3px] border-ink shadow-[6px_6px_0_#1c1c11] p-4 text-[#1c1c11]">
-        <h3 className="font-extrabold">ℹ️ Sobre los juegos</h3>
-        <ul className="list-disc pl-5 text-sm text-[#1c1c11]/80 mt-1 space-y-1">
-          <li>
-            <b>Caza-Fugas Exprés</b>: arrastra 🔧 llave, ⚪ teflón o 🛑 válvula a cada fuga de la casa antes de que se pierda el agua. 60 s.
-          </li>
-          <li>
-            <b>El Peso Invisible del Agua</b>: cara a cara — toca el producto que esconde más agua virtual y encadena combos. 60 s.
-          </li>
-          <li>
-            <b>Atrapa-Lluvias Piurano</b>: desvía las primeras aguas sucias al desagüe, luego abre las canaletas al tanque. 90 s.
-          </li>
-          <li>
-            <b>Maestro del Riego</b>: elige goteo, mulch o riego nocturno — evita la manguera al mediodía (80% se evapora). 90 s.
-          </li>
-          <li>
-            <b>Laboratorio de Filtros</b>: ordena grava, arenas, carbón y algodón de abajo hacia arriba antes de que caiga el agua turbia. 60 s, 3 rondas.
-          </li>
-          <li>
-            <b>Rutas de Aguas Grises</b>: gira las tuberías para conectar la lavadora con el biohuerto o el inodoro sin tocar las aguas negras. 90 s.
-          </li>
-          <li>
-            <b>Desafío SODIS</b>: refleja el sol con el espejo hacia las botellas PET antes de que las bacterias se multipliquen. 60 s.
-          </li>
-          <li>
-            <b>Guardián del Río</b>: desliza ➡️ la basura al reciclaje y deja pasar ⬅️ la fauna y naturaleza del río Piura. 60 s.
-          </li>
-          <li>
-            <b>Ducha Musical</b>: cierra la llave al ritmo de la canción mientras te enjabonas, sin dejar correr el agua. 60 s.
-          </li>
-          <li>
-            <b>Corte de Agua</b>: administra 1000 L en 3 días de corte con tarjetas de decisión, sin sacrificar la higiene. 90 s.
-          </li>
-          <li>
-            <b>Acuífero del Algarrobo</b>: guía la raíz con ⬅️➡️ esquivando 🌑 rocas y 🛢️ filtraciones, recoge 💧 bolsas de acuífero. 60 s, 3 rondas.
-          </li>
-          <li>
-            <b>Cloración Segura</b>: mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro. 60 s.
-          </li>
-          <li>
-            <b>Sabios del Agua</b>: 10 preguntas al azar sobre agua, Piura y los temas de la Academia. Responde rápido para sumar más. 90 s.
-          </li>
-          <li>
-            <b>Construye tu Wasi</b>: arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 4 rondas, 240 s.
-          </li>
-          <li>
-            <b>Memorama del Agua</b>: progresivo — 4 cartas al empezar, sube de a 2 hasta 30 según avanzás, sin repetir posición. 90 s.
-          </li>
-          <li>Todos otorgan 30–100 HydroPuntos y arrancan con tres viñetas que explican cómo se juega. Ganar con 50 % o más de desempeño entrega HydroPuntos, EXP y actividad de racha; perder o salir no entrega nada. El récord solo muestra tu mejor resultado.</li>
-        </ul>
       </div>
 
       <AnimatePresence>
@@ -229,8 +230,59 @@ export default function Juegos() {
             key={activeGame.id}
             game={activeGame}
             onFinish={(accuracy) => handleFinish(activeGame.id, accuracy)}
-            onClose={() => setActiveGameId(null)}
+            onClose={closeGame}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div
+            role="presentation"
+            onClick={() => setShowInfo(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c1c11]/60 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Sobre los juegos"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 16, opacity: 0 }}
+              className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl border-2 border-ink bg-bg-light p-4 shadow-[4px_4px_0_#1c1c11]"
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="font-display text-lg font-extrabold text-ink">ℹ️ Sobre los juegos</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowInfo(false)}
+                  aria-label="Cerrar información"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-ink bg-surface text-xl font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {JUEGOS_INFO.map((j) => (
+                  <div key={j.titulo} className="min-w-0 rounded-xl border-2 border-ink bg-surface p-3 shadow-[2px_2px_0_#1c1c11]">
+                    <p className="font-display text-sm font-extrabold text-ink">
+                      {j.emoji} {j.titulo}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold leading-relaxed text-ink/70 text-pretty break-words [overflow-wrap:break-word]">
+                      {j.texto}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 rounded-xl border-2 border-ink bg-[#FFB793] p-3 text-xs font-bold leading-relaxed text-[#1c1c11]">
+                {JUEGOS_NOTA}
+              </p>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
