@@ -27,7 +27,7 @@ const JUEGOS_INFO: { emoji: string; titulo: string; texto: string }[] = [
   { emoji: "🚿", titulo: "Ducha Musical", texto: "Cierra la llave al ritmo mientras te enjabonas e ignora los botones trampa, sin dejar correr el agua. 60 s." },
   { emoji: "🛢️", titulo: "Corte de Agua", texto: "Administra 1000 L en 3 días de corte con tarjetas de decisión, sin sacrificar la higiene. 90 s." },
   { emoji: "🌳", titulo: "Acuífero del Algarrobo", texto: "Guía la raíz con ⬅️➡️ esquivando rocas y filtraciones, recoge bolsas de acuífero. 60 s, 3 rondas." },
-  { emoji: "💧", titulo: "Cloración Segura", texto: "Mantén presionado el gotero y suelta en el número exacto de gotas — 2 por litro. 60 s." },
+  { emoji: "💧", titulo: "Cloración Segura", texto: "Mantén presionado el gotero y suelta en el número exacto de gotas — según la fuente: red 2/L, pozo 5/L. 60 s." },
   { emoji: "❓", titulo: "Sabios del Agua", texto: "10 preguntas al azar sobre agua, Piura y los temas de la Academia. Responde rápido para sumar más. 90 s." },
   { emoji: "🏠", titulo: "Construye tu Wasi", texto: "Arma en 3D isométrico la instalación de agua de tu casa — techo, canaletas, filtro, tanque, biohuerto y ducha. 8 rondas, 300 s." },
   { emoji: "🃏", titulo: "Memorama del Agua", texto: "Progresivo — 4 cartas al empezar, sube de a 2 hasta 30 según avanzás, sin repetir posición. 90 s." },
