@@ -21,7 +21,7 @@ insert into catalogo_recompensas (ref, tipo, exp_min, exp_max, hydro_min, hydro_
   ('jg-11', 'juego', 6, 20, 30, 100, 60),
   ('jg-12', 'juego', 6, 20, 30, 100, 60),
   ('jg-13', 'juego', 6, 20, 30, 100, 90),
-  ('jg-14', 'juego', 6, 20, 30, 100, 240),
+  ('jg-14', 'juego', 6, 20, 30, 100, 300),
   ('jg-15', 'juego', 6, 20, 30, 100, 90),
   ('diaria-01', 'mision', 5, 5, 0, 0, 0),
   ('diaria-02', 'mision', 8, 8, 0, 0, 0),
