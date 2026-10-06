@@ -44,7 +44,7 @@ for (const juego of MINIGAMES) {
     expMax: calcGameExp(100),
     hydroMin: 30,
     hydroMax: 100,
-    segundosMin: juego.durationSeconds,
+    segundosMin: juego.segundosMin ?? juego.durationSeconds,
   });
 }
 
@@ -61,12 +61,13 @@ for (const mision of [...MISIONES_DIARIAS_POOL, ...MISIONES_SEMANALES_POOL, ...M
   });
 }
 
-// Misiones personalizadas: el usuario elige los litros y calcCustomXp() acota a [5, 40].
+// Misiones personalizadas: EXP fijo en 5 (calcCustomXp). Sin escala por litros:
+// era un auto-premio y el servidor además solo admite 4/día.
 filas.push({
   ref: "personalizada",
   tipo: "mision",
   expMin: 5,
-  expMax: 40,
+  expMax: 5,
   hydroMin: 0,
   hydroMax: 0,
   segundosMin: 0,

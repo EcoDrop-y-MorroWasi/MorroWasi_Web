@@ -2,9 +2,10 @@
 // Fórmulas validadas: se testean con npm run build + lógica unitaria inline
 
 /** Calcula XP para misión personalizada: round(litros/3) acotado 5-40 */
-export function calcCustomXp(litros: number): number {
-  const raw = Math.round(litros / 3);
-  return Math.max(5, Math.min(40, raw));
+export function calcCustomXp(): number {
+  // Fijo en 5 a propósito: las personalizadas las crea y completa el propio
+  // usuario, así que escalar por litros era un auto-premio (120 L = 40 EXP).
+  return 5;
 }
 
 /** EXP que otorga completar un curso, además de sus HydroPuntos (course.xpReward).
@@ -16,10 +17,11 @@ export function calcCourseExp(hydroReward: number): number {
 }
 
 /** EXP que otorga ganar un minijuego, además de sus HydroPuntos.
- * Antes los juegos solo daban HydroPuntos y no movían al Wasi — mismo ratio 1/5
- * que calcCourseExp, para que aporten sin opacar a las misiones (fuente principal de EXP). */
+ * Antes era hydro/5 (hasta 20 EXP por partida): los juegos opacaban 17 a 1 a
+ * las misiones, que son el esfuerzo real. Con hydro/10 + tope 3/día los juegos
+ * siguen siendo la fuente mayor pero ya no hacen irrelevante todo lo demás. */
 export function calcGameExp(hydroReward: number): number {
-  return Math.max(3, Math.round(hydroReward / 5));
+  return Math.max(3, Math.round(hydroReward / 10));
 }
 
 /** Cada punto de EXP de juego representa cinco litros simbólicos ahorrados. */
@@ -86,6 +88,8 @@ export interface Minigame {
   type: MinigameType;
   xpMaxReward: number; // 30-100
   durationSeconds: number; // varía por juego, ver jg-14 (240s)
+  /** Piso creíble de segundos por partida para el antitrampa (por defecto, la duración). */
+  segundosMin?: number;
   played?: boolean;
   bestScore?: number;
 }
@@ -313,6 +317,7 @@ export const MINIGAMES: Minigame[] = [
     type: "RIEGO_OPT",
     xpMaxReward: 100,
     durationSeconds: 90,
+    segundosMin: 40,
   },
   {
     id: "jg-5",
@@ -367,6 +372,7 @@ title: "Guardián del Río Piura y Manglares",
     type: "CORTE_AGUA",
     xpMaxReward: 100,
     durationSeconds: 90,
+    segundosMin: 30,
   },
   {
     id: "jg-11",

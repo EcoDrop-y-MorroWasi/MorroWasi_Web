@@ -14,10 +14,8 @@ import { calcGameExp } from "./gamification";
 import { calcGameLiters } from "./gamification";
 
 describe("calcCustomXp", () => {
-  it("acota entre 5 y 40, redondeando litros/3", () => {
-    expect(calcCustomXp(0)).toBe(5); // piso
-    expect(calcCustomXp(30)).toBe(10);
-    expect(calcCustomXp(1000)).toBe(40); // techo
+  it("paga 5 fijos: sin escala por litros (era auto-premio)", () => {
+    expect(calcCustomXp()).toBe(5);
   });
 });
 
@@ -35,11 +33,11 @@ describe("calcMinigameScore", () => {
 });
 
 describe("calcCourseExp / calcGameExp", () => {
-  it("EXP siempre es una fracción (1/5) del HydroPuntos, con piso propio", () => {
+  it("cursos 1/5 de HydroPuntos; juegos 1/10 para no opacar misiones", () => {
     expect(calcCourseExp(150)).toBe(30);
     expect(calcCourseExp(10)).toBe(5); // piso de calcCourseExp
-    expect(calcGameExp(100)).toBe(20);
-    expect(calcGameExp(30)).toBe(6); // límite inferior del catálogo de juegos
+    expect(calcGameExp(100)).toBe(10);
+    expect(calcGameExp(30)).toBe(3); // límite inferior del catálogo de juegos
     expect(calcGameExp(10)).toBe(3); // piso de calcGameExp
   });
 });

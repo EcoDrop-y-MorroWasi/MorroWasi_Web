@@ -48,13 +48,33 @@ function writeState(next: ShopState) {
   }
 }
 
+/** Total de accesorios comprados en todos los avatares — vitrina del ranking. */
+export function countOwnedAccessories(): number {
+  try {
+    return readState().ownedAccessoryIds.length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Avatar de tienda seleccionado + cuántos de sus 11 accesorios tiene (x/11 del ranking). */
+export function selectedAvatarProgress(): { avatarId: string; owned: number } {
+  try {
+    const s = readState();
+    const accs = AVATAR_ACCESSORIES[s.selectedAvatarId] ?? [];
+    const owned = accs.filter((a) => s.ownedAccessoryIds.includes(a.id)).length;
+    return { avatarId: s.selectedAvatarId, owned };
+  } catch {
+    return { avatarId: "angie", owned: 0 };
+  }
+}
+
 /**
  * Cobra SPECIAL_SKIN_PRICE y deja la Skin Especial comprada y puesta. Exige el
  * set de 11 accesorios completo, relee el saldo real al pagar y no cobra dos
  * veces (mismo criterio que purchaseCourse). Devuelve false si falta algo.
  */
-export function purchaseSpecialSkin(avatarId: string): boolean {
-  const s = readState();
+export function purchaseSpecialSkin(avatarId: string): boolean {  const s = readState();
   if (s.ownedSpecialSkins.includes(avatarId)) return true;
   const accs = AVATAR_ACCESSORIES[avatarId];
   if (!accs || !accs.every((a) => s.ownedAccessoryIds.includes(a.id))) return false;

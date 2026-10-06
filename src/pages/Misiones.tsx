@@ -113,7 +113,7 @@ export default function Misiones() {
   const [customText, setCustomText] = useState("");
   const [customLitros, setCustomLitros] = useState(30);
   const [customIcon, setCustomIcon] = useState<string>(CUSTOM_TASK_ICONS[0]);
-  const previewXp = calcCustomXp(customLitros);
+  const previewXp = calcCustomXp();
 
   useEffect(() => {
     try {
@@ -147,8 +147,8 @@ export default function Misiones() {
     playPop();
     addExp(target.xp);
     // Las personalizadas las escribe el usuario, así que no tienen un id fijo en
-    // el catálogo: van bajo "personalizada", cuyo rango de EXP el servidor acota
-    // igual que calcCustomXp() (5 a 40).
+    // el catálogo: van bajo "personalizada", que paga EXP fijo (5) para que no
+    // sea un auto-premio.
     const ref = isCustom ? "personalizada" : target.id;
     const t = recordLedgerEvent("mision", ref, { exp: target.xp });
     addLiters(target.litersSaved);
@@ -177,7 +177,7 @@ export default function Misiones() {
   const addCustom = () => {
     const txt = customText.trim();
     if (!txt) return;
-    const xp = calcCustomXp(customLitros);
+    const xp = calcCustomXp();
     const nt: Task = {
       id: `custom-${Date.now()}`,
       text: txt,

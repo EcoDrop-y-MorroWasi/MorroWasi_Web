@@ -18,8 +18,8 @@ describe("WASI_STAGE_THRESHOLDS", () => {
     }
   });
 
-  it("coincide con la curva rebalanceada (etapa 10 = 22,000 PEW)", () => {
-    expect(WASI_STAGE_THRESHOLDS).toEqual([0, 1000, 2000, 4000, 6000, 8000, 12000, 14000, 18000, 22000]);
+  it("coincide con la curva 2026-10 (etapa 2 = 3,000, etapa 10 = 63,000 PEW)", () => {
+    expect(WASI_STAGE_THRESHOLDS).toEqual([0, 3000, 7000, 12000, 18000, 25000, 33000, 42000, 52000, 63000]);
   });
 });
 
@@ -35,8 +35,8 @@ describe("WASI_STAGES", () => {
 describe("calcWasiStage", () => {
   it("arranca en etapa 1 con 0 PEW, sin retroceder nunca ni pasar de 10", () => {
     expect(calcWasiStage(0).stage).toBe(1);
-    expect(calcWasiStage(999).stage).toBe(1);
-    expect(calcWasiStage(22000).stage).toBe(10);
+    expect(calcWasiStage(2999).stage).toBe(1);
+    expect(calcWasiStage(63000).stage).toBe(10);
     expect(calcWasiStage(9_999_999).stage).toBe(10); // nunca pasa de la última etapa
   });
 

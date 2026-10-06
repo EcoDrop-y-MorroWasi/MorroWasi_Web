@@ -59,7 +59,7 @@ export function RankingTable({
                 {row.nombre}
                 {row.profile_id === miProfileId && <span className="ml-1 text-xs font-bold text-accent">(tú)</span>}
               </p>
-              <p className="truncate font-body text-xs font-semibold text-ink/60">{nombreEtapa(row.etapa)}</p>
+              <p className="truncate font-body text-xs font-semibold text-ink/60">{nombreEtapa(row.etapa)} · 🎽 {row.accesorios_avatar ?? 0}/11</p>
             </div>
             <div className="shrink-0 text-right">
               <p className="font-display text-base font-extrabold text-accent">{row.hydro_points.toLocaleString('es-PE')}</p>
@@ -79,6 +79,7 @@ export function RankingTable({
               <th scope="col" className="p-3">HydroPuntos</th>
               <th scope="col" className="p-3">EXP</th>
               <th scope="col" className="p-3">Etapa Wasi</th>
+              <th scope="col" className="p-3">Acc.</th>
             </tr>
           </thead>
           <tbody>
@@ -102,6 +103,7 @@ export function RankingTable({
                 <td className="p-3 font-display font-extrabold text-accent">{row.hydro_points.toLocaleString('es-PE')}</td>
                 <td className="p-3 font-body text-sm">{row.exp.toLocaleString('es-PE')}</td>
                 <td className="p-3 font-body text-sm">{nombreEtapa(row.etapa)}</td>
+                <td className="p-3 font-body text-sm">🎽 {row.accesorios_avatar ?? 0}/11</td>
               </tr>
             ))}
           </tbody>

@@ -10,6 +10,7 @@ import {
   PERIODOS,
   darConsentimiento,
   fetchLeaderboard,
+  fetchMyPenaltyNotices,
   fetchMyRank,
   subscribeLeaderboard,
   submitScore,
@@ -17,10 +18,32 @@ import {
   type LeaderboardPeriodo,
   type LeaderboardRow,
   type MyRankRow,
+  type PenaltyNotice,
 } from '../utils/leaderboardSync'
 
 const TAMANO_PAGINA = 10
 const TOPE_MAXIMO = 50
+// Avisos de penalización ya mostrados (por id de flag): cada uno sale una sola
+// vez aunque el flag siga abierto en el servidor.
+const AVISOS_VISTOS_KEY = 'morrowasi_avisos_v1'
+
+function leerAvisosVistos(): number[] {
+  try {
+    const raw = window.localStorage.getItem(AVISOS_VISTOS_KEY)
+    const parsed = raw ? (JSON.parse(raw) as unknown) : []
+    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === 'number') : []
+  } catch {
+    return []
+  }
+}
+
+function marcarAvisoVisto(id: number): void {
+  try {
+    window.localStorage.setItem(AVISOS_VISTOS_KEY, JSON.stringify([...leerAvisosVistos(), id]))
+  } catch {
+    /* localStorage no disponible */
+  }
+}
 
 function leerPerfil() {
   try {
@@ -50,6 +73,8 @@ export const Ranking = () => {
   // Privado (fetchMyRank exige tu secret real) — se pide aparte del top porque
   // solo tiene sentido mostrarlo cuando quedaste fuera de las filas visibles.
   const [miRango, setMiRango] = useState<MyRankRow | null>(null)
+  // Aviso de penalización pendiente de mostrar (una sola vez por flag).
+  const [avisoPenalizacion, setAvisoPenalizacion] = useState<PenaltyNotice | null>(null)
 
   const miProfileId = getProfileId()
   const hoy = totalsToday()
@@ -99,6 +124,29 @@ export const Ranking = () => {
   // eso vuelve a pedir el ranking del periodo que el usuario está mirando. La
   // tabla se reemplaza debajo sin volver al esqueleto, porque el periodo no cambió.
   useEffect(() => subscribeLeaderboard(() => void cargar(periodoRef.current, limiteRef.current)), [cargar])
+
+  // Aviso de penalización: si el sistema ajustó tu puntaje, te enteras al abrir
+  // el ranking, una sola vez por aviso. Sin esto el descuento parece un bug.
+  useEffect(() => {
+    let vivo = true
+    void (async () => {
+      try {
+        const vistos = leerAvisosVistos()
+        const pendientes = (await fetchMyPenaltyNotices()).filter((n) => !vistos.includes(n.id))
+        if (vivo && pendientes.length > 0) setAvisoPenalizacion(pendientes[0])
+      } catch {
+        /* sin red o sin RPC: no se muestra nada, no se rompe nada */
+      }
+    })()
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const cerrarAvisoPenalizacion = () => {
+    if (avisoPenalizacion) marcarAvisoVisto(avisoPenalizacion.id)
+    setAvisoPenalizacion(null)
+  }
 
   const verMas = () => {
     setLimite((l) => Math.min(TOPE_MAXIMO, l + TAMANO_PAGINA))
@@ -284,6 +332,47 @@ export const Ranking = () => {
       </section>
 
       <AnimatePresence>
+        {avisoPenalizacion && (
+          <motion.div
+            role="presentation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c1c11]/60 p-4"
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="penalty-title"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              className="keyline-border w-full max-w-md rounded-3xl bg-bg-light p-6 shadow-[4px_4px_0_var(--color-ink)]"
+            >
+              <p className="text-3xl" aria-hidden="true">🛡️</p>
+              <h2 id="penalty-title" className="mt-1 font-display text-lg font-extrabold">
+                Ajustamos tu puntaje
+              </h2>
+              <p className="mt-2 font-body text-sm">
+                El sistema detectó partidas que nadie puede completar en ese tiempo
+                (por ejemplo, varios juegos de 90 segundos en pocos minutos). Esos
+                puntos no cuentan: tus puntos honestos están intactos.
+              </p>
+              <p className="mt-2 font-body text-sm">
+                Desde hoy cada juego tiene un tiempo mínimo y un tope diario, para
+                que todas las familias compitan en igualdad. Juega limpio y tu Wasi
+                seguirá creciendo. 🤝
+              </p>
+              <button
+                type="button"
+                onClick={cerrarAvisoPenalizacion}
+                className="mt-5 min-h-12 w-full rounded-xl border-2 border-ink bg-accent font-display text-sm font-bold text-white shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Entendido, juego limpio
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
         {pidiendoConsentimiento && (
           <motion.div
             role="presentation"

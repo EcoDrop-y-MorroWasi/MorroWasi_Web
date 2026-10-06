@@ -13,6 +13,44 @@ import { recordLedgerEvent } from "../utils/leaderboardLedger";
 import { playChime, playMiss } from "../utils/sound";
 
 const GAMES_STORAGE_KEY = "morrowasi_games_v1";
+// Tope anti-farmeo: cada juego paga 3 partidas al día como máximo. El día va en
+// hora de Perú, igual que el ranking.
+const PAGOS_DIARIOS_KEY = "morrowasi_pagos_v1";
+const PAGOS_POR_JUEGO_DIA = 3;
+
+function diaLima(): string {
+  try {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+function pagosDeHoy(gameId: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(PAGOS_DIARIOS_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as Record<string, { dia?: unknown; n?: unknown }>;
+    const reg = parsed[gameId];
+    if (!reg || reg.dia !== diaLima() || typeof reg.n !== "number") return 0;
+    return reg.n;
+  } catch {
+    return 0;
+  }
+}
+
+function registrarPago(gameId: string): void {
+  try {
+    const raw = window.localStorage.getItem(PAGOS_DIARIOS_KEY);
+    const parsed = (raw ? JSON.parse(raw) : {}) as Record<string, { dia: string; n: number }>;
+    const hoy = diaLima();
+    const prev = parsed[gameId]?.dia === hoy ? parsed[gameId].n : 0;
+    window.localStorage.setItem(PAGOS_DIARIOS_KEY, JSON.stringify({ ...parsed, [gameId]: { dia: hoy, n: prev + 1 } }));
+  } catch {
+    /* localStorage no disponible */
+  }
+}
 
 // Fichas de "Sobre los juegos" que muestra el botón ? junto al título.
 const JUEGOS_INFO: { emoji: string; titulo: string; texto: string }[] = [
@@ -123,8 +161,13 @@ export default function Juegos() {
   // partida ganada (earned > 0) paga, superes récord o no — el récord se
   // sigue guardando solo para mostrarlo en la tarjeta del juego.
   const handleFinish = (gameId: string, accuracy: number): MinigameResult => {
-    const earned = calcMinigameScore(accuracy);
     const prevBest = bestScores[gameId] ?? 0;
+    if (pagosDeHoy(gameId) >= PAGOS_POR_JUEGO_DIA) {
+      pushToast("Sin HydroPuntos", "Tope diario de este juego (3/día): vuelve mañana");
+      playMiss();
+      return { earned: 0, liters: 0, isNewBest: false, bestScore: prevBest };
+    }
+    const earned = calcMinigameScore(accuracy);
     const isNewBest = earned > prevBest;
     const nextBest = Math.max(prevBest, earned);
 
@@ -136,6 +179,7 @@ export default function Juegos() {
 
     if (earned > 0) {
       markActivityToday();
+      registrarPago(gameId);
       addHydro(earned);
       const exp = calcGameExp(earned);
       const liters = calcGameLiters(exp);

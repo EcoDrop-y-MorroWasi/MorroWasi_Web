@@ -1023,6 +1023,11 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
   const answeredRef = useRef(false);
   const finishedRef = useRef(false);
   const scenarioIdRef = useRef(scenario.id);
+  // Anti-speedrun: cada tick exige 4 s de lectura antes de avanzar. Responder
+  // al instante ya no termina la partida en 10 s (era el farmeo de jg-4).
+  const tickStartRef = useRef(Date.now());
+  // Orden barajado por tick: memorizar posiciones de botones ya no sirve.
+  const opciones = useMemo(() => barajar([...scenario.options]), [scenario]);
 
   const finalize = () => {
     if (finishedRef.current) return;
@@ -1043,6 +1048,7 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
     setSecondsLeft(TICK_SECONDS);
     setFeedback(null);
     answeredRef.current = false;
+    tickStartRef.current = Date.now();
   };
 
   const choose = (option: RiegoOption) => {
@@ -1057,7 +1063,8 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
       setHealth((h) => Math.max(0, h - 30));
       setFeedback("bad");
     }
-    setTimeout(nextTick, 600);
+    const esperaMinima = Math.max(0, 4000 - (Date.now() - tickStartRef.current));
+    setTimeout(nextTick, 600 + esperaMinima);
   };
 
   useEffect(() => {
@@ -1088,7 +1095,7 @@ function MaestroRiegoGame({ duration, onComplete }: { duration: number; onComple
         <p className="mt-1 font-display text-lg font-extrabold">{scenario.phase}</p>
         <p className="mt-1 text-sm font-semibold text-ink/80">{scenario.prompt}</p>
         <div className={`mt-3 grid grid-cols-2 gap-2 ${scenario.options.length > 2 ? "sm:grid-cols-4" : ""}`}>
-          {scenario.options.map((option) => (
+          {opciones.map((option) => (
             <button
               key={option.label}
               type="button"
@@ -2152,6 +2159,11 @@ function CorteAguaGame({ duration, onComplete }: { duration: number; onComplete:
   const finishedRef = useRef(false);
   const reserveRef = useRef(reserve);
   const hygieneRef = useRef(hygiene);
+  // Anti-speedrun: cada tarjeta exige 3 s de lectura (igual que Riego).
+  const cardStartRef = useRef(Date.now());
+  // A/B en orden aleatorio por tarjeta: memorizar lados ya no sirve.
+  const card = cards[index];
+  const opciones = useMemo(() => barajar([card.optionA, card.optionB]), [card]);
 
   useEffect(() => {
     reserveRef.current = reserve;
@@ -2159,8 +2171,6 @@ function CorteAguaGame({ duration, onComplete }: { duration: number; onComplete:
   useEffect(() => {
     hygieneRef.current = hygiene;
   }, [hygiene]);
-
-  const card = cards[index];
 
   const finalize = () => {
     if (finishedRef.current) return;
@@ -2179,6 +2189,7 @@ function CorteAguaGame({ duration, onComplete }: { duration: number; onComplete:
     setSecondsLeft(cardSeconds);
     setFeedback(null);
     answeredRef.current = false;
+    cardStartRef.current = Date.now();
   };
 
   const choose = (opt: DecisionOption) => {
@@ -2187,7 +2198,8 @@ function CorteAguaGame({ duration, onComplete }: { duration: number; onComplete:
     setReserve((r) => Math.max(0, r - opt.liters));
     setHygiene((h) => Math.max(0, Math.min(100, h + opt.hygiene)));
     setFeedback(`-${opt.liters}L${opt.hygiene !== 0 ? ` · ${opt.hygiene > 0 ? "+" : ""}${opt.hygiene} higiene` : ""}`);
-    setTimeout(nextCard, 700);
+    const esperaMinima = Math.max(0, 3000 - (Date.now() - cardStartRef.current));
+    setTimeout(nextCard, 700 + esperaMinima);
   };
 
   useEffect(() => {
@@ -2226,22 +2238,19 @@ function CorteAguaGame({ duration, onComplete }: { duration: number; onComplete:
           Tarjeta {index + 1}/{totalCards}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => choose(card.optionA)}
-            disabled={answeredRef.current}
-            className="min-h-12 rounded-xl border-2 border-ink bg-[#99B4D8] px-3 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-          >
-            {card.optionA.label} (-{card.optionA.liters}L)
-          </button>
-          <button
-            type="button"
-            onClick={() => choose(card.optionB)}
-            disabled={answeredRef.current}
-            className="min-h-12 rounded-xl border-2 border-ink bg-[#FFB793] px-3 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-          >
-            {card.optionB.label} (-{card.optionB.liters}L)
-          </button>
+          {opciones.map((opt, i) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => choose(opt)}
+              disabled={answeredRef.current}
+              className={`min-h-12 rounded-xl border-2 border-ink px-3 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                i === 0 ? "bg-[#99B4D8]" : "bg-[#FFB793]"
+              }`}
+            >
+              {opt.label} (-{opt.liters}L)
+            </button>
+          ))}
         </div>
         {feedback && <p className="mt-2 text-xs font-bold text-ink/70">{feedback}</p>}
       </div>

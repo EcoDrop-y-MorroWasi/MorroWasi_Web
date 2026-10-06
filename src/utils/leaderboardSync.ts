@@ -3,6 +3,7 @@
 import { supabase } from "../lib/supabaseClient";
 import { getProfileId } from "./progressBackup";
 import { readLedger } from "./leaderboardLedger";
+import { countOwnedAccessories, selectedAvatarProgress } from "./avatarShopStore";
 import { reportarErrorServidor } from "./serverErrors";
 
 const SECRET_KEY = "morrowasi_leaderboard_secret_v1";
@@ -25,6 +26,10 @@ export interface LeaderboardRow {
   exp: number;
   hydro_points: number;
   etapa: number;
+  /** Accesorios desbloqueados (vitrina; puede faltar en filas viejas). */
+  accesorios: number;
+  avatar_shop: string;
+  accesorios_avatar: number;
   updated_at: string;
 }
 
@@ -108,12 +113,16 @@ export interface SubmitResult {
  * localStorage no sirve de nada. Reenviar el mismo libro es idempotente.
  */
 export async function submitScore(nombre: string, avatar: string): Promise<SubmitResult> {
+  const shop = selectedAvatarProgress();
   const { data, error } = await supabase.rpc("submit_leaderboard_score", {
     p_profile_id: getProfileId(),
     p_secret: getLeaderboardSecret(),
     p_nombre: nombre,
     p_avatar: avatar,
     p_eventos: readLedger(),
+    p_accesorios: countOwnedAccessories(),
+    p_avatar_shop: shop.avatarId,
+    p_accesorios_avatar: shop.owned,
   });
 
   if (error) throw new Error(traducirError(error, "submit_leaderboard_score"));
@@ -188,6 +197,45 @@ export async function fetchMyRank(periodo: LeaderboardPeriodo): Promise<MyRankRo
     exp: Number(row.exp),
     etapa: Number(row.etapa),
   };
+}
+
+/**
+ * Avisos de penalización pendientes de ver. Cada flag abierto del propio perfil
+ * se muestra una sola vez como modal en Ranking (vistos en localStorage).
+ * Privado: exige el secret, igual que fetchMyRank.
+ */
+export interface PenaltyNotice {
+  id: number;
+  code: string;
+  severity: string;
+  reason: string | null;
+  observed: Record<string, unknown> | null;
+  detectedAt: string | null;
+}
+
+export async function fetchMyPenaltyNotices(): Promise<PenaltyNotice[]> {
+  let secret: string | null = null;
+  try {
+    secret = window.localStorage.getItem(SECRET_KEY);
+  } catch {
+    /* localStorage no disponible */
+  }
+  if (!secret) return [];
+
+  const { data, error } = await supabase.rpc("get_my_penalty_notices", {
+    p_profile_id: getProfileId(),
+    p_secret: secret,
+  });
+  if (error) throw new Error(traducirError(error, "get_my_penalty_notices"));
+
+  return ((data as Record<string, unknown>[] | null) ?? []).map((row) => ({
+    id: Number(row.id),
+    code: String(row.code),
+    severity: String(row.severity),
+    reason: typeof row.reason === "string" ? row.reason : null,
+    observed: (row.observed as Record<string, unknown> | null) ?? null,
+    detectedAt: typeof row.detected_at === "string" ? row.detected_at : null,
+  }));
 }
 
 /**
