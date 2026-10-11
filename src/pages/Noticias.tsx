@@ -277,7 +277,7 @@ export default function Noticias() {
             </Link>
             <p className="mt-1 text-sm text-ink/80 leading-snug">
               Estands, demostraciones y videos del proyecto "EcoDrop y MorroWasi: Protegiendo el agua para Ti" en la I.E.
-              "Almirante Miguel Grau" — parte del Desafío Amauta 2026. Click para ver la nota completa, el flyer y los
+              "Almirante Miguel Grau". Click para ver la nota completa, el flyer y los
               videos.
             </p>
           </li>

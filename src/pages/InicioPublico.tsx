@@ -6,7 +6,7 @@ import ProtectedVideo from '../components/ProtectedVideo'
 const SECTIONS = [
   { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', text: 'Una plataforma educativa para que personas, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
   { icon: '🌱', title: 'Cómo ayuda', tone: 'bg-secondary', text: 'Registra hábitos de ahorro, aprende con cursos de video, juega desafíos educativos y hace crecer tu Wasi en sus 10 etapas. Cada acción suma litros, HydroPuntos y motivación para seguir cuidando el agua.' },
-  { icon: '📍', title: 'Dónde nació', tone: 'bg-surface', text: 'MorroWasi nace en Morropón, Piura, como parte del Desafío Amauta 2026: una respuesta local, alegre y práctica para una necesidad que compartimos.' },
+  { icon: '📍', title: 'Dónde nació', tone: 'bg-surface', text: 'El Club de Ciencias Código Científico TPC - Todo Por Cristo, diseñó las herramientas tecnológicas MorroWasi y "EcoDrop". Esta propuesta no concibe la tecnología como un elemento aislado o descontextualizado, sino como la continuación e innovación de la ética ancestral del cuidado del agua. Evitando el desperdicio hoy mediante sensores y software escolar, es la traducción contemporánea del valor del agua que practicaron los ancestros de Morropón.' },
   { icon: '🎯', title: 'Nuestro objetivo', tone: 'bg-primary/30', text: 'Promover el uso responsable del agua en hogares y escuelas mediante educación práctica, actividades cotidianas y una comunidad que celebra cada gota ahorrada.' },
 ] as const
 
@@ -33,7 +33,7 @@ export default function InicioPublico() {
         <section className="keyline-border relative overflow-hidden rounded-2xl bg-primary p-6 shadow-[4px_4px_0_var(--color-ink)] sm:p-10">
           <div aria-hidden="true" className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'repeating-linear-gradient(-15deg, transparent 0 18px, var(--color-ink) 18px 19px)' }} />
           <div className="relative max-w-2xl">
-            <p className="font-bold">💧 Desafío Amauta 2026 · Morropón, Piura</p>
+            <p className="font-bold">💧 Morropón, Piura</p>
             <h1 className="mt-3 font-display text-4xl font-extrabold leading-tight sm:text-5xl">Cada gota cuida nuestro Wasi.</h1>
             <p className="mt-4 text-lg font-semibold leading-relaxed text-ink/80">Una comunidad que aprende, ahorra y protege el agua desde casa y la escuela.</p>
             <AccessLink label="Acceder a mi Wasi" extra="mt-6 bg-accent text-white shadow-[4px_4px_0_var(--color-ink)]" />

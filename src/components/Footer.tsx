@@ -7,8 +7,6 @@ export default function Footer() {
       <span>© 2026</span>
       <span>Club de Ciencias "Código Científico TPC - Todo Por Cristo"</span>
       <span aria-hidden="true">·</span>
-      <span>Desafío Amauta 2026</span>
-      <span aria-hidden="true">·</span>
       <a
         href="https://www.facebook.com/profile.php?id=61594008554625"
         target="_blank"

@@ -69,7 +69,7 @@ export const Ranking = () => {
   const [aviso, setAviso] = useState<string | null>(null)
   const [pidiendoConsentimiento, setPidiendoConsentimiento] = useState(false)
   const [limite, setLimite] = useState(TAMANO_PAGINA)
-  const [faltaSync, setFaltaSync] = useState(false)
+  const [pidiendoRespaldo, setPidiendoRespaldo] = useState(false)
   // Privado (fetchMyRank exige tu secret real) — se pide aparte del top porque
   // solo tiene sentido mostrarlo cuando quedaste fuera de las filas visibles.
   const [miRango, setMiRango] = useState<MyRankRow | null>(null)
@@ -161,11 +161,18 @@ export const Ranking = () => {
     // ata el puntaje a una identidad con respaldo, así no vale crear perfiles
     // desechables para inflar la tabla.
     if (!getLinkedCode()) {
-      setFaltaSync(true)
-      setAviso('Para compartir tu puntaje primero sincroniza tu progreso: así tu cuenta queda respaldada y evitamos trampas.')
+      setPidiendoRespaldo(true)
       return
     }
-    setFaltaSync(false)
+    await continuarCompartir()
+  }
+
+  const compartirSinRespaldo = () => {
+    setPidiendoRespaldo(false)
+    void continuarCompartir()
+  }
+
+  const continuarCompartir = async () => {
     // Cuenta recién creada: no hay nada que subir, mejor decirlo antes de ir al servidor.
     const totales = totalsFromLedger()
     if (totales.hydro === 0 && totales.exp === 0) {
@@ -250,14 +257,41 @@ export const Ranking = () => {
               {aviso}
             </motion.p>
           )}
-          {faltaSync && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Link
-                to="/perfil"
-                className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-ink bg-primary px-5 font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              >
-                🔗 Ir a sincronizar mi progreso
-              </Link>
+          {pidiendoRespaldo && (
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="respaldo-title"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="keyline-border mt-3 rounded-2xl bg-bg-light p-4"
+            >
+              <p className="text-2xl" aria-hidden="true">💾</p>
+              <h2 id="respaldo-title" className="mt-1 font-display text-base font-extrabold">
+                Guarda tu progreso primero
+              </h2>
+              <p className="mt-1 font-body text-sm">
+                Si cambias de celular o se borran los datos, tu Wasi, tus accesorios y tu
+                puntaje se pierden. Respalda con tu código en Perfil: sin código no hay
+                forma de recuperar nada.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Link
+                  to="/perfil"
+                  onClick={() => setPidiendoRespaldo(false)}
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-xl border-2 border-ink bg-primary px-5 font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  🔗 Ir a respaldar mi progreso
+                </Link>
+                <button
+                  type="button"
+                  onClick={compartirSinRespaldo}
+                  className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  Compartir sin respaldo
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

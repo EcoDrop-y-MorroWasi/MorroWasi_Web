@@ -56,9 +56,12 @@ function fmt(n: number): string {
 interface AvataresProps {
   /** Etapa actual del Wasi (1-10), misma fuente que Academia (calcWasiStage). */
   wasiStage: number;
+  /** Tienda en mantenimiento: nadie puede ver avatares ni comprar accesorios. Default true. */
+  mantenimiento?: boolean;
 }
 
-export default function Avatares({ wasiStage }: AvataresProps) {
+export default function Avatares({ wasiStage, mantenimiento = true }: AvataresProps) {
+  const enMantenimiento = mantenimiento;
   const [hydroPoints, addHydroPoints] = useHydroPoints();
   const shop = useAvatarShop();
   const [previewing, setPreviewing] = useState<Record<string, string>>({});
@@ -90,6 +93,20 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   const secretUnlocked = achievements.stage10 && achievements.allGames && achievements.allCourses && achievements.allAccessories;
 
   const avatarUnlocked = (a: Avatar) => (a.special ? secretUnlocked : (a.stage ?? Infinity) <= wasiStage);
+  // Si el avatar seleccionado quedó bloqueado (bajaste de etapa tras un ajuste),
+  // se vuelve a Angie sola: nada confiscado, solo se frena lo nuevo. Aviso
+  // persistente hasta descartarlo, para que el cambio no parezca un bug.
+  const [avisoBloqueo, setAvisoBloqueo] = useState<string | null>(null);
+  const seleccionado = findAvatar(shop.selectedAvatarId);
+  useEffect(() => {
+    if (seleccionado && !avatarUnlocked(seleccionado)) {
+      shop.setSelectedAvatar("angie");
+      setAvisoBloqueo(
+        `Bajaste a la etapa ${wasiStage}: ${seleccionado.name} se bloqueó y volviste a Angie. Tus accesorios se conservan.`,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seleccionado?.id, wasiStage]);
   const gateOk = (a: Avatar) => {
     const p = prevAvatar(a);
     return !p || shop.allOwned(p);
@@ -156,6 +173,12 @@ export default function Avatares({ wasiStage }: AvataresProps) {
 
   const handleAccessoryClick = (acc: Accessory) => {
     if (!unlocked) return;
+    if (!shop.isOwned(acc.id)) {
+      if (enMantenimiento) {
+        setToast("🔧 Tienda en mantenimiento: no se puede comprar por ahora");
+        return;
+      }
+    }
     if (!shop.isOwned(acc.id) && !gate) return;
     if (shop.isOwned(acc.id)) {
       shop.toggleEquip(acc.id);
@@ -174,6 +197,10 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   };
 
   const confirmBuy = (acc: Accessory) => {
+    if (enMantenimiento) {
+      setToast("🔧 Tienda en mantenimiento: no se puede comprar por ahora");
+      return;
+    }
     // Lee el saldo fresco de localStorage (no el `hydroPoints` de React state, que
     // puede estar desactualizado entre dos compras seguidas antes del re-render).
     const currentPoints = getHydroPoints();
@@ -191,6 +218,10 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   };
 
   const buySpecial = () => {
+    if (enMantenimiento) {
+      setToast("🔧 Tienda en mantenimiento: no se puede comprar por ahora");
+      return;
+    }
     const currentPoints = getHydroPoints();
     if (currentPoints < SPECIAL_SKIN_PRICE) {
       setToast(`Te faltan ${fmt(SPECIAL_SKIN_PRICE - currentPoints)} HP para la Skin Especial`);
@@ -203,6 +234,20 @@ export default function Avatares({ wasiStage }: AvataresProps) {
   };
 
   const cancelTry = (acc: Accessory) => setPreviewing((p) => ({ ...p, [previewKey(acc.slot)]: "" }));
+
+  if (enMantenimiento) {
+    return (
+      <div className="mx-auto max-w-[800px] p-4" data-tour="pagina-avatares">
+        <div className="keyline-border mx-auto mt-10 w-full max-w-sm rounded-2xl bg-surface p-6 text-center shadow-[4px_4px_0_var(--color-ink)]" role="dialog" aria-modal="true" aria-label="Tienda en mantenimiento">
+          <p className="text-4xl" aria-hidden="true">🔧</p>
+          <h2 className="mt-2 font-display text-xl font-extrabold">Tienda en mantenimiento</h2>
+          <p className="mt-2 text-sm font-semibold text-ink/70">
+            Prontamente integraremos mejoras en los accesorios. Estén atentos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mx-auto max-w-[800px] space-y-4 p-4" data-tour="pagina-avatares">
@@ -225,6 +270,19 @@ export default function Avatares({ wasiStage }: AvataresProps) {
       <p className="text-sm text-ink/70">
         Viste a tu avatar del Wasi: 8 chicas y 2 chicos, uno por etapa. Completa los 11 accesorios de cada uno para desbloquear su Skin Especial.
       </p>
+      {avisoBloqueo && (
+        <div role="status" className="keyline-border flex items-start justify-between gap-2 rounded-2xl bg-secondary/30 p-3">
+          <p className="text-sm font-semibold">🔒 {avisoBloqueo}</p>
+          <button
+            type="button"
+            onClick={() => setAvisoBloqueo(null)}
+            aria-label="Descartar aviso"
+            className="min-h-12 min-w-12 shrink-0 rounded-xl border-2 border-ink bg-bg-light font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Fila de avatares — miniatura 2D liviana (no un visor 3D por avatar) */}
       <section>
@@ -317,7 +375,8 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                 const isEquipped = shop.equippedIdFor(av.id, acc.slot) === acc.id;
                 const isPreviewing = previewing[previewKey(acc.slot)] === acc.id;
                 const lockedByGate = !owned && !gate;
-                const disabled = !unlocked || lockedByGate;
+                const bloqueadoMantenimiento = !owned && enMantenimiento;
+                const disabled = !unlocked || lockedByGate || bloqueadoMantenimiento;
                 return (
                   <div
                     key={acc.id}
@@ -339,6 +398,8 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                     </div>
                     {!unlocked ? (
                       <span className="text-[10px] font-bold">🔒 Bloqueado</span>
+                    ) : bloqueadoMantenimiento ? (
+                      <span className="text-[10px] font-bold">🔧 En mantenimiento</span>
                     ) : lockedByGate ? (
                       <span className="text-[10px] font-bold">🔒 Completa a {prevAvatar(av)?.name}</span>
                     ) : owned ? (
@@ -383,9 +444,11 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                     <p className="text-xs font-semibold text-ink/70">{specialLook.description}</p>
                     {!specialOwned && (
                       <p className="mt-1 text-xs font-bold text-ink/60">
-                        {complete
-                          ? `✅ Set completo — desbloquéala por 💧 ${fmt(SPECIAL_SKIN_PRICE)} HydroPuntos.`
-                          : `🔒 Primero completa los 11 accesorios de ${av.name} (${ownedCount}/11); después se desbloquea por 💧 ${fmt(SPECIAL_SKIN_PRICE)}.`}
+                        {enMantenimiento
+                          ? `🔧 En mantenimiento: el desbloqueo por 💧 ${fmt(SPECIAL_SKIN_PRICE)} está pausado.`
+                          : complete
+                            ? `✅ Set completo — desbloquéala por 💧 ${fmt(SPECIAL_SKIN_PRICE)} HydroPuntos.`
+                            : `🔒 Primero completa los 11 accesorios de ${av.name} (${ownedCount}/11); después se desbloquea por 💧 ${fmt(SPECIAL_SKIN_PRICE)}.`}
                       </p>
                     )}
                   </div>
@@ -408,7 +471,7 @@ export default function Avatares({ wasiStage }: AvataresProps) {
                       >
                         {previewingSpecial ? "Quitar vista previa" : "Vista previa de la Skin Especial"}
                       </button>
-                      {complete && (
+                      {complete && !enMantenimiento && (
                         <button type="button" onClick={buySpecial} className={`${SPECIAL_BTN} bg-primary`}>
                           Desbloquear · 💧 {fmt(SPECIAL_SKIN_PRICE)}
                         </button>

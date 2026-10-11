@@ -36,7 +36,7 @@ afterEach(cleanup);
 describe("Avatares — Skin Especial", () => {
   it("sin el set completo: solo vista previa, que se ve pero no se guarda", () => {
     seed({ complete: false });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     expect(screen.queryByRole("button", { name: /Desbloquear/ })).toBeNull();
     expect(visorUrl()).not.toContain("especial");
 
@@ -49,7 +49,7 @@ describe("Avatares — Skin Especial", () => {
 
   it("la vista previa se apaga al cambiar de avatar", () => {
     seed({ complete: false });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     click(/Vista previa de la Skin Especial/);
     expect(visorUrl()).toContain("angie-especial");
 
@@ -66,7 +66,7 @@ describe("Avatares — Skin Especial", () => {
 
   it(`con el set completo se compra por ${SPECIAL_SKIN_PRICE} HP y queda puesta`, () => {
     seed({ complete: true, hp: SPECIAL_SKIN_PRICE + 100 });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     click(new RegExp(`Desbloquear.*${SPECIAL_SKIN_PRICE.toLocaleString("es-PE")}`));
 
     expect(getHydroPoints()).toBe(100);
@@ -83,7 +83,7 @@ describe("Avatares — Skin Especial", () => {
   it("sin HP suficientes avisa cuánto falta y no cobra", () => {
     const hp = SPECIAL_SKIN_PRICE - 60;
     seed({ complete: true, hp });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     click(/Desbloquear/);
     expect(screen.getByText("Te faltan 60 HP para la Skin Especial")).toBeTruthy();
     expect(getHydroPoints()).toBe(hp);
@@ -97,13 +97,13 @@ describe("Avatares — accesorios 3D", () => {
 
   it("la tarjeta muestra la foto 3D de la pieza", () => {
     seed({});
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     expect(card(LENTES).querySelector("img")?.getAttribute("src")).toMatch(/^\/models\/miniaturas\/angie-acc2\./);
   });
 
   it("probárselo lo pone en el avatar 3D antes de comprarlo, sin guardarlo", () => {
     seed({ hp: 0 });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     expect(visorAccs()).toEqual([]);
     act(() => void fireEvent.click(card(LENTES)));
     expect(visorAccs()).toEqual(["angie-acc2"]);
@@ -114,7 +114,7 @@ describe("Avatares — accesorios 3D", () => {
 
   it("comprado queda puesto, y tocándolo se saca y se vuelve a poner", () => {
     seed({ hp: 500 });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     act(() => void fireEvent.click(card(LENTES)));
     act(() => void fireEvent.click(within(card(LENTES)).getByRole("button", { name: "Comprar" })));
     expect(getHydroPoints()).toBe(500 - PRECIO);
@@ -128,10 +128,29 @@ describe("Avatares — accesorios 3D", () => {
 
   it("con la Skin Especial en vista previa no se muestran los accesorios", () => {
     seed({ hp: 500 });
-    render(<Avatares wasiStage={10} />);
+    render(<Avatares wasiStage={10} mantenimiento={false} />);
     act(() => void fireEvent.click(card(LENTES)));
     expect(visorAccs()).toEqual(["angie-acc2"]);
     click(/Vista previa de la Skin Especial/);
     expect(visorAccs()).toEqual([]);
+  });
+});
+
+describe("Avatares — mantenimiento", () => {
+  it("muestra solo la ventana de mantenimiento, sin botón ni avatares", () => {
+    seed({ hp: 500 });
+    render(<Avatares wasiStage={10} />);
+    expect(screen.getByRole("dialog", { name: /mantenimiento/i })).toBeTruthy();
+    expect(screen.getByText(/Prontamente integraremos mejoras en los accesorios/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Ver mis avatares/ })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Colección de avatares" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Desbloquear/ })).toBeNull();
+  });
+
+  it("no cobra HP ni guarda accesorios en mantenimiento", () => {
+    seed({ hp: 500 });
+    render(<Avatares wasiStage={10} />);
+    expect(getHydroPoints()).toBe(500);
+    expect(read().ownedAccessoryIds ?? []).toEqual([]);
   });
 });

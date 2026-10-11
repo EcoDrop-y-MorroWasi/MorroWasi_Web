@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import ProtectedVideo from "../components/ProtectedVideo";
 
 // Nota de prensa fija — MiniFeria "Cada Gota Cuenta.." (Club de Ciencias "Código
-// Científico TPC - Todo Por Cristo", Desafío Amauta 2026). Pinneada desde Noticias.tsx,
+// Científico TPC - Todo Por Cristo"). Pinneada desde Noticias.tsx,
 // NO borrar esta página ni su entrada en App.tsx. Videos servidos vía Vercel Blob
 // privado + URL firmada de corta duración (ver api/video-url.ts) — no son archivos
 // estáticos en public/.
@@ -39,8 +39,7 @@ export default function NoticiaMiniferiaCadaGota() {
             El 02 de setiembre, a las 11:30 a.m., el pabellón de 5to grado sección A de la I.E. "Almirante Miguel Grau" se
             convirtió en punto de encuentro para la MiniFeria <strong>"Cada Gota Cuenta.."</strong>, actividad organizada en
             el marco del proyecto <strong>"EcoDrop y MorroWasi: Protegiendo el agua para Ti"</strong> y presentada por el
-            Club de Ciencias <strong>"Código Científico TPC - Todo Por Cristo"</strong> como parte de su participación en
-            el Desafío Amauta 2026.
+            Club de Ciencias <strong>"Código Científico TPC - Todo Por Cristo"</strong>.
           </p>
           <p>
             La feria reunió a estudiantes, docentes y familias alrededor de estands, demostraciones y dinámicas pensadas
@@ -52,7 +51,7 @@ export default function NoticiaMiniferiaCadaGota() {
           </p>
           <p>
             "Cada Gota Cuenta.." se suma a una serie de actividades que el Club de Ciencias Código Científico TPC viene
-            desarrollando bajo las etiquetas #DesafioAmauta26 y #ClubesQueInspiran, reforzando su compromiso con la
+            desarrollando bajo la etiqueta #ClubesQueInspiran, reforzando su compromiso con la
             educación ambiental desde las aulas.
           </p>
         </div>

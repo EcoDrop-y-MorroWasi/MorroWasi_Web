@@ -291,17 +291,8 @@ export default function Perfil() {
             </div>
           </fieldset>
         )}
-        {/* Este emoji es la foto de perfil de la familia (header/ranking). El avatar 3D del
-            Wasi —el que el niño viste con accesorios y su Skin Especial— es otra cosa y vive
-            en su propia pestaña; este link solo evita que parezcan el mismo sistema. */}
-        <button
-          type="button"
-          onClick={() => navigate("/avatares")}
-          className="mt-3 flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-ink bg-bg-light px-3 text-left text-sm font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-        >
-          <span>🧑 ¿Buscás vestir al avatar 3D del Wasi? Está en la pestaña Avatares</span>
-          <span aria-hidden="true">→</span>
-        </button>
+        {/* Tienda en mantenimiento: el link a vestir el avatar 3D se oculta
+            hasta que terminen las mejoras en los accesorios. */}
         <fieldset className="mt-4"><legend className="text-sm font-bold">Capacidad del tanque</legend><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{CAPACITIES.map((capacity) => <button key={capacity} type="button" aria-pressed={reservoir.capacityLiters === capacity} onClick={() => reservoir.setCapacityLiters(capacity)} className={`min-h-12 rounded-xl border-2 border-ink px-2 font-bold shadow-[2px_2px_0_#1c1c11] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${reservoir.capacityLiters === capacity ? "bg-[#E26D5C] text-white" : "bg-bg-light"}`}>{capacity} L</button>)}</div>{reservoir.capacityLiters === 0 && <p className="mt-2 text-xs font-bold text-[#E26D5C]">Elige la capacidad de tu tanque para activar el monitor del reservorio.</p>}</fieldset>
         <p className="mt-3 text-xs font-semibold text-ink/80">Los cambios se guardan solo en este dispositivo.</p>
       </section>
