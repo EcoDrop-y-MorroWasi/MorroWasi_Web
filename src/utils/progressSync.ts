@@ -81,6 +81,18 @@ function readLocal(): RemoteProgressData {
   return { lastModified: getLastModified(), values: readAllProgress() };
 }
 
+/**
+ * ¿Todo lo local ya está subido para este código? Compara el marcador del
+ * último sync exitoso contra lo actual: si ganó HP/EXP (o tocó algo) después,
+ * devuelve false — hay cambios sin respaldo. Sirve para exigir sincronizar
+ * antes de compartir puntaje al ranking (antitrampa blanda del lado cliente).
+ */
+export function estaSincronizado(code: string): boolean {
+  const marker = readMarker(code);
+  if (!marker) return false;
+  return marker.localAtSync === getLastModified();
+}
+
 function applyRemote(remote: RemoteProgressData): void {
   for (const [key, value] of Object.entries(remote.values ?? {})) {
     if ((PROGRESS_STORAGE_KEYS as readonly string[]).includes(key)) {

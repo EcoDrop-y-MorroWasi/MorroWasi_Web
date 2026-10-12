@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { RankingTable } from '../components/RankingTable'
 import { mockFamily } from '../data/mock'
 import { getProfileId } from '../utils/progressBackup'
-import { getLinkedCode } from '../utils/progressSync'
+import { estaSincronizado, getLinkedCode } from '../utils/progressSync'
 import { totalsToday, totalsFromLedger } from '../utils/leaderboardLedger'
 import {
   PERIODOS,
@@ -70,6 +70,9 @@ export const Ranking = () => {
   const [pidiendoConsentimiento, setPidiendoConsentimiento] = useState(false)
   const [limite, setLimite] = useState(TAMANO_PAGINA)
   const [pidiendoRespaldo, setPidiendoRespaldo] = useState(false)
+  // Código enlazado pero con HP/EXP (u otro progreso) ganado después del
+  // último sync: se avisa sincronizar antes de compartir.
+  const [pidiendoSincronizar, setPidiendoSincronizar] = useState(false)
   // Privado (fetchMyRank exige tu secret real) — se pide aparte del top porque
   // solo tiene sentido mostrarlo cuando quedaste fuera de las filas visibles.
   const [miRango, setMiRango] = useState<MyRankRow | null>(null)
@@ -160,16 +163,18 @@ export const Ranking = () => {
     // Antitrampa: sin progreso sincronizado no se comparte. Vincular el código
     // ata el puntaje a una identidad con respaldo, así no vale crear perfiles
     // desechables para inflar la tabla.
-    if (!getLinkedCode()) {
+    const codigo = getLinkedCode()
+    if (!codigo) {
       setPidiendoRespaldo(true)
       return
     }
+    // Con código pero cambios sin subir (ganó HP/EXP después del último sync):
+    // el puntaje compartido no tendría respaldo verificable.
+    if (!estaSincronizado(codigo)) {
+      setPidiendoSincronizar(true)
+      return
+    }
     await continuarCompartir()
-  }
-
-  const compartirSinRespaldo = () => {
-    setPidiendoRespaldo(false)
-    void continuarCompartir()
   }
 
   const continuarCompartir = async () => {
@@ -286,10 +291,47 @@ export const Ranking = () => {
                 </Link>
                 <button
                   type="button"
-                  onClick={compartirSinRespaldo}
+                  onClick={() => setPidiendoRespaldo(false)}
                   className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                 >
-                  Compartir sin respaldo
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          )}
+          {pidiendoSincronizar && (
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="sincronizar-title"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="keyline-border mt-3 rounded-2xl bg-bg-light p-4"
+            >
+              <p className="text-2xl" aria-hidden="true">🔄</p>
+              <h2 id="sincronizar-title" className="mt-1 font-display text-base font-extrabold">
+                Sincroniza tu progreso primero
+              </h2>
+              <p className="mt-1 font-body text-sm">
+                Ganaste HP o EXP después de tu última sincronización y eso aún no
+                está respaldado. Sincroniza en Perfil para que tu puntaje
+                compartido tenga respaldo verificable.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Link
+                  to="/perfil"
+                  onClick={() => setPidiendoSincronizar(false)}
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-xl border-2 border-ink bg-primary px-5 font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  🔄 Ir a sincronizar
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setPidiendoSincronizar(false)}
+                  className="min-h-12 flex-1 rounded-xl border-2 border-ink bg-bg-light font-display text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  Cerrar
                 </button>
               </div>
             </motion.div>
