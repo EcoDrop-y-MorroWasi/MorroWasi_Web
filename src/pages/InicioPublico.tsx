@@ -4,10 +4,9 @@ import Logo from '../components/Logo'
 import ProtectedVideo from '../components/ProtectedVideo'
 
 const SECTIONS = [
-  { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', text: 'Una plataforma educativa para que personas, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
-  { icon: '🌱', title: 'Cómo ayuda', tone: 'bg-secondary', text: 'Registra hábitos de ahorro, aprende con cursos de video, juega desafíos educativos y hace crecer tu Wasi en sus 10 etapas. Cada acción suma litros, HydroPuntos y motivación para seguir cuidando el agua.' },
-  { icon: '📍', title: 'Dónde nació', tone: 'bg-surface', text: 'El Club de Ciencias Código Científico TPC - Todo Por Cristo, diseñó las herramientas tecnológicas MorroWasi y "EcoDrop". Esta propuesta no concibe la tecnología como un elemento aislado o descontextualizado, sino como la continuación e innovación de la ética ancestral del cuidado del agua. Evitando el desperdicio hoy mediante sensores y software escolar, es la traducción contemporánea del valor del agua que practicaron los ancestros de Morropón.' },
-  { icon: '🎯', title: 'Nuestro objetivo', tone: 'bg-primary/30', text: 'Promover el uso responsable del agua en hogares y escuelas mediante educación práctica, actividades cotidianas y una comunidad que celebra cada gota ahorrada.' },
+  { icon: '💧', title: 'Qué es MorroWasi', tone: 'bg-primary', wide: false, text: 'Una plataforma educativa para que personas, escuelas y comunidades de Piura conviertan el cuidado del agua en hábitos visibles. Eco-Drop, su aliado autónomo, detecta goteos junto al caño y avisa con sonido local: no usa Bluetooth ni se conecta al celular.' },
+  { icon: '🌱', title: 'Cómo ayuda', tone: 'bg-secondary', wide: false, text: 'Registra hábitos de ahorro, aprende con cursos de video, juega desafíos educativos y hace crecer tu Wasi en sus 10 etapas. Cada acción suma litros, HydroPuntos y motivación para seguir cuidando el agua.' },
+  { icon: '📍', title: 'Dónde nació', tone: 'bg-surface', wide: true, text: 'El Club de Ciencias Código Científico TPC - Todo Por Cristo, diseñó las herramientas tecnológicas MorroWasi y "EcoDrop". Esta propuesta no concibe la tecnología como un elemento aislado o descontextualizado, sino como la continuación e innovación de la ética ancestral del cuidado del agua. Evitando el desperdicio hoy mediante sensores y software escolar, es la traducción contemporánea del valor del agua que practicaron los ancestros de Morropón.' },
 ] as const
 
 const GALLERY = [
@@ -43,7 +42,7 @@ export default function InicioPublico() {
         <section aria-labelledby="conoce-title">
           <h2 id="conoce-title" className="font-display text-2xl font-extrabold">Conoce MorroWasi</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {SECTIONS.map((section) => <article key={section.title} className={`keyline-border rounded-2xl p-5 shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] ${section.tone}`}><span aria-hidden="true" className="text-3xl">{section.icon}</span><h3 className="mt-3 font-display text-xl font-extrabold">{section.title}</h3><p className="mt-2 font-semibold leading-relaxed text-ink/80">{section.text}</p></article>)}
+            {SECTIONS.map((section) => <article key={section.title} className={`keyline-border rounded-2xl p-5 shadow-[4px_4px_0_var(--color-ink)] transition-transform hover:-translate-y-[2px] ${section.tone}${section.wide ? ' sm:col-span-2' : ''}`}><div className="flex items-center gap-2"><span aria-hidden="true" className="text-2xl">{section.icon}</span><h3 className="font-display text-xl font-extrabold">{section.title}</h3></div><p className="mt-2 font-semibold leading-relaxed text-ink/80">{section.text}</p></article>)}
           </div>
         </section>
 
@@ -60,7 +59,7 @@ export default function InicioPublico() {
           </div>
         </section>
 
-        <section className="keyline-border rounded-2xl bg-secondary p-6 text-center shadow-[4px_4px_0_var(--color-ink)]"><h2 className="font-display text-2xl font-extrabold">¿Listos para ahorrar juntos?</h2><p className="mx-auto mt-2 max-w-xl font-semibold text-ink/80">Entra, registra tus hábitos y mira cómo florece tu Wasi.</p><AccessLink label="Acceder" extra="mt-5 bg-accent text-white shadow-[2px_2px_0_var(--color-ink)]" /></section>
+        <section className="keyline-border rounded-2xl bg-primary/30 p-6 text-center shadow-[4px_4px_0_var(--color-ink)]"><div className="flex items-center justify-center gap-2"><span aria-hidden="true" className="text-2xl">🎯</span><h2 className="font-display text-2xl font-extrabold">Nuestro objetivo</h2></div><p className="mx-auto mt-2 max-w-xl font-semibold text-ink/80">Promover el uso responsable del agua en hogares y escuelas mediante educación práctica, actividades cotidianas y una comunidad que celebra cada gota ahorrada.</p></section>
         <Footer />
       </div>
     </main>
