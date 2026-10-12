@@ -188,9 +188,9 @@ export default function Login() {
           </p>
         )}
 
-        {!codigoGenerado && (
+        {modo === 'elegir' && !codigoGenerado && (
           <Link to="/inicio-publico" className="mt-3 flex min-h-12 items-center justify-center rounded-xl border-2 border-ink bg-bg-light px-4 text-sm font-bold shadow-[2px_2px_0_var(--color-ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-            ← Volver al inicio público
+            ← Volver al inicio
           </Link>
         )}
       </div>
