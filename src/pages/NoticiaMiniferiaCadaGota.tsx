@@ -24,7 +24,7 @@ export default function NoticiaMiniferiaCadaGota() {
         </div>
 
         <h1 className="font-display text-2xl font-extrabold text-ink leading-snug">
-          MiniFeria "Cada Gota Cuenta..": el Club de Ciencias Código Científico TPC - Todo Por Cristo lleva el cuidado del
+          MiniFeria "Cada Gota Cuenta..": el Club de Ciencias "Código Científico TPC - Todo Por Cristo" lleva el cuidado del
           agua al pabellón de 5to A
         </h1>
 

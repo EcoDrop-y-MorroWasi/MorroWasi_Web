@@ -272,7 +272,7 @@ export default function Noticias() {
               to="/noticias/miniferia-cada-gota"
               className="mt-1 block font-display text-base font-bold text-ink hover:underline"
             >
-              MiniFeria "Cada Gota Cuenta..": el Club de Ciencias Código Científico TPC - Todo Por Cristo lleva el cuidado
+              MiniFeria "Cada Gota Cuenta..": el Club de Ciencias "Código Científico TPC - Todo Por Cristo" lleva el cuidado
               del agua al pabellón de 5to A
             </Link>
             <p className="mt-1 text-sm text-ink/80 leading-snug">
