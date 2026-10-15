@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Configurar pnpm
         uses: pnpm/action-setup@v4
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Configurar Python 3.12
         uses: actions/setup-python@v5
@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el código (con historial completo)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Configurar pnpm
         uses: pnpm/action-setup@v4
